@@ -11,11 +11,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       sidebar={{
         tabs: [
           {
-            title: "Docs home",
+            title: "System Design",
             description: "Hello World!",
-            // active for `/docs/components` and sub routes like `/docs/components/button`
-            url: "/docs",
-            // urls: new Set(['/docs/test', '/docs/components']),
+            url: "/sd",
           },
           {
             title: "System Design - HLD",
@@ -28,10 +26,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {
             title: "System Design - LLD",
             description: "Hello World!",
-            // active for `/docs/components` and sub routes like `/docs/components/button`
             url: "/lld",
-            // optionally, you can specify a set of urls which activates the item
-            // urls: new Set(['/docs/test', '/docs/components']),
           },
         ],
       }}

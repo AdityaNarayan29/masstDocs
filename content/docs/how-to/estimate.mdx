@@ -1,0 +1,132 @@
+---
+title: Estimate
+description: 🏗️ How to estimate scale in a High-Level Design (HLD) Interview?
+---
+
+## 📊 Estimate Scale
+
+Estimating scale helps you choose the right technologies, plan for growth, and communicate your understanding of real-world systems.
+
+---
+
+## ✅ What to Estimate?
+
+1. 👥 Users (DAU / MAU)
+2. 🔄 Requests / Query per second (RPS / QPS)
+3. 📦 Storage
+4. 🧮 Bandwidth
+
+---
+
+## 👥 1. Estimate Users
+
+Estimate Daily Active Users (DAU) and Monthly Active Users (MAU) based on the app type.
+
+**Heuristics:**
+- Social media: DAU ≈ 10–30% of MAU
+- Admin/dashboard apps: DAU ≈ MAU
+- Ticketing/event apps: Spiky traffic
+
+> **Example:**  
+> If MAU is 10M, assume 1–3M DAU.
+
+**Say in interview:**
+> “Let’s assume 5M monthly active users, and around 1M daily active users.”
+
+---
+
+## 🔄 2. Requests Per Second (RPS)
+
+### 🎯 Formula
+
+```
+RPS ≈ (DAU × Requests per User per Day) ÷ 10^6
+```
+
+Use `10^6` (instead of 86400 seconds in a day) for simplicity in interviews.
+
+### 🧠 Example
+
+- DAU = 1,000,000
+- Avg 5 requests/day/user
+
+```
+RPS = (1M × 5) ÷ 1M ≈ 5 RPS
+```
+
+**Advanced: Split by Type**
+- 70% reads → 3.5 RPS
+- 30% writes → 1.5 RPS
+
+> “We’ll need to optimize for reads and cache aggressively.”
+
+---
+
+## 📦 3. Estimate Storage
+
+### 🎯 Formula
+
+```
+Storage = Avg object size × Number of objects
+```
+
+### Example
+
+- 1 post = 500 bytes
+- 10M posts/month = 10^6 posts/month
+
+```
+Storage = 500 bytes × 10^6 = ~5 GB/month
+```
+
+Use `10^6` (instead of 1024 take `10^3` in unit calculation) for simplicity in interviews.
+
+- 1-year retention = 60 GB
+
+> “We’ll need ~5 GB/month, or ~60 GB/year for post storage.”
+
+---
+
+## 🧮 4. Estimate Bandwidth
+
+### 🎯 Formula
+
+```
+Bandwidth = RPS × Avg response size
+```
+
+### Example
+
+- 60 RPS
+- Avg response = 50 KB
+
+```
+Bandwidth = 60 × 50 KB = 3 MB/s
+```
+
+- Daily: 3 MB/s × 86400 = ~250 GB/day
+
+> “Our outgoing traffic will be ~250 GB/day, mainly due to read-heavy load.”
+
+---
+
+## 📋 Summary Table
+
+| Metric        | Formula                        | Example                        |
+|---------------|-------------------------------|--------------------------------|
+| **Users**     | Estimate DAU from MAU         | MAU = 10M → DAU ≈ 1–3M         |
+| **RPS**       | (DAU × reqs/day) ÷ 10^6       | (1M × 5) ÷ 10^6 = ~5 RPS       |
+| **Storage**   | Size/item × # of items        | 500 B × 10M = ~5 GB/month      |
+| **Bandwidth** | RPS × response size           | 60 RPS × 50 KB = ~3 MB/s       |
+
+---
+
+## 💡 Interview Power Move
+
+Say something like:
+
+> “Given 1M DAU and ~5 RPS, we expect read-heavy traffic, so we’ll cache results using Redis/CDN. Storage needs are modest (~5 GB/month), and bandwidth can be optimized via compression.”
+
+---
+
+**Tip:** Clear, quantitative estimates show you understand real-world system constraints and can communicate trade-offs effectively.

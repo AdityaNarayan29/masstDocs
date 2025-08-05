@@ -1,0 +1,193 @@
+---
+title: Solve
+description: 🏗️ How to Approach a High-Level Design (HLD) Interview?
+---
+
+## Step-by-step guide to solving problems
+
+In a High-Level Design interview, your goal is to present a scalable, secure, and well-reasoned design for a given problem.  
+Here's a step-by-step guide to help you structure your answer.
+
+---
+
+## ✅ 1. Clarify the Problem Statement
+
+Start by making sure you understand the requirements.
+
+- Confirm the scope.
+- Ask about the type of users.
+- Determine if it's read-heavy, write-heavy, real-time, etc.
+
+> **Example:**  
+> "Are we building a real-time chat system for 1M DAUs, or async messaging like email?"
+
+---
+
+## ✅ 2. Define Functional Requirements
+
+List out **what** the system should do.
+
+- User-facing features (CRUD, login, analytics, etc.)
+- Prioritize core features vs optional ones
+
+> **For a URL shortener:**  
+> - Generate short links  
+> - Redirect to original URLs  
+> - Track click stats  
+> - Link expiry (optional)
+
+---
+
+## ✅ 3. Define Non-Functional Requirements
+
+Focus on the **quality** attributes:
+
+- Scalability (e.g. 10M users)
+- Availability (e.g. 99.99% uptime)
+- Latency (e.g. < 200ms)
+- Security (e.g. OAuth2, rate limiting)
+- Durability and consistency
+
+---
+
+## ✅ 4. Estimate Scale
+
+Estimate user load, traffic, and storage.
+
+### 👥 Users
+
+- Daily Active Users (DAU)
+- Monthly Active Users (MAU)
+
+### 🔄 Requests per second (RPS)
+
+> 1M DAU × 5 requests/day ≈ ~60 RPS
+
+### 📦 Storage
+
+- Estimate size/item × number of items
+
+### 🧮 Bandwidth
+
+- Read/write ratio, data egress
+
+---
+
+## ✅ 5. API Design (Optional but Valuable)
+
+Design key APIs:
+
+```http
+POST /shorten
+{
+  "longUrl": "https://example.com"
+}
+→ 201 Created
+{
+  "shortUrl": "mas.st/xy12"
+}
+
+GET /xy12
+→ 302 Redirect to long URL
+```
+
+Include rate limits, headers, etc.
+
+---
+
+## ✅ 6. High-Level Architecture
+
+Draw major components:
+
+- Clients (web/mobile)
+- Load balancer
+- App servers / Microservices
+- Database(s)
+- Caching layer
+- Message queues
+
+---
+
+## ✅ 7. Component Deep Dive
+
+Choose and zoom into one or two core components:
+
+- Short URL generation logic
+- Feed generation in social media
+- Notification system, etc.
+
+---
+
+## ✅ 8. Data Modeling
+
+Mention core entities:
+
+- Define DB tables or NoSQL collections
+- Add indexes and relationships
+
+---
+
+## ✅ 9. Scaling Strategy
+
+Show how your system can grow:
+
+- Read scaling: Caching (Redis/CDN)
+- Write scaling: Sharding, queues
+- Horizontal scaling: more instances
+- DB scaling: Read replicas, partitioning
+
+---
+
+## ✅ 10. Trade-offs & Bottlenecks
+
+Show engineering judgment:
+
+- SQL vs NoSQL
+- Consistency vs Availability (CAP theorem)
+- In-memory speed vs persistence
+- Async queues vs real-time API
+
+---
+
+## ✅ 11. Security & Monitoring
+
+Briefly cover:
+
+- Auth (JWT, OAuth2)
+- Rate limiting
+- Logs and metrics
+- Alerting
+
+---
+
+## ✅ 12. Wrap Up
+
+Summarize your system:
+
+> We’ve built a horizontally scalable, low-latency system with Redis caching, PostgreSQL DB, async queues, and 99.99% uptime.
+
+---
+
+## 📋 Summary Table
+
+| Steps to remember         | Why It Matters                                 |
+|--------------------------|------------------------------------------------|
+| 1️⃣ Clarify the problem   | Sets the foundation — avoid wrong assumptions  |
+| 2️⃣ Functional requirements | Defines what the system must do               |
+| 3️⃣ Non-functional requirements | Sets expectations (scale, performance)    |
+| 4️⃣ Estimate scale        | Helps size the solution realistically          |
+| 6️⃣ High-level architecture | The heart of HLD – shows your system thinking|
+| 7️⃣ Component deep dive   | Shows depth in design                          |
+| 🔟 Trade-offs & bottlenecks | Shows engineering maturity                   |
+
+| Nice to have             | Value                                          |
+|--------------------------|------------------------------------------------|
+| 5️⃣ API design           | Good for client-server or service-based systems|
+| 8️⃣ Data modeling        | Helpful when dealing with storage-heavy systems|
+| 9️⃣ Scaling strategies   | Reinforces your understanding of growth        |
+| 1️⃣1️⃣ Security & monitoring | Shows ops awareness                        |
+| 1️⃣2️⃣ Wrap-up summary   | Ends your pitch strongly                       |
+
+---
+
+**Tip:** Use whitespace and clear sections to make your HLD answer easy to follow!

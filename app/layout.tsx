@@ -11,7 +11,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang='en' className={inter.className} suppressHydrationWarning>
       <head>
-        <link rel='icon' href='./public/logo.png' sizes='any' />
+        <link rel='icon' href='/logo.png' sizes='any' />
       </head>
       <body className='flex flex-col min-h-screen'>
         <RootProvider>{children}</RootProvider>

@@ -1,0 +1,130 @@
+---
+title: SOLID principles
+description: SOLID is a set of five design principles for writing maintainable and scalable object-oriented code. It makes your code easier to understand, extend, and refactor.
+---
+
+## What Does SOLID Stand For?
+
+> **S**: Single Responsibility Principle (SRP)
+>
+> **O**: Open/Closed Principle (OCP)
+>
+> **L**: Liskov Substitution Principle (LSP)
+>
+> **I**: Interface Segregation Principle (ISP)
+>
+> **D**: Dependency Inversion Principle (DIP)
+
+---
+
+### 1. Single Responsibility Principle (SRP)
+
+**A class should have only one reason to change.**
+
+- **What it means:** Each class should handle one job only.
+  > **Example:**
+  ```
+  class InvoicePrinter {
+      void print(Invoice invoice) { /* ... */ }
+  }
+  class InvoiceSaver {
+      void save(Invoice invoice) { /* ... */ }
+  }
+  ```
+  _Don’t mix printing and saving logic in one class. Keep them separate._
+
+---
+
+### 2. Open/Closed Principle (OCP)
+
+**Software entities should be open for extension, but closed for modification.**
+
+- **What it means:** Add new features by adding new code, not by changing existing code.
+  > **Example:**
+  ```
+  interface Shape {
+      double area();
+  }
+  class Circle implements Shape { /* ... */ }
+  class Square implements Shape { /* ... */ }
+  ```
+  _Add new shapes without modifying existing classes._
+
+---
+
+### 3. Liskov Substitution Principle (LSP)
+
+**Objects of a superclass should be replaceable with objects of a subclass without breaking the application.**
+
+- **What it means:** Subclasses must honor the contract of their base classes.
+  > **Example:**
+  ```
+  class Bird { void fly(); }
+  class Duck extends Bird { void fly(); }
+  class Ostrich extends Bird { /* Ostrich can't fly! */ }
+  ```
+  _Don’t make Ostrich extend Bird if Ostrich can’t fly._
+
+---
+
+### 4. Interface Segregation Principle (ISP)
+
+**Clients should not be forced to depend on interfaces they do not use.**
+
+- **What it means:** Create specific, smaller interfaces instead of one big interface.
+  > **Example:**
+  ```
+  interface Printer {
+      void print();
+  }
+  interface Scanner {
+      void scan();
+  }
+  ```
+  _Don’t force a simple printer to implement scan functionality._
+
+---
+
+### 5. Dependency Inversion Principle (DIP)
+
+**Depend on abstractions, not on concrete implementations.**
+
+- **What it means:** Use interfaces or abstract classes so high-level modules don’t depend on low-level modules.
+  > **Example:**
+  ```
+  interface NotificationService {
+      void send(String message);
+  }
+  class EmailService implements NotificationService { /* ... */ }
+  class NotificationManager {
+      private NotificationService service;
+      NotificationManager(NotificationService service) {
+          this.service = service;
+      }
+  }
+  ```
+  _NotificationManager depends on the interface, not the concrete EmailService._
+
+---
+
+## Summary Table
+
+| **Principle** | **Meaning**                                      | **Quick Example**                       |
+| ------------- | ------------------------------------------------ | --------------------------------------- |
+| **SRP**       | One class = one job                              | Separate printer & saver                |
+| **OCP**       | Extend, don’t modify existing code               | Add new Shape types                     |
+| **LSP**       | Subtypes must work as their base types           | Don’t make non-flying birds extend Bird |
+| **ISP**       | Use small, specific interfaces                   | Separate Printer/Scanner                |
+| **DIP**       | Depend on abstractions (interfaces), not details | Use NotificationService                 |
+
+---
+
+#### Interview Tips
+
+- **Use real-world analogies or simple code snippets** to demonstrate each principle.
+- **Explain why** following SOLID leads to easier testing, scaling, and maintenance.
+- **Show awareness** of trade-offs: sometimes over-abstraction can make code unnecessarily complex.
+
+---
+
+**SOLID** principles are the foundation of good object-oriented design. Mastering them is essential for writing robust, flexible, and maintainable code.

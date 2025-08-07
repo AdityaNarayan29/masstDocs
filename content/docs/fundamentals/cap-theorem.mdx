@@ -1,0 +1,59 @@
+---
+title: CAP Theorem
+description: CAP theorem (also known as Brewer's theorem)
+---
+
+## CAP Theorem Explained (with Examples)
+
+The **CAP Theorem** is a key idea in distributed systems, introduced by Eric Brewer. It states that a distributed system can provide only **two out of three** guarantees at any time:
+
+- **Consistency (C):** Every read gets the latest write (or an error).
+- **Availability (A):** Every request receives a response, even if it doesn't contain the latest write.
+- **Partition Tolerance (P):** The system works even if network partitions split communication between nodes.
+
+Due to the reality of network failures, **partition tolerance** is a must for distributed systems. This means you have to choose between consistency and availability during a partition.
+
+---
+
+### Understanding the Properties
+
+- **Consistency:** All nodes show the same data at the same time.
+  > *Example:* Updating your profile photo on a social network and seeing the change everywhere instantly.
+- **Availability:** The system always responds to requests, but data may not be the latest.
+  > *Example:* DNS servers always reply, even if a recent update hasn't reached every server yet.
+- **Partition Tolerance:** The system stays operational even if parts can’t communicate.
+  > *Example:* A global database keeps running, even if two data centers can't talk to each other.
+
+---
+
+### CAP Combinations with Real-World Examples
+
+- **CP (Consistency + Partition Tolerance):**  
+  System favors correct data, but some requests may be denied during a partition.  
+  *Example:* HBase, MongoDB (in CP mode). Used in banking or finance, where correct data is critical.
+
+- **AP (Availability + Partition Tolerance):**  
+  System always responds, but some data may be outdated during a partition.  
+  *Example:* DynamoDB, Cassandra. Used in shopping carts or social feeds where being up is more important than always being up-to-date.
+
+- **CA (Consistency + Availability):**  
+  System always shows the latest data and responds to every request—but only as long as there’s no partition.  
+  *Example:* Single-node MySQL or PostgreSQL. Suitable for small, local systems.
+
+---
+
+### Summary Table
+
+| **Type** | **Guarantees**         | **Sacrifices**      | **Examples**            | **Typical Use Case**                  |
+|----------|------------------------|---------------------|-------------------------|---------------------------------------|
+| **CP**   | Consistency, Partition | Availability        | HBase, MongoDB (CP)     | Financial transactions                |
+| **AP**   | Availability, Partition| Consistency         | DynamoDB, Cassandra     | Shopping carts, social media          |
+| **CA**   | Consistency, Availability | Partition Tolerance | Single-node MySQL       | Internal tools, small apps            |
+
+---
+
+### Interview Tips
+
+- **Partition tolerance is essential** in distributed systems.
+- **You must choose:** Consistency or Availability during a partition—never all three.
+- **Use concrete examples** to explain CAP trade-offs, tailored to the use case.

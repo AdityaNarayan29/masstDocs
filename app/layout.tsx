@@ -10,7 +10,6 @@ const inter = Inter({
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
-  
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -27,6 +26,32 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang='en' className={inter.className} suppressHydrationWarning>
       <head>
+        <title>Masst Docs | System Design Documentation</title>
+        <meta
+          name='description'
+          content='Masst Docs is a complete System Design documentation platform, including HLD, LLD, fundamentals, and case studies.'
+        />
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
+
+        {/* Open Graph / Social Sharing */}
+        <meta property='og:title' content='Masst Docs | System Design Docs' />
+        <meta
+          property='og:description'
+          content='Explore HLD, LLD, system components, and case studies with Masst Docs.'
+        />
+        <meta property='og:type' content='website' />
+        <meta property='og:url' content='https://docs.masst.dev/' />
+        <meta property='og:image' content='https://x.com/masstdev/photo' />
+
+        {/* Twitter Card */}
+        <meta name='twitter:card' content='Masst Docs' />
+        <meta name='twitter:title' content='Masst Docs | System Design Docs' />
+        <meta
+          name='twitter:description'
+          content='Explore HLD, LLD, system components, and case studies with Masst Docs.'
+        />
+        <meta name='twitter:image' content='https://x.com/masstdev/photo' />
+
         {/* Favicon */}
         <link rel='icon' href='/logo.png' sizes='any' />
 

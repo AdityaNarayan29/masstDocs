@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "dev.masst.docs.twa",
+    "sha256_cert_fingerprints": [
+      "49:48:EC:ED:12:C2:0B:D8:17:69:B4:5B:91:F5:63:1E:19:1A:A4:B2:77:45:DA:EF:AD:06:E4:39:D7:9F:DE:5A"
+    ]
+  }
+}]

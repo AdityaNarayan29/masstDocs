@@ -1,0 +1,4 @@
+#Sat Aug 16 23:05:31 GST 2025
+base.0=/Users/adityanarayan/Projects/masstDocs/twa/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

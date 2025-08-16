@@ -13,9 +13,9 @@
   "backgroundColor": "#000000",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://docs.masst.dev/icons/512.png",
-  "maskableIconUrl": "https://docs.masst.dev/icons/512.png",
-  "monochromeIconUrl": "https://docs.masst.dev/icons/512.png",
+  "iconUrl": "https://docs.masst.dev/icons/310.png",
+  "maskableIconUrl": "https://docs.masst.dev/icons/310.png",
+  "monochromeIconUrl": "https://docs.masst.dev/icons/310.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "/Users/adityanarayan/Projects/masstDocs/twa/android.keystore",

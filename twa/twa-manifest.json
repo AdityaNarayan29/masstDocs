@@ -25,7 +25,7 @@
   "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://masst-docs.vercel.app/manifest.json",
+  "webManifestUrl": "https://docs.masst.dev/manifest.json",
   "fallbackType": "none",
   "features": {},
   "alphaDependencies": {

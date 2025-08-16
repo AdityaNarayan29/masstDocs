@@ -57,8 +57,8 @@ android {
         applicationId "dev.masst.docs.twa"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 3
-        versionName "3"
+        versionCode 4
+        versionName "4"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -76,7 +76,7 @@ android {
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
             // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
             // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://docs.masst.dev/manifest.json'
+            resValue "string", "webManifestUrl", 'https://masst-docs.vercel.app/manifest.json'
         
 
         

@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         />
         <meta property='og:type' content='website' />
         <meta property='og:url' content='https://docs.masst.dev/' />
-        <meta property='og:image' content='https://x.com/masstdev/photo' />
+        <meta property='og:image' content='https://x.com/masstdev/photo/' />
 
         {/* Twitter Card */}
         <meta name='twitter:card' content='Masst Docs' />

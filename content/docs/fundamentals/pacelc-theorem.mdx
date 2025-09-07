@@ -1,0 +1,66 @@
+---
+title: PACELC Theorem
+description: PACELC theorem (an extension of the CAP theorem)
+---
+
+## PACELC Theorem Explained (with Examples)
+
+The **PACELC Theorem** extends the CAP theorem by considering both **failure scenarios** and **normal operation** in distributed systems.  
+
+It states:
+
+- **If there is a Partition (P):** you must trade off **Availability (A)** vs **Consistency (C)** (same as CAP).  
+- **Else (E), in normal operation:** you must trade off **Latency (L)** vs **Consistency (C)**.  
+
+This makes PACELC more practical than CAP, since real-world systems spend most of their time without partitions.
+
+---
+
+### Understanding the Properties
+
+- **Partition (P):** Network issues cause nodes to split into groups.
+- **Availability (A):** System always responds, even if data is stale.
+- **Consistency (C):** All clients see the same, up-to-date data.
+- **Else (E):** Normal system state (no partition).
+- **Latency (L):** The time taken to return results—fast responses vs waiting for global consistency.
+
+---
+
+### PACELC in Action
+
+- **AP/EL Systems (Availability + Low Latency):**  
+  Prioritize availability during partitions, and low latency when healthy.  
+  *Example:* DynamoDB, Cassandra → eventual consistency, very fast reads/writes.
+
+- **CP/EC Systems (Consistency + Strong Consistency):**  
+  Prioritize consistency during partitions, and consistency even in normal operation.  
+  *Example:* Google Spanner → guarantees strong consistency, but with higher latency.
+
+---
+
+### Why PACELC Matters
+
+- **CAP looks only at failure modes.**  
+- **PACELC adds normal operation trade-offs.**  
+- Helps architects reason about **real-world latency vs consistency** decisions.
+
+---
+
+### Comparison: CAP vs PACELC
+
+| **Aspect**          | **CAP Theorem**                                | **PACELC Theorem**                                                        |
+|----------------------|-----------------------------------------------|----------------------------------------------------------------------------|
+| **Focus**           | Only considers network partitions              | Considers both partitions *and* normal operation                          |
+| **Trade-offs**      | Consistency (C) vs Availability (A) when P occurs | C vs A when P occurs, and Latency (L) vs Consistency (C) when no partition |
+| **Normal operation**| Not covered                                    | Explicitly included (E → tradeoff between Latency and Consistency)        |
+| **Realism**         | Theoretical, simplified                        | More practical for modern distributed systems                             |
+| **Examples**        | CP → HBase, AP → DynamoDB                      | AP/EL → Cassandra, CP/EC → Spanner                                        |
+
+---
+
+### Interview Tips
+
+- Use PACELC to show depth beyond CAP in interviews.  
+- Mention real-world examples: *“DynamoDB is AP/EL, Spanner is CP/EC.”*  
+- Stress that **PACELC explains trade-offs even without failures**, unlike CAP.  
+

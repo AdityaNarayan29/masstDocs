@@ -46,6 +46,38 @@ This makes PACELC more practical than CAP, since real-world systems spend most o
 
 ---
 
+### Diagram: CAP & PACELC
+
+<Mermaid
+  chart="
+graph TD;
+  subgraph CAP [CAP Theorem]
+    C[Consistency];
+    A[Availability];
+    P[Partition Tolerance];
+    C --> CP[CP Systems];
+    P --> CP;
+    A --> AP[AP Systems];
+    P --> AP;
+    C --> CA[CA Systems];
+    A --> CA;
+  end
+
+  subgraph PACELC [PACELC Extension]
+    P1[Partition?];
+    E[Else: No Partition];
+    L[Latency];
+    C2[Consistency];
+    P1 -->|Yes| CAP;
+    P1 -->|No| E;
+    E -->|Trade-off| L;
+    E -->|Trade-off| C2;
+  end
+"
+/>
+
+---
+
 ### Comparison: CAP vs PACELC
 
 | **Aspect**          | **CAP Theorem**                                | **PACELC Theorem**                                                        |

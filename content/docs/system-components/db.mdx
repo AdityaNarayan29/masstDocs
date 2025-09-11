@@ -1,6 +1,480 @@
 ---
 title: Databases
-description: 🏗️ Databases in a High-Level Design (HLD) Interview?
+description: An extensive overview of databases, their types, use cases, diagrams, and real-world examples.
 ---
 
-## DB
+## Databases in System Design
+
+In **system design and high-level architecture (HLD)**, databases form the backbone of any system.  
+Choosing the right database depends on **data structure, query patterns, scalability, and consistency requirements**.  
+
+---
+
+## 🧭 Database Decision Tree (Conditional Flow)
+
+<Mermaid
+  chart={`
+flowchart LR
+    %% START
+    A["Start: What is your main requirement?"]:::start
+
+    %% MAIN DECISION
+    A --> B{"Strong consistency & ACID transactions?"}:::decision
+    B -->|Yes| RDBMS["RDBMS\\nPostgreSQL, MySQL, Oracle"]:::rdbms
+    B -->|No| NonRDBMS{"Non-RDBMS / NoSQL"}:::decision
+    B -->|Special use cases| Unique["Specialized DBs"]:::special
+
+    %% NON-RDBMS OPTIONS
+    NonRDBMS --> KV["Key-Value\\nRedis, DynamoDB"]:::nosql
+    NonRDBMS --> DOC["Document Store\\nMongoDB, Firestore"]:::nosql
+    NonRDBMS --> WCOL["Wide-Column\\nCassandra, HBase"]:::nosql
+    NonRDBMS --> GDB["Graph DB\\nNeo4j, ArangoDB"]:::nosql
+
+    %% SPECIALIZED DB OPTIONS
+    Unique --> TDB["Time-Series\\nInfluxDB, TimescaleDB"]:::special
+    Unique --> SDB["Search\\nElasticsearch, Solr"]:::special
+    Unique --> VDB["Vector DB\\nPinecone, Weaviate"]:::special
+    Unique --> LEDGER["Ledger / Blockchain\\nHyperledger, BigchainDB"]:::special
+    Unique --> EMBED["Embedded DB\\nSQLite, RocksDB"]:::special
+
+    %% OPTIONAL: SPECIALIZED SUB-BRANCH FOR RDBMS
+    RDBMS --> TDB2["Time-Series (RDBMS variant)\\nTimescaleDB"]:::special
+    RDBMS --> SDB2["Full-text Search\\nPostgreSQL, MySQL"]:::special
+    RDBMS --> VDB2["Vector Search\\nPGVector"]:::special
+  `}
+/>
+
+---
+
+## 🏷️ Quick Reference Table
+
+| Use Case | Best DB Type | Examples | Notes |
+| ----------------------------------- | ----------------- | -------------------------------- | ------------------------------- |
+| Strict consistency, complex queries | Relational (SQL) | PostgreSQL, MySQL, Oracle | ACID, joins, transactions |
+| High-speed caching | Key-Value | Redis, DynamoDB | Simple get/set, low latency |
+| Flexible, evolving data | Document | MongoDB, Firestore | JSON, nested, schema-less |
+| Analytics on huge data | Wide-Column | Cassandra, Bigtable | Partitioned, scalable |
+| Social graphs, relationships | Graph | Neo4j, ArangoDB | Traversals, relationships |
+| Time-stamped metrics | Time-Series | InfluxDB, TimescaleDB | Optimized for time, compression |
+| Full-text search | Search | Elasticsearch, Solr | Text indexing, scoring |
+| AI/ML similarity search | Vector | Pinecone, Milvus | Embeddings, ANN search |
+| Multiple models in one | Multi-Model | ArangoDB, OrientDB, Cosmos DB | Flexible, complex apps |
+| Immutable audit logs | Ledger/Blockchain | QLDB, Hyperledger | Tamper-proof, auditable |
+| Mobile/embedded | Embedded | SQLite, RocksDB, Realm | Lightweight, local |
+| Distributed SQL, global scale | NewSQL | CockroachDB, Spanner, YugabyteDB | ACID + horizontal scaling |
+
+---
+
+## 1. Relational Databases (SQL)
+
+- **Structure:** Tables (rows & columns), fixed schema, ACID properties
+- **Strengths:** Strong consistency, complex queries, joins, transactions
+- **Weaknesses:** Harder to scale horizontally, rigid schema
+- **When NOT to use:** If you need flexible schema, massive horizontal scaling, or handle unstructured data.
+- **Popular Managed Options:** AWS RDS, Azure SQL, Google Cloud SQL
+- **Performance/Scalability:** Vertical scaling, some support for read replicas and sharding.
+- **Cost:** Can be expensive at scale, especially for licensing (Oracle, SQL Server).
+
+### Use Cases
+
+- Banking, ERP systems, e-commerce orders, financial transactions
+
+### Examples
+
+- PostgreSQL, MySQL, Oracle, SQL Server
+
+### Diagram
+
+<Mermaid chart="erDiagram
+CUSTOMER ||--o{ ORDER : places
+ORDER ||--|{ PRODUCT : contains
+CUSTOMER { id int name string email string }
+ORDER { id int order_date date total float }
+PRODUCT { id int name string price float }"/>
+
+---
+
+## 2. Key-Value Databases
+
+- **Structure:** Simple `key → value` mapping
+- **Strengths:** Extremely fast, simple retrieval, easy to scale horizontally
+- **Weaknesses:** Limited query functionality, no relationships
+- **When NOT to use:** If you need complex queries or relationships.
+- **Popular Managed Options:** AWS DynamoDB, Azure Table Storage, Google Cloud Datastore
+- **Performance/Scalability:** Excellent horizontal scaling, in-memory options (Redis).
+- **Cost:** Pay-per-request (DynamoDB), memory cost (Redis).
+
+### Use Cases
+
+- Caching, session storage, shopping carts, leaderboards
+
+### Examples
+
+- Redis, DynamoDB, Memcached
+
+### Diagram
+
+<Mermaid chart="classDiagram
+class KVStore { +set_key_value +get_key }
+class Key1 { +userId_1001 +name_Alice +age_30 }
+class Key2 { +sessionId_abcd +userId_1001 +expires_10min }
+KVStore --> Key1
+KVStore --> Key2"/>
+
+---
+
+## 3. Document Databases
+
+- **Structure:** JSON-like documents, flexible schema
+- **Strengths:** Hierarchical data, flexible, easy to update, semi-structured
+- **Weaknesses:** Less efficient for joins, eventual consistency in some cases
+- **When NOT to use:** If you need complex joins or strict schema.
+- **Popular Managed Options:** MongoDB Atlas, Firebase Firestore, AWS DocumentDB
+- **Performance/Scalability:** Good horizontal scaling, sharding.
+- **Cost:** Storage + throughput, can be expensive at scale.
+
+### Use Cases
+
+- CMS, product catalogs, IoT apps, user profiles
+
+### Examples
+
+- MongoDB, Firestore, CouchDB
+
+### Diagram
+
+<Mermaid chart="graph TD
+root['Document_DB']
+root --> D1['_id_1']
+D1 --> Name1['name_Alice']
+D1 --> Orders1['orders']
+Orders1 --> O101['101']
+Orders1 --> O102['102']
+root --> D2['_id_2']
+D2 --> Name2['name_Bob']
+D2 --> Orders2['orders']
+Orders2 --> O103['103']"/>
+
+---
+
+## 4. Wide-Column Databases
+
+- **Structure:** Columns grouped in families for scalable analytics
+- **Strengths:** Scalable, optimized for analytics, high write throughput
+- **Weaknesses:** Complex schema design, not ideal for transactional workloads
+- **When NOT to use:** If you need ACID transactions or simple queries.
+- **Popular Managed Options:** Google Bigtable, Azure Cosmos DB (Cassandra API), AWS Keyspaces
+- **Performance/Scalability:** Excellent horizontal scaling, partitioning.
+- **Cost:** Pay-per-use, can be high for large clusters.
+
+### Use Cases
+
+- Big data analytics, recommendation engines, time-series-like workloads
+
+### Examples
+
+- Cassandra, HBase, Bigtable
+
+### Diagram
+
+| RowKey | name | email | orders |
+| ------ | ----- | --------------------------------------------- | ------- |
+| user1 | Alice | [alice@example.com](mailto:alice@example.com) | 101,102 |
+| user2 | Bob | [bob@example.com](mailto:bob@example.com) | 103 |
+
+
+---
+
+## 5. Graph Databases
+
+- **Structure:** Nodes and edges
+- **Strengths:** Complex relationship queries, traversals, flexible schema
+- **Weaknesses:** Slower for bulk inserts, not ideal for analytics
+- **When NOT to use:** If you have simple, flat data or need high write throughput.
+- **Popular Managed Options:** Neo4j Aura, AWS Neptune, Azure Cosmos DB (Gremlin API)
+- **Performance/Scalability:** Good for traversals, can be hard to scale for massive graphs.
+- **Cost:** Pay-per-node/edge, can be high for large graphs.
+
+### Use Cases
+
+- Social networks, recommendations, fraud detection, knowledge graphs
+
+### Examples
+
+- Neo4j, ArangoDB, JanusGraph
+
+### Diagram
+
+<Mermaid chart="graph LR
+A['Alice'] -->|friend| B['Bob']
+A -->|friend| C['Charlie']
+B -->|colleague| D['Dave']
+C -->|friend| D"/>
+
+---
+
+## 6. Time-Series Databases
+
+- **Structure:** Indexed by timestamp
+- **Strengths:** Optimized for sequential data, compression, fast range queries
+- **Weaknesses:** Narrow use case, not for general-purpose data
+- **When NOT to use:** If you need complex relationships or non-time-based queries.
+- **Popular Managed Options:** InfluxDB Cloud, AWS Timestream, Timescale Cloud
+- **Performance/Scalability:** High write throughput, retention policies.
+- **Cost:** Pay-per-ingest, storage.
+
+### Use Cases
+
+- IoT, monitoring, financial tick data, metrics
+
+### Examples
+
+- InfluxDB, TimescaleDB, Prometheus
+
+### Diagram
+
+| Timestamp | Temperature\_C |
+| --------- | -------------- |
+| 2025-09-11 10:00 | 23.5 |
+| 2025-09-11 11:00 | 24.0 |
+| 2025-09-11 12:00 | 23.8 |
+
+---
+
+## 7. Search Databases
+
+- **Structure:** Indexed text for full-text search
+- **Strengths:** Full-text search, scoring, faceting, analytics
+- **Weaknesses:** Not transactional, eventual consistency
+- **When NOT to use:** For transactional or relational data.
+- **Popular Managed Options:** Elastic Cloud, AWS OpenSearch, Azure Cognitive Search
+- **Performance/Scalability:** Scales horizontally, sharding.
+- **Cost:** Storage + compute, can be high for large indexes.
+
+### Use Cases
+
+- E-commerce search, logs, document search
+
+### Examples
+
+- Elasticsearch, Solr, OpenSearch
+
+### Diagram
+
+<Mermaid chart="graph TD
+Index['Inverted_Index']
+Index --> Term1['apple_docID_1']
+Index --> Term2['banana_docID_1']
+Index --> Term3['orange_docID_2']
+Index --> Term4['mango_docID_2']"/>
+
+---
+
+## 8. Vector Databases
+
+- **Structure:** High-dimensional vectors
+- **Strengths:** Semantic/AI queries, similarity search, ANN (approximate nearest neighbor)
+- **Weaknesses:** Still evolving, not for transactional data
+- **When NOT to use:** For traditional queries or transactional workloads.
+- **Popular Managed Options:** Pinecone, Weaviate Cloud, Milvus Cloud
+- **Performance/Scalability:** Optimized for vector search, horizontal scaling.
+- **Cost:** Pay-per-vector, storage.
+
+### Use Cases
+
+- AI embeddings, semantic search, recommendation, image/audio similarity
+
+### Examples
+
+- Pinecone, Weaviate, Milvus
+
+### Diagram
+
+<Mermaid chart="graph TD
+VECTOR['Vector_DB']
+V1['Doc1']
+V2['Doc2']
+QUERY['Query_Vector']
+VECTOR --> V1
+VECTOR --> V2
+QUERY --> VECTOR"/>
+
+---
+
+## 9. Multi-Model Databases
+
+- **Structure:** Supports multiple paradigms (doc + graph + key-value)
+- **Strengths:** Flexible, can handle complex apps with mixed requirements
+- **Weaknesses:** Added complexity, may not be best-in-class for any one model
+- **When NOT to use:** If you only need one data model.
+- **Popular Managed Options:** ArangoDB Oasis, Azure Cosmos DB, OrientDB Cloud
+- **Performance/Scalability:** Varies by model, generally good.
+- **Cost:** Pay-per-model, storage.
+
+### Use Cases
+
+- Complex apps, SaaS, hybrid data needs
+
+### Examples
+
+- ArangoDB, OrientDB, Cosmos DB
+
+### Diagram
+
+<Mermaid chart="graph TB
+MMDB['Multi-Model_DB']
+MMDB --> DOC['Document_id1_name_Alice']
+MMDB --> GRAPH['Graph Alice->friend->Bob']
+MMDB --> KV['KeyValue_session_abcd_userId1']"/>
+
+---
+
+## 10. Ledger/Blockchain Databases
+
+- **Structure:** Immutable, append-only, cryptographically verifiable
+- **Strengths:** Tamper-proof, auditable, traceable
+- **Weaknesses:** Slower writes, complex to manage
+- **When NOT to use:** For high-throughput or general-purpose data.
+- **Popular Managed Options:** Amazon QLDB, Hyperledger Fabric, BigchainDB
+- **Performance/Scalability:** Slower than traditional DBs, optimized for audit.
+- **Cost:** Pay-per-write, storage.
+
+### Use Cases
+
+- Audit logs, financial ledgers, supply chain, compliance
+
+### Examples
+
+- Amazon QLDB, Hyperledger, BigchainDB
+
+### Diagram
+
+<Mermaid chart="sequenceDiagram
+participant B1 as Block1
+participant B2 as Block2
+participant B3 as Block3
+B1->>B2: HashPrev_0x00
+B2->>B3: HashPrev_Hash1"/>
+
+---
+
+## 11. Embedded Databases
+
+- **Structure:** Local, file-based, lightweight
+- **Strengths:** No server needed, fast, portable
+- **Weaknesses:** Not distributed, limited concurrency
+- **When NOT to use:** For distributed or multi-user systems.
+- **Popular Managed Options:** SQLite, RocksDB, Realm
+- **Performance/Scalability:** Excellent for local, limited for distributed.
+- **Cost:** Free/open source.
+
+### Use Cases
+
+- Mobile apps, IoT devices, desktop software
+
+### Examples
+
+- SQLite, RocksDB, Realm
+
+### Diagram
+
+<Mermaid chart="classDiagram
+class SQLite { +File_user_db +Tables_users_orders }
+class UsersTable { +id +name }
+SQLite --> UsersTable"/>
+
+---
+
+## 12. NewSQL Databases
+
+- **Structure:** Relational, distributed, SQL interface
+- **Strengths:** ACID + horizontal scaling, global distribution
+- **Weaknesses:** Newer, less mature ecosystem
+- **When NOT to use:** If you don’t need global scale or distributed SQL.
+- **Popular Managed Options:** Google Spanner, CockroachDB Cloud, Yugabyte Cloud
+- **Performance/Scalability:** Excellent horizontal scaling, global consistency.
+- **Cost:** Pay-per-node, storage.
+
+### Use Cases
+
+- Global apps, SaaS, fintech, distributed transactions
+
+### Examples
+
+- CockroachDB, Google Spanner, YugabyteDB
+
+### Diagram
+
+<Mermaid chart="graph LR
+Client['Client'] --> Node1['DB_Node_US']
+Client --> Node2['DB_Node_EU']
+Node1 --> Replicas1['Replicas']
+Node2 --> Replicas2['Replicas']
+Node1 -->|Sync| Node2"/>
+
+
+
+## 📝 Summary Table of Database Types
+
+| Category | Structure & Features | Strengths | Weaknesses | Best Use Cases | Examples | Managed/Cloud | Cost Notes |
+| ----------------------- | -------------------------- | --------------------------------------- | -------------------------- | ------------------------------ | ------------------------- | ------------------ | ------------------------- |
+| **Relational (SQL)** | Tables, fixed schema, ACID | Strong consistency, joins, transactions | Hard to scale horizontally | Banking, ERP, e-commerce | PostgreSQL, MySQL, Oracle | AWS RDS, Azure SQL | Can be expensive at scale |
+| **Key-Value (NoSQL)** | Key → Value pairs | Super fast, simple, scalable | Limited queries | Caching, session storage | Redis, DynamoDB | AWS DynamoDB | Pay-per-request |
+| **Document (NoSQL)** | JSON-like documents | Flexible schema, hierarchical | Hard for complex joins | CMS, product catalogs | MongoDB, Firestore | MongoDB Atlas | Storage + throughput |
+| **Wide-Column (NoSQL)** | Column families | Scalable, analytical | Complex schema | Analytics, recommendations | Cassandra, HBase | Google Bigtable | Pay-per-use |
+| **Graph (NoSQL)** | Nodes + Edges | Relationships | Slower bulk inserts | Social graphs, fraud detection | Neo4j, ArangoDB | Neo4j Aura | Pay-per-node/edge |
+| **Time-Series** | Indexed by time | Optimized for sequential data | Narrow use case | IoT, metrics, finance | InfluxDB, TimescaleDB | InfluxDB Cloud | Pay-per-ingest |
+| **Search** | Indexed text | Full-text search | Not transactional | Product search, logs | Elasticsearch, Solr | Elastic Cloud | Storage + compute |
+| **Vector** | High-dimensional vectors | Semantic / AI queries | Still evolving | AI embeddings, similarity | Pinecone, Weaviate | Pinecone Cloud | Pay-per-vector |
+| **Multi-Model** | Mix of paradigms | Flexible | Added complexity | Complex apps | ArangoDB, OrientDB | ArangoDB Oasis | Pay-per-model |
+| **Ledger/Blockchain** | Immutable, auditable | Tamper-proof | Slower writes | Audit logs, compliance | QLDB, Hyperledger | Amazon QLDB | Pay-per-write |
+| **Embedded** | Local, file-based | Lightweight, fast | Not distributed | Mobile, IoT, desktop | SQLite, RocksDB | - | Free |
+| **NewSQL** | Distributed SQL | ACID + scale | Newer tech | Global SaaS, fintech | CockroachDB, Spanner | CockroachDB Cloud | Pay-per-node |
+
+---
+
+## 🏆 Real-World Scenario Recommendations
+
+| Scenario | Recommended DB(s) | Reason |
+| -------- | ----------------- | ------ |
+| Twitter | PostgreSQL + Redis + Neo4j | SQL for accounts, Redis for caching, Graph DB for connections |
+| Netflix | Cassandra + MongoDB | Wide-Column for analytics, Document DB for metadata |
+| Uber | PostgreSQL + Redis + TimescaleDB | SQL for transactions, Key-Value cache, Time-Series for GPS |
+| E-commerce site | MySQL + Elasticsearch | SQL for inventory/orders, Search DB for product search |
+| IoT sensor data | InfluxDB, TimescaleDB | High write throughput, time-series optimized |
+| Real-time chat | Redis, MongoDB | Fast pub/sub, flexible messages |
+| Blockchain explorer | PostgreSQL, Elasticsearch | SQL for transactions, Search for logs |
+| Mobile app local | SQLite, Realm | Embedded, lightweight |
+
+---
+
+## ✅ How to Choose: Checklist
+
+- [ ] Do you need strong consistency and complex queries? → **Relational (SQL)**
+- [ ] Do you need high throughput, simple lookups? → **Key-Value**
+- [ ] Do you need flexible, evolving schema? → **Document**
+- [ ] Do you need analytics on huge datasets? → **Wide-Column**
+- [ ] Do you need to model complex relationships? → **Graph**
+- [ ] Do you need to store time-stamped metrics? → **Time-Series**
+- [ ] Do you need full-text search? → **Search**
+- [ ] Do you need AI/ML similarity search? → **Vector**
+- [ ] Do you need multiple models in one DB? → **Multi-Model**
+- [ ] Do you need immutable, auditable records? → **Ledger/Blockchain**
+- [ ] Do you need local/mobile/embedded storage? → **Embedded**
+- [ ] Do you need distributed SQL with global scale? → **NewSQL**
+
+> **Tip:** For most modern systems, a **polyglot persistence** approach (using multiple DBs for different needs) is common!
+
+**Links:**
+
+- [PostgreSQL Docs](https://www.postgresql.org/docs/)
+- [MongoDB Docs](https://docs.mongodb.com/)
+- [Redis Docs](https://redis.io/documentation)
+- [Cassandra Docs](https://cassandra.apache.org/doc/latest/)
+- [Neo4j Docs](https://neo4j.com/docs/)
+- [Elasticsearch Docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
+- [InfluxDB Docs](https://docs.influxdata.com/influxdb/)
+- [Pinecone Docs](https://docs.pinecone.io/)
+- [CockroachDB Docs](https://www.cockroachlabs.com/docs/)
+
+---

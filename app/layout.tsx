@@ -69,17 +69,17 @@ export default function Layout({ children }: { children: ReactNode }) {
         <link rel='manifest' href='/manifest.json' />
 
         {/* Theme color for browser UI */}
-        <meta name='theme-color' content='#0f172a' />
+        <meta name='theme-color' content='#000000' />
 
         {/* Apple Touch Icons for iOS */}
-        <link rel='apple-touch-icon' sizes='150x150' href='/icons/150.png' />
-        <link rel='apple-touch-icon' sizes='167x167' href='/icons/167.png' />
-        <link rel='apple-touch-icon' sizes='180x180' href='/icons/180.png' />
-        <link rel='apple-touch-icon' sizes='192x192' href='/icons/192.png' />
-        <link rel='apple-touch-icon' sizes='256x256' href='/icons/256.png' />
-        <link rel='apple-touch-icon' sizes='310x310' href='/icons/310.png' />
-        <link rel='apple-touch-icon' sizes='512x512' href='/icons/512.png' />
-        <link rel='apple-touch-icon' sizes='1024x1024' href='/icons/1024.png' />
+        <link rel='apple-touch-icon' sizes='150x150' href='/app-icons/150.png' />
+        <link rel='apple-touch-icon' sizes='167x167' href='/app-icons/167.png' />
+        <link rel='apple-touch-icon' sizes='180x180' href='/app-icons/180.png' />
+        <link rel='apple-touch-icon' sizes='192x192' href='/app-icons/192.png' />
+        <link rel='apple-touch-icon' sizes='256x256' href='/app-icons/256.png' />
+        <link rel='apple-touch-icon' sizes='310x310' href='/app-icons/310.png' />
+        <link rel='apple-touch-icon' sizes='512x512' href='/app-icons/512.png' />
+        <link rel='apple-touch-icon' sizes='1024x1024' href='/app-icons/1024.png' />
 
         {/* Optional: Safari web app behavior */}
         <meta name='apple-mobile-web-app-capable' content='yes' />

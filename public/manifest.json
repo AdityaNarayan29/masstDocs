@@ -9,49 +9,49 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icons/150.png",
+      "src": "/app-icons/150.png",
       "sizes": "150x150",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/167.png",
+      "src": "/app-icons/167.png",
       "sizes": "167x167",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/180.png",
+      "src": "/app-icons/180.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/192.png",
+      "src": "/app-icons/192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/256.png",
+      "src": "/app-icons/256.png",
       "sizes": "256x256",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/310.png",
+      "src": "/app-icons/310.png",
       "sizes": "310x310",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/512.png",
+      "src": "/app-icons/512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/1024.png",
+      "src": "/app-icons/1024.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"

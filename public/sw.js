@@ -2,14 +2,14 @@ const CACHE_NAME = 'masst-docs-cache-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
-  '/icons/150.png',
-  '/icons/167.png',
-  '/icons/180.png',
-  '/icons/192.png',
-  '/icons/256.png',
-  '/icons/310.png',
-  '/icons/512.png',
-  '/icons/1024.png'
+  '/app-icons/150.png',
+  '/app-icons/167.png',
+  '/app-icons/180.png',
+  '/app-icons/192.png',
+  '/app-icons/256.png',
+  '/app-icons/310.png',
+  '/app-icons/512.png',
+  '/app-icons/1024.png'
 ];
 
 self.addEventListener('install', event => {

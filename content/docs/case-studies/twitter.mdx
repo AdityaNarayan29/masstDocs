@@ -1,0 +1,1990 @@
+---
+title: Twitter/X
+description: 🐦 Twitter/X serves over 500 million users globally, processing billions of tweets and interactions daily. This document outlines the comprehensive architecture that enables real-time social networking at massive scale with high availability.
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        WEB[Web App]
+        IOS[iOS App]
+        ANDROID[Android App]
+        API_CLIENTS[Third-Party Apps]
+    end
+    
+    subgraph "Edge Layer"
+        CDN[Content Delivery Network]
+        LB[Load Balancers]
+        DDOS[DDoS Protection]
+    end
+    
+    subgraph "API Gateway Layer"
+        API_GW[API Gateway]
+        RATE_LIMIT[Rate Limiter]
+        AUTH[Authentication]
+    end
+    
+    subgraph "Core Services"
+        TWEET[Tweet Service]
+        TIMELINE[Timeline Service]
+        USER[User Service]
+        SEARCH[Search Service]
+        NOTIF[Notification Service]
+        DM[Direct Message Service]
+    end
+    
+    subgraph "Data Layer"
+        MYSQL[(MySQL)]
+        MANHATTAN[(Manhattan KV Store)]
+        REDIS[(Redis Cache)]
+        CASSANDRA[(Cassandra)]
+        HDFS[(Hadoop HDFS)]
+    end
+    
+    WEB --> CDN
+    IOS --> CDN
+    ANDROID --> CDN
+    API_CLIENTS --> CDN
+    
+    CDN --> LB
+    LB --> DDOS
+    DDOS --> API_GW
+    
+    API_GW --> RATE_LIMIT
+    RATE_LIMIT --> AUTH
+    AUTH --> TWEET
+    AUTH --> TIMELINE
+    AUTH --> USER
+    AUTH --> SEARCH
+    AUTH --> NOTIF
+    AUTH --> DM
+    
+    TWEET --> MYSQL
+    TWEET --> MANHATTAN
+    TIMELINE --> REDIS
+    USER --> MYSQL
+    SEARCH --> CASSANDRA
+    NOTIF --> REDIS
+    DM --> MANHATTAN
+```
+
+## Core Components
+
+### 1. Tweet Distribution System
+
+Twitter's fanout architecture handles tweet delivery to millions of followers.
+
+```mermaid
+graph TD
+    subgraph "Tweet Creation"
+        USER[User Posts Tweet]
+        COMPOSE[Tweet Composition]
+        VALIDATE[Validation & Filtering]
+    end
+    
+    subgraph "Fanout Service"
+        FANOUT[Fanout Orchestrator]
+        CELEB_QUEUE[Celebrity Queue<br/>Pull-based]
+        NORMAL_QUEUE[Normal User Queue<br/>Push-based]
+    end
+    
+    subgraph "Timeline Distribution"
+        HOME_CACHE[Home Timeline Cache<br/>Redis]
+        USER_TIMELINE[User Timeline<br/>Manhattan]
+    end
+    
+    subgraph "Storage"
+        TWEET_DB[(Tweet Storage<br/>MySQL + Manhattan)]
+        MEDIA_STORE[(Media Storage<br/>Blob Store)]
+    end
+    
+    USER --> COMPOSE
+    COMPOSE --> VALIDATE
+    VALIDATE --> FANOUT
+    
+    FANOUT --> CELEB_QUEUE
+    FANOUT --> NORMAL_QUEUE
+    
+    NORMAL_QUEUE --> HOME_CACHE
+    CELEB_QUEUE --> USER_TIMELINE
+    
+    VALIDATE --> TWEET_DB
+    VALIDATE --> MEDIA_STORE
+```
+
+**Fanout Strategy:**
+- **Push Fanout** (Normal Users): Tweets pushed to followers' timelines immediately
+- **Pull Fanout** (Celebrities): Tweets fetched on-demand due to massive follower counts
+- **Hybrid Model**: Combines both strategies based on follower count threshold (~1M followers)
+
+**Key Features:**
+- Write operations: ~500,000 tweets/second peak
+- Read operations: ~600,000 timeline requests/second
+- Fanout to millions of followers in \<5 seconds
+- Content filtering and safety checks
+
+### 2. Timeline Service Architecture
+
+```mermaid
+graph TD
+    subgraph "Timeline Types"
+        HOME[Home Timeline<br/>Following Feed]
+        USER_TL[User Timeline<br/>Profile View]
+        MENTIONS[Mentions]
+        LISTS[Lists Timeline]
+    end
+    
+    subgraph "Ranking & Filtering"
+        ML[ML Ranking Model]
+        FILTER[Content Filter]
+        RELEVANCE[Relevance Score]
+        PERSONALIZE[Personalization]
+    end
+    
+    subgraph "Cache Layers"
+        L1[L1 Cache<br/>Hot Timelines]
+        L2[L2 Cache<br/>Recent Tweets]
+        L3[L3 Cache<br/>Timeline Segments]
+    end
+    
+    subgraph "Storage"
+        REDIS[(Redis<br/>Timeline Cache)]
+        MANHATTAN[(Manhattan<br/>Tweet IDs)]
+        MYSQL[(MySQL<br/>Tweet Data)]
+    end
+    
+    HOME --> ML
+    USER_TL --> ML
+    MENTIONS --> ML
+    LISTS --> FILTER
+    
+    ML --> RELEVANCE
+    FILTER --> RELEVANCE
+    RELEVANCE --> PERSONALIZE
+    
+    PERSONALIZE --> L1
+    L1 --> L2
+    L2 --> L3
+    
+    L1 --> REDIS
+    L2 --> MANHATTAN
+    L3 --> MYSQL
+```
+
+**Timeline Components:**
+- **Home Timeline**: Chronological + algorithmic ranking
+- **User Timeline**: User's own tweets
+- **Mentions Timeline**: Tweets mentioning the user
+- **List Timelines**: Curated user lists
+
+**Ranking Signals:**
+- Tweet recency and engagement
+- User relationship strength
+- Content type preferences
+- Spam and quality scores
+
+### 3. Real-Time Search Architecture
+
+```mermaid
+graph LR
+    subgraph "Ingestion Pipeline"
+        TWEETS[Tweet Stream]
+        ANNOTATE[Tweet Annotation<br/>Entities, Hashtags]
+        INDEX[Indexing Pipeline]
+    end
+    
+    subgraph "Search Index"
+        EARLY_BIRD[EarlyBird<br/>Real-time Index]
+        PARTITION1[Partition 1<br/>Last 7 days]
+        PARTITION2[Partition 2<br/>8-30 days]
+        PARTITION3[Partition 3<br/>30+ days]
+    end
+    
+    subgraph "Query Processing"
+        PARSE[Query Parser]
+        EXPAND[Query Expansion]
+        RANK[Result Ranking]
+    end
+    
+    subgraph "Result Aggregation"
+        MERGE[Result Merger]
+        RERANK[Re-ranking]
+        FILTER[Safety Filter]
+    end
+    
+    TWEETS --> ANNOTATE
+    ANNOTATE --> INDEX
+    INDEX --> EARLY_BIRD
+    
+    EARLY_BIRD --> PARTITION1
+    EARLY_BIRD --> PARTITION2
+    EARLY_BIRD --> PARTITION3
+    
+    PARSE --> EXPAND
+    EXPAND --> PARTITION1
+    EXPAND --> PARTITION2
+    EXPAND --> PARTITION3
+    
+    PARTITION1 --> MERGE
+    PARTITION2 --> MERGE
+    PARTITION3 --> MERGE
+    
+    MERGE --> RERANK
+    RERANK --> RANK
+    RANK --> FILTER
+```
+
+**Search Components:**
+- **EarlyBird**: Custom real-time search engine
+- **Inverted Index**: Tweet content, hashtags, mentions
+- **Time-based Partitioning**: Recent tweets prioritized
+- **Distributed Query Execution**: Parallel search across partitions
+
+**Search Features:**
+- Real-time indexing (\<10 seconds)
+- Full-text search with operators
+- Trending topics detection
+- Spam and quality filtering
+
+### 4. User Service
+
+```mermaid
+graph TD
+    subgraph "User Management"
+        AUTH[Authentication<br/>OAuth 2.0]
+        PROFILE[Profile Service]
+        FOLLOW[Follow Graph]
+        SETTINGS[User Settings]
+    end
+    
+    subgraph "Social Graph"
+        FOLLOWERS[Follower List]
+        FOLLOWING[Following List]
+        BLOCKS[Block List]
+        MUTES[Mute List]
+    end
+    
+    subgraph "Storage"
+        MYSQL[(MySQL<br/>User Data)]
+        FLOCK[(FlockDB<br/>Social Graph)]
+        REDIS[(Redis<br/>Session Cache)]
+    end
+    
+    subgraph "Security"
+        MFA[Multi-Factor Auth]
+        SECURITY[Security Service]
+        ABUSE[Abuse Detection]
+    end
+    
+    AUTH --> PROFILE
+    PROFILE --> FOLLOW
+    FOLLOW --> SETTINGS
+    
+    FOLLOW --> FOLLOWERS
+    FOLLOW --> FOLLOWING
+    FOLLOWERS --> BLOCKS
+    FOLLOWING --> MUTES
+    
+    PROFILE --> MYSQL
+    FOLLOW --> FLOCK
+    AUTH --> REDIS
+    
+    AUTH --> MFA
+    MFA --> SECURITY
+    SECURITY --> ABUSE
+```
+
+**Key Features:**
+- OAuth 2.0 authentication
+- Social graph storage (FlockDB)
+- Follow/unfollow operations
+- User verification system
+- Privacy and security settings
+
+### 5. Direct Message Service
+
+```mermaid
+graph TD
+    subgraph "Message Flow"
+        COMPOSE[Compose DM]
+        ENCRYPT[End-to-End Encryption]
+        DELIVER[Message Delivery]
+    end
+    
+    subgraph "Real-time Delivery"
+        WEBSOCKET[WebSocket Connection]
+        PUSH[Push Notifications]
+        POLLING[Long Polling Fallback]
+    end
+    
+    subgraph "Storage"
+        MANHATTAN[(Manhattan KV<br/>Message Store)]
+        MEDIA[(Media Storage<br/>Images/Videos)]
+        CACHE[(Redis<br/>Recent Messages)]
+    end
+    
+    subgraph "Features"
+        GROUP[Group Messages]
+        REACTIONS[Message Reactions]
+        READ[Read Receipts]
+        TYPING[Typing Indicators]
+    end
+    
+    COMPOSE --> ENCRYPT
+    ENCRYPT --> DELIVER
+    
+    DELIVER --> WEBSOCKET
+    DELIVER --> PUSH
+    DELIVER --> POLLING
+    
+    DELIVER --> MANHATTAN
+    COMPOSE --> MEDIA
+    WEBSOCKET --> CACHE
+    
+    DELIVER --> GROUP
+    DELIVER --> REACTIONS
+    DELIVER --> READ
+    DELIVER --> TYPING
+```
+
+**DM Features:**
+- End-to-end encryption option
+- Real-time message delivery
+- Group conversations
+- Media sharing (images, videos, GIFs)
+- Read receipts and typing indicators
+
+### 6. Notification Service
+
+```mermaid
+graph LR
+    subgraph "Event Sources"
+        TWEET_EVENT[New Tweet]
+        LIKE_EVENT[Like/Retweet]
+        FOLLOW_EVENT[New Follower]
+        MENTION_EVENT[Mention]
+    end
+    
+    subgraph "Notification Pipeline"
+        AGGREGATOR[Event Aggregator]
+        FILTER[User Preferences]
+        PRIORITY[Priority Queue]
+    end
+    
+    subgraph "Delivery Channels"
+        PUSH_NOTIF[Push Notifications]
+        WEB_NOTIF[Web Notifications]
+        EMAIL[Email Digest]
+        SMS[SMS Alerts]
+    end
+    
+    subgraph "Storage"
+        REDIS[(Redis<br/>Recent Notifications)]
+        MANHATTAN[(Manhattan<br/>Notification History)]
+    end
+    
+    TWEET_EVENT --> AGGREGATOR
+    LIKE_EVENT --> AGGREGATOR
+    FOLLOW_EVENT --> AGGREGATOR
+    MENTION_EVENT --> AGGREGATOR
+    
+    AGGREGATOR --> FILTER
+    FILTER --> PRIORITY
+    
+    PRIORITY --> PUSH_NOTIF
+    PRIORITY --> WEB_NOTIF
+    PRIORITY --> EMAIL
+    PRIORITY --> SMS
+    
+    PRIORITY --> REDIS
+    AGGREGATOR --> MANHATTAN
+```
+
+**Notification Types:**
+- Engagement notifications (likes, retweets, replies)
+- Social notifications (new followers, mentions)
+- Direct message notifications
+- Trending topic alerts
+- Personalized recommendations
+
+## Data Storage Architecture
+
+### 1. Manhattan (Distributed Key-Value Store)
+
+```mermaid
+graph TD
+    subgraph "Manhattan Architecture"
+        subgraph "Frontend Layer"
+            CLIENT[Client Libraries]
+            ROUTER[Request Router]
+        end
+        
+        subgraph "Storage Layer"
+            P1[Partition 1<br/>Users A-F]
+            P2[Partition 2<br/>Users G-M]
+            P3[Partition 3<br/>Users N-S]
+            P4[Partition 4<br/>Users T-Z]
+        end
+        
+        subgraph "Replication"
+            R1[Replica 1<br/>US-East]
+            R2[Replica 2<br/>US-West]
+            R3[Replica 3<br/>EU]
+        end
+    end
+    
+    CLIENT --> ROUTER
+    ROUTER --> P1
+    ROUTER --> P2
+    ROUTER --> P3
+    ROUTER --> P4
+    
+    P1 -.->|Async Replication| R1
+    P2 -.->|Async Replication| R2
+    P3 -.->|Async Replication| R3
+```
+
+**Manhattan Use Cases:**
+- Tweet storage (tweet ID → tweet data)
+- Direct messages
+- User timelines
+- Low-latency key-value operations
+
+**Features:**
+- Geo-replicated across data centers
+- Strong consistency within datacenter
+- Eventual consistency across regions
+- Billions of operations per second
+
+### 2. MySQL Clusters
+
+```mermaid
+graph TD
+    subgraph "Sharded MySQL"
+        subgraph "Shard 1"
+            M1[(MySQL Master 1)]
+            S1[(Slave 1)]
+            S2[(Slave 2)]
+        end
+        
+        subgraph "Shard 2"
+            M2[(MySQL Master 2)]
+            S3[(Slave 3)]
+            S4[(Slave 4)]
+        end
+        
+        subgraph "Shard N"
+            MN[(MySQL Master N)]
+            SN1[(Slave N-1)]
+            SN2[(Slave N-2)]
+        end
+    end
+    
+    subgraph "Data Types"
+        USERS[User Accounts]
+        TWEETS[Tweet Metadata]
+        RELATIONSHIPS[Social Graph]
+    end
+    
+    M1 -.->|Replication| S1
+    M1 -.->|Replication| S2
+    M2 -.->|Replication| S3
+    M2 -.->|Replication| S4
+    MN -.->|Replication| SN1
+    MN -.->|Replication| SN2
+    
+    USERS --> M1
+    TWEETS --> M2
+    RELATIONSHIPS --> MN
+```
+
+**MySQL Usage:**
+- User account data
+- Tweet metadata
+- Relationships and social graph
+- Application configuration
+
+**Sharding Strategy:**
+- User ID-based sharding
+- Horizontal scaling to 1000+ shards
+- Read replicas for query distribution
+
+### 3. Redis Cache Architecture
+
+```mermaid
+graph TD
+    subgraph "Redis Cluster"
+        subgraph "Timeline Caches"
+            T1[Timeline Cache 1<br/>Hot Users]
+            T2[Timeline Cache 2<br/>Active Users]
+            T3[Timeline Cache 3<br/>Regular Users]
+        end
+        
+        subgraph "Session Store"
+            S1[Session Cache 1]
+            S2[Session Cache 2]
+        end
+        
+        subgraph "Counter Caches"
+            C1[Engagement Counters]
+            C2[Rate Limit Counters]
+        end
+    end
+    
+    subgraph "Data Types"
+        TIMELINES[Home Timelines<br/>TTL: 30 min]
+        SESSIONS[User Sessions<br/>TTL: 24 hours]
+        COUNTERS[Like/RT Counts<br/>TTL: 5 min]
+        NOTIFICATIONS[Recent Notifications<br/>TTL: 7 days]
+    end
+    
+    TIMELINES --> T1
+    TIMELINES --> T2
+    TIMELINES --> T3
+    
+    SESSIONS --> S1
+    SESSIONS --> S2
+    
+    COUNTERS --> C1
+    COUNTERS --> C2
+```
+
+**Redis Use Cases:**
+- Timeline caching (home, user, mentions)
+- Session storage
+- Real-time counters (likes, retweets)
+- Rate limiting counters
+- Recent notification cache
+
+### 4. Cassandra
+
+```mermaid
+graph TD
+    subgraph "Cassandra Ring"
+        N1[Node 1<br/>Token Range 1]
+        N2[Node 2<br/>Token Range 2]
+        N3[Node 3<br/>Token Range 3]
+        N4[Node 4<br/>Token Range 4]
+    end
+    
+    subgraph "Data Types"
+        ANALYTICS[Analytics Data]
+        LOGS[Application Logs]
+        METRICS[System Metrics]
+        ARCHIVES[Historical Tweets]
+    end
+    
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N1
+    
+    ANALYTICS --> N1
+    LOGS --> N2
+    METRICS --> N3
+    ARCHIVES --> N4
+```
+
+**Cassandra Use Cases:**
+- Analytics and metrics
+- Application logs
+- Historical tweet archives
+- Time-series data
+
+### 5. Hadoop HDFS
+
+```mermaid
+graph TD
+    subgraph "HDFS Architecture"
+        NN[NameNode<br/>Metadata]
+        
+        subgraph "DataNodes"
+            DN1[DataNode 1<br/>Block Storage]
+            DN2[DataNode 2<br/>Block Storage]
+            DN3[DataNode 3<br/>Block Storage]
+            DN4[DataNode N<br/>Block Storage]
+        end
+    end
+    
+    subgraph "Processing"
+        HADOOP[Hadoop MapReduce]
+        SPARK[Apache Spark]
+        HIVE[Apache Hive]
+    end
+    
+    subgraph "Data Types"
+        RAW[Raw Tweet Data]
+        LOGS[System Logs]
+        ANALYTICS[User Analytics]
+        ML_DATA[ML Training Data]
+    end
+    
+    NN --> DN1
+    NN --> DN2
+    NN --> DN3
+    NN --> DN4
+    
+    DN1 --> HADOOP
+    DN2 --> SPARK
+    DN3 --> HIVE
+    
+    RAW --> DN1
+    LOGS --> DN2
+    ANALYTICS --> DN3
+    ML_DATA --> DN4
+```
+
+**HDFS Use Cases:**
+- Data warehousing
+- Batch analytics processing
+- Machine learning training data
+- Long-term data archival
+
+## Scalability & Performance
+
+### 1. Tweet Write Path
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant TweetService
+    participant FanoutService
+    participant Redis
+    participant Manhattan
+    participant MySQL
+    
+    User->>API: POST /tweet
+    API->>TweetService: Create Tweet
+    TweetService->>MySQL: Store Tweet Metadata
+    TweetService->>Manhattan: Store Tweet Content
+    TweetService->>FanoutService: Trigger Fanout
+    
+    alt Normal User (Push Fanout)
+        FanoutService->>Redis: Write to Followers' Timelines
+        Redis-->>User: Tweet Posted (200 OK)
+    else Celebrity (Pull Fanout)
+        FanoutService->>Manhattan: Write to User Timeline Only
+        Manhattan-->>User: Tweet Posted (200 OK)
+    end
+```
+
+**Write Optimization:**
+- Asynchronous fanout processing
+- Batch timeline updates
+- Parallel writes to multiple storage systems
+- Write-through cache strategy
+
+### 2. Timeline Read Path
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant TimelineService
+    participant Redis
+    participant Manhattan
+    participant MySQL
+    participant MLRanking
+    
+    User->>API: GET /timeline
+    API->>TimelineService: Fetch Timeline
+    TimelineService->>Redis: Check Cache
+    
+    alt Cache Hit
+        Redis-->>TimelineService: Return Cached Timeline
+    else Cache Miss
+        TimelineService->>Manhattan: Fetch Tweet IDs
+        Manhattan-->>TimelineService: Tweet IDs
+        TimelineService->>MySQL: Fetch Tweet Data
+        MySQL-->>TimelineService: Tweet Data
+        TimelineService->>MLRanking: Rank Tweets
+        MLRanking-->>TimelineService: Ranked Timeline
+        TimelineService->>Redis: Update Cache
+    end
+    
+    TimelineService-->>User: Return Timeline
+```
+
+**Read Optimization:**
+- Multi-level caching strategy
+- Prefetching popular content
+- Partial timeline rendering
+- Lazy loading of media
+
+### 3. Horizontal Scaling
+
+```mermaid
+graph TD
+    subgraph "Load Distribution"
+        LB[Global Load Balancer]
+        
+        subgraph "US-East Cluster"
+            USE1[API Server 1]
+            USE2[API Server 2]
+            USEN[API Server N]
+        end
+        
+        subgraph "EU-West Cluster"
+            EUW1[API Server 1]
+            EUW2[API Server 2]
+            EUWN[API Server N]
+        end
+        
+        subgraph "Asia-Pacific Cluster"
+            APAC1[API Server 1]
+            APAC2[API Server 2]
+            APACN[API Server N]
+        end
+    end
+    
+    LB --> USE1
+    LB --> USE2
+    LB --> USEN
+    LB --> EUW1
+    LB --> EUW2
+    LB --> EUWN
+    LB --> APAC1
+    LB --> APAC2
+    LB --> APACN
+```
+
+**Scaling Strategies:**
+- Geo-distributed data centers
+- Auto-scaling based on traffic patterns
+- Service mesh for inter-service communication
+- Database sharding by user ID
+
+### 4. Caching Strategy
+
+```mermaid
+graph LR
+    subgraph "Cache Layers"
+        CDN[CDN Cache<br/>Static Assets]
+        EDGE[Edge Cache<br/>API Responses]
+        APP[Application Cache<br/>Redis]
+        DB[Database Cache<br/>Query Results]
+    end
+    
+    subgraph "Cache Policies"
+        HOT[Hot Data<br/>TTL: 5 min]
+        WARM[Warm Data<br/>TTL: 30 min]
+        COLD[Cold Data<br/>TTL: 24 hours]
+    end
+    
+    CDN --> EDGE
+    EDGE --> APP
+    APP --> DB
+    
+    HOT --> CDN
+    WARM --> APP
+    COLD --> DB
+```
+
+**Cache Hierarchy:**
+- **L1**: CDN (static assets, profile images)
+- **L2**: Edge cache (API responses)
+- **L3**: Redis (timelines, sessions)
+- **L4**: Database query cache
+
+## Real-Time Features
+
+### 1. Live Streaming Architecture
+
+```mermaid
+graph TD
+    subgraph "Broadcast Pipeline"
+        SOURCE[Live Video Source]
+        INGEST[Periscope Ingest]
+        TRANSCODE[Video Transcoding]
+        PACKAGE[HLS/DASH Packaging]
+    end
+    
+    subgraph "Distribution"
+        ORIGIN[Origin Servers]
+        CDN_EDGE[CDN Edge Servers]
+        VIEWERS[Viewers]
+    end
+    
+    subgraph "Chat & Interaction"
+        CHAT[Live Chat<br/>WebSocket]
+        REACTIONS[Real-time Reactions]
+        ANALYTICS[Live Analytics]
+    end
+    
+    SOURCE --> INGEST
+    INGEST --> TRANSCODE
+    TRANSCODE --> PACKAGE
+    PACKAGE --> ORIGIN
+    ORIGIN --> CDN_EDGE
+    CDN_EDGE --> VIEWERS
+    
+    VIEWERS --> CHAT
+    VIEWERS --> REACTIONS
+    CHAT --> ANALYTICS
+```
+
+**Live Features:**
+- Periscope integration
+- Real-time chat
+- Live reactions and engagement
+- Low-latency streaming (~3-5 seconds)
+
+### 2. Trending Topics
+
+```mermaid
+graph TD
+    subgraph "Data Collection"
+        TWEETS[Tweet Stream]
+        HASHTAGS[Hashtag Extraction]
+        ENGAGEMENT[Engagement Metrics]
+    end
+    
+    subgraph "Processing"
+        COUNTER[Real-time Counters]
+        VELOCITY[Velocity Calculation]
+        FILTER[Spam Filter]
+    end
+    
+    subgraph "Ranking"
+        ML[ML Ranking Model]
+        PERSONALIZE[Personalization]
+        LOCATION[Location-based]
+    end
+    
+    subgraph "Output"
+        TRENDING[Trending Topics API]
+        PUSH[Push to Users]
+    end
+    
+    TWEETS --> HASHTAGS
+    TWEETS --> ENGAGEMENT
+    HASHTAGS --> COUNTER
+    ENGAGEMENT --> VELOCITY
+    
+    COUNTER --> FILTER
+    VELOCITY --> FILTER
+    FILTER --> ML
+    ML --> PERSONALIZE
+    ML --> LOCATION
+    
+    PERSONALIZE --> TRENDING
+    LOCATION --> TRENDING
+    TRENDING --> PUSH
+```
+
+**Trending Algorithm:**
+- Real-time tweet velocity tracking
+- Engagement-based scoring
+- Spam and abuse filtering
+- Geographic personalization
+- Recency weighting
+
+### 3. Real-Time Recommendations
+
+```mermaid
+graph LR
+    subgraph "Signal Collection"
+        USER_ACTION[User Actions]
+        SOCIAL_GRAPH[Social Graph]
+        CONTENT[Content Features]
+    end
+    
+    subgraph "Feature Generation"
+        REAL_TIME[Real-time Features]
+        BATCH[Batch Features]
+        COMPOSITE[Composite Features]
+    end
+    
+    subgraph "Model Serving"
+        CANDIDATE[Candidate Generation]
+        RANKING[Ranking Model]
+        FILTER[Post-rank Filter]
+    end
+    
+    USER_ACTION --> REAL_TIME
+    SOCIAL_GRAPH --> BATCH
+    CONTENT --> COMPOSITE
+    
+    REAL_TIME --> CANDIDATE
+    BATCH --> CANDIDATE
+    COMPOSITE --> RANKING
+    
+    CANDIDATE --> RANKING
+    RANKING --> FILTER
+```
+
+**Recommendation Types:**
+- Who to follow suggestions
+- Tweet recommendations
+- Topic suggestions
+- Trending content
+
+## Machine Learning Infrastructure
+
+### 1. ML Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Data Collection"
+        EVENTS[User Events<br/>Clicks, Likes, RT]
+        TWEETS[Tweet Content<br/>Text, Media, Metadata]
+        SOCIAL[Social Graph<br/>Follows, Interactions]
+    end
+    
+    subgraph "Feature Engineering"
+        FEATURE_STORE[Feature Store<br/>User & Content Features]
+        REAL_TIME_FEAT[Real-time Features]
+        BATCH_FEAT[Batch Features]
+    end
+    
+    subgraph "Model Training"
+        TRAIN[Training Pipeline<br/>TensorFlow/PyTorch]
+        VALIDATION[Model Validation]
+        DEPLOY[Model Deployment]
+    end
+    
+    subgraph "Model Serving"
+        CORTEX[Cortex<br/>Model Serving]
+        A_B[A/B Testing]
+        MONITOR[Performance Monitoring]
+    end
+    
+    EVENTS --> FEATURE_STORE
+    TWEETS --> FEATURE_STORE
+    SOCIAL --> FEATURE_STORE
+    
+    FEATURE_STORE --> REAL_TIME_FEAT
+    FEATURE_STORE --> BATCH_FEAT
+    
+    REAL_TIME_FEAT --> TRAIN
+    BATCH_FEAT --> TRAIN
+    TRAIN --> VALIDATION
+    VALIDATION --> DEPLOY
+    
+    DEPLOY --> CORTEX
+    CORTEX --> A_B
+    A_B --> MONITOR
+```
+
+**ML Use Cases:**
+- Timeline ranking
+- Content recommendations
+- Spam detection
+- Image/video classification
+- Trend prediction
+- Ad targeting
+
+### 2. Content Safety & Moderation
+
+```mermaid
+graph TD
+    subgraph "Detection Pipeline"
+        CONTENT[User Content]
+        TEXT_ML[Text Classification]
+        IMAGE_ML[Image Recognition]
+        VIDEO_ML[Video Analysis]
+    end
+    
+    subgraph "Analysis"
+        SPAM[Spam Detection]
+        ABUSE[Abuse Detection]
+        SENSITIVE[Sensitive Content]
+        MISINFORMATION[Misinformation]
+    end
+    
+    subgraph "Action"
+        AUTO_REMOVE[Auto Remove]
+        HUMAN_REVIEW[Human Review Queue]
+        LABEL[Content Label]
+        RESTRICT[Restrict Reach]
+    end
+    
+    CONTENT --> TEXT_ML
+    CONTENT --> IMAGE_ML
+    CONTENT --> VIDEO_ML
+    
+    TEXT_ML --> SPAM
+    TEXT_ML --> ABUSE
+    IMAGE_ML --> SENSITIVE
+    VIDEO_ML --> MISINFORMATION
+    
+    SPAM --> AUTO_REMOVE
+    ABUSE --> HUMAN_REVIEW
+    SENSITIVE --> LABEL
+    MISINFORMATION --> RESTRICT
+```
+
+**Safety Features:**
+- Automated spam detection
+- Abusive content filtering
+- Sensitive media detection
+- Misinformation labeling
+- Human-in-the-loop review
+
+## Security Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Security"
+        HTTPS[HTTPS/TLS 1.3]
+        CERT_PIN[Certificate Pinning]
+        OAUTH[OAuth 2.0]
+    end
+    
+    subgraph "API Security"
+        RATE_LIMIT[Rate Limiting]
+        API_KEY[API Keys]
+        TOKEN[JWT Tokens]
+        CORS[CORS Policy]
+    end
+    
+    subgraph "Infrastructure Security"
+        FIREWALL[WAF & Firewall]
+        DDOS_PROTECT[DDoS Protection]
+        VPC[Virtual Private Cloud]
+        IAM[Identity Management]
+    end
+    
+    subgraph "Data Security"
+        ENCRYPTION[Data Encryption<br/>At Rest]
+        KEY_MGMT[Key Management]
+        AUDIT[Audit Logging]
+        BACKUP[Encrypted Backups]
+    end
+    
+    subgraph "Account Security"
+        MFA[Multi-Factor Auth]
+        PASSWORD[Password Policy]
+        SESSION[Session Management]
+        DEVICE[Device Verification]
+    end
+    
+    HTTPS --> RATE_LIMIT
+    CERT_PIN --> API_KEY
+    OAUTH --> TOKEN
+    TOKEN --> CORS
+    
+    RATE_LIMIT --> FIREWALL
+    API_KEY --> DDOS_PROTECT
+    FIREWALL --> VPC
+    DDOS_PROTECT --> IAM
+    
+    VPC --> ENCRYPTION
+    IAM --> KEY_MGMT
+    ENCRYPTION --> AUDIT
+    KEY_MGMT --> BACKUP
+    
+    TOKEN --> MFA
+    MFA --> PASSWORD
+    PASSWORD --> SESSION
+    SESSION --> DEVICE
+```
+
+### Security Measures:
+- **Authentication**: OAuth 2.0, JWT tokens
+- **Encryption**: TLS 1.3, AES-256 at rest
+- **DDoS Protection**: Multi-layered defense
+- **API Security**: Rate limiting, key rotation
+- **Account Security**: MFA, login verification
+
+## Monitoring & Observability
+
+```mermaid
+graph LR
+    subgraph "Data Collection"
+        APPS[Applications]
+        INFRA[Infrastructure]
+        NETWORK[Network]
+        SECURITY[Security Events]
+    end
+    
+    subgraph "Aggregation"
+        LOG[Log Aggregation<br/>Splunk]
+        METRICS[Metrics Collection<br/>Prometheus]
+        TRACES[Distributed Tracing<br/>Zipkin]
+        ALERTS[Alert Manager]
+    end
+    
+    subgraph "Analysis"
+        DASH[Dashboards<br/>Grafana]
+        ANOMALY[Anomaly Detection<br/>ML-based]
+        FORECASTING[Capacity Planning]
+    end
+    
+    subgraph "Action"
+        ONCALL[On-Call Teams]
+        AUTO_SCALE[Auto-Remediation]
+        INCIDENT[Incident Response]
+    end
+    
+    APPS --> LOG
+    INFRA --> METRICS
+    NETWORK --> TRACES
+    SECURITY --> ALERTS
+    
+    LOG --> DASH
+    METRICS --> ANOMALY
+    TRACES --> FORECASTING
+    ALERTS --> DASH
+    
+    DASH --> ONCALL
+    ANOMALY --> AUTO_SCALE
+    FORECASTING --> INCIDENT
+```
+
+### Monitoring Metrics:
+- **System Metrics**: CPU, memory, disk, network
+- **Application Metrics**: Request latency, error rates
+- **Business Metrics**: Tweet volume, user engagement
+- **Custom Metrics**: Timeline generation time, fanout latency
+
+### Alerting:
+- **Critical Alerts**: Service outages, data loss
+- **Warning Alerts**: High latency, resource saturation
+- **Anomaly Alerts**: Unusual traffic patterns
+- **SLA Monitoring**: 99.9% uptime target
+
+## Infrastructure & DevOps
+
+### 1. Multi-Cloud Architecture
+
+```mermaid
+graph TD
+    subgraph "Google Cloud Platform"
+        GCP_COMPUTE[Compute Engine]
+        GCP_STORAGE[Cloud Storage]
+        GCP_ML[ML Services]
+    end
+    
+    subgraph "AWS"
+        AWS_EC2[EC2 Instances]
+        AWS_S3[S3 Storage]
+        AWS_RDS[RDS Databases]
+    end
+    
+    subgraph "On-Premise"
+        BARE_METAL[Bare Metal Servers]
+        PRIVATE_CLOUD[Private Cloud]
+    end
+    
+    subgraph "Edge Locations"
+        CDN_EDGE[CDN Edge Servers]
+        POP[Points of Presence]
+    end
+    
+    subgraph "Global Load Balancer"
+        GLB[Traffic Manager]
+    end
+    
+    GLB --> GCP_COMPUTE
+    GLB --> AWS_EC2
+    GLB --> BARE_METAL
+    GLB --> CDN_EDGE
+    
+    GCP_COMPUTE --> GCP_STORAGE
+    GCP_COMPUTE --> GCP_ML
+    AWS_EC2 --> AWS_S3
+    AWS_EC2 --> AWS_RDS
+    BARE_METAL --> PRIVATE_CLOUD
+```
+
+**Infrastructure Strategy:**
+- Multi-cloud approach (AWS, GCP)
+- Hybrid cloud with on-premise data centers
+- Global CDN presence
+- Cost optimization across providers
+
+### 2. Deployment Pipeline
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        CODE[Code Commit<br/>Git]
+        BUILD[Build & Test<br/>CI Pipeline]
+        ARTIFACT[Container Image<br/>Docker Registry]
+    end
+    
+    subgraph "Staging"
+        STAGING_DEPLOY[Deploy to Staging]
+        INTEGRATION_TEST[Integration Tests]
+        PERF_TEST[Performance Tests]
+    end
+    
+    subgraph "Production"
+        CANARY[Canary Deployment<br/>1% Traffic]
+        MONITOR[Monitor Metrics]
+        GRADUAL[Gradual Rollout<br/>10% → 50% → 100%]
+    end
+    
+    subgraph "Rollback"
+        ALERT_TRIGGER[Alert Triggered]
+        AUTO_ROLLBACK[Automatic Rollback]
+        POSTMORTEM[Post-Mortem]
+    end
+    
+    CODE --> BUILD
+    BUILD --> ARTIFACT
+    ARTIFACT --> STAGING_DEPLOY
+    STAGING_DEPLOY --> INTEGRATION_TEST
+    INTEGRATION_TEST --> PERF_TEST
+    PERF_TEST --> CANARY
+    CANARY --> MONITOR
+    MONITOR --> GRADUAL
+    MONITOR --> ALERT_TRIGGER
+    ALERT_TRIGGER --> AUTO_ROLLBACK
+    AUTO_ROLLBACK --> POSTMORTEM
+```
+
+**Deployment Strategy:**
+- Continuous Integration/Continuous Deployment (CI/CD)
+- Canary deployments for risk mitigation
+- Blue-green deployments for zero downtime
+- Automated rollback on failures
+- Feature flags for controlled rollouts
+
+### 3. Infrastructure as Code
+
+```mermaid
+graph TD
+    subgraph "IaC Tools"
+        TERRAFORM[Terraform<br/>Infrastructure Provisioning]
+        ANSIBLE[Ansible<br/>Configuration Management]
+        K8S[Kubernetes<br/>Container Orchestration]
+    end
+    
+    subgraph "Version Control"
+        GIT[Git Repository]
+        REVIEW[Code Review]
+        APPROVAL[Approval Process]
+    end
+    
+    subgraph "Automation"
+        PROVISION[Auto Provision]
+        CONFIGURE[Auto Configure]
+        SCALE[Auto Scale]
+    end
+    
+    GIT --> REVIEW
+    REVIEW --> APPROVAL
+    APPROVAL --> TERRAFORM
+    APPROVAL --> ANSIBLE
+    APPROVAL --> K8S
+    
+    TERRAFORM --> PROVISION
+    ANSIBLE --> CONFIGURE
+    K8S --> SCALE
+```
+
+**IaC Components:**
+- Terraform for cloud resource provisioning
+- Ansible for server configuration
+- Kubernetes for container orchestration
+- GitOps workflow for changes
+
+### 4. Disaster Recovery
+
+```mermaid
+flowchart TD
+    subgraph "Primary Region (US-East)"
+        PRIMARY_API[API Services]
+        PRIMARY_DB[(Primary Databases)]
+        PRIMARY_CACHE[Cache Layer]
+    end
+    
+    subgraph "Secondary Region (US-West)"
+        SECONDARY_API[Standby API Services]
+        SECONDARY_DB[(Replica Databases)]
+        SECONDARY_CACHE[Standby Cache]
+    end
+    
+    subgraph "Backup Region (EU)"
+        BACKUP_API[Backup API Services]
+        BACKUP_DB[(Backup Databases)]
+        BACKUP_STORAGE[Cold Storage]
+    end
+    
+    subgraph "Failover Process"
+        DETECT[Outage Detection<br/>< 1 minute]
+        DNS_SWITCH[DNS Failover<br/>< 5 minutes]
+        TRAFFIC_ROUTE[Traffic Rerouting<br/>< 10 minutes]
+        VALIDATE[Service Validation<br/>< 30 minutes]
+    end
+    
+    PRIMARY_DB -.->|Real-time Replication| SECONDARY_DB
+    PRIMARY_DB -.->|Async Backup| BACKUP_DB
+    PRIMARY_CACHE -.->|Sync| SECONDARY_CACHE
+    
+    DETECT --> DNS_SWITCH
+    DNS_SWITCH --> TRAFFIC_ROUTE
+    TRAFFIC_ROUTE --> SECONDARY_API
+    TRAFFIC_ROUTE --> VALIDATE
+```
+
+**DR Metrics:**
+- **RTO** (Recovery Time Objective): < 1 hour
+- **RPO** (Recovery Point Objective): < 5 minutes
+- **Data Backup**: Multiple geographic locations
+- **Automated Failover**: Cross-region redundancy
+
+## Performance Optimization
+
+### 1. Timeline Generation Performance
+
+```mermaid
+graph LR
+    subgraph "Optimization Techniques"
+        PREFETCH[Prefetch Following<br/>Users' Tweets]
+        PARALLEL[Parallel Fetch<br/>Multiple Sources]
+        CACHE[Aggressive Caching<br/>Redis + CDN]
+        LAZY[Lazy Load<br/>Media Content]
+    end
+    
+    subgraph "Performance Targets"
+        P50[P50: < 100ms]
+        P95[P95: < 300ms]
+        P99[P99: < 1000ms]
+    end
+    
+    PREFETCH --> P50
+    PARALLEL --> P95
+    CACHE --> P50
+    LAZY --> P99
+```
+
+**Performance Techniques:**
+- Predictive prefetching based on user behavior
+- Parallel data fetching from multiple sources
+- Edge caching for frequently accessed timelines
+- Progressive rendering for faster perceived load time
+
+### 2. Media Optimization
+
+```mermaid
+flowchart TD
+    subgraph "Upload Pipeline"
+        UPLOAD[User Upload]
+        VALIDATE[Validation & Virus Scan]
+        COMPRESS[Compression]
+    end
+    
+    subgraph "Processing"
+        RESIZE[Multi-Size Generation<br/>Thumb, Medium, Large]
+        FORMAT[Format Conversion<br/>WebP, JPEG, PNG]
+        CDN_PUSH[Push to CDN]
+    end
+    
+    subgraph "Delivery"
+        DETECT[Device Detection]
+        ADAPT[Adaptive Format]
+        SERVE[Serve Optimized Image]
+    end
+    
+    UPLOAD --> VALIDATE
+    VALIDATE --> COMPRESS
+    COMPRESS --> RESIZE
+    RESIZE --> FORMAT
+    FORMAT --> CDN_PUSH
+    CDN_PUSH --> DETECT
+    DETECT --> ADAPT
+    ADAPT --> SERVE
+```
+
+**Media Features:**
+- Automatic image compression (up to 85% size reduction)
+- Multiple format support (WebP, AVIF, JPEG)
+- Responsive images based on device
+- Video transcoding for multiple bitrates
+- Lazy loading for off-screen media
+
+### 3. Database Query Optimization
+
+```mermaid
+graph TD
+    subgraph "Query Strategies"
+        INDEX[Strategic Indexing]
+        DENORM[Denormalization]
+        MATERIALIZE[Materialized Views]
+        PARTITION[Table Partitioning]
+    end
+    
+    subgraph "Caching"
+        QUERY_CACHE[Query Result Cache]
+        PREPARED[Prepared Statements]
+        CONNECTION_POOL[Connection Pooling]
+    end
+    
+    subgraph "Monitoring"
+        SLOW_LOG[Slow Query Log]
+        EXPLAIN[Query Analysis]
+        OPTIMIZE[Query Optimization]
+    end
+    
+    INDEX --> QUERY_CACHE
+    DENORM --> PREPARED
+    MATERIALIZE --> CONNECTION_POOL
+    
+    QUERY_CACHE --> SLOW_LOG
+    PREPARED --> EXPLAIN
+    CONNECTION_POOL --> OPTIMIZE
+```
+
+**Optimization Strategies:**
+- Strategic indexing on high-traffic queries
+- Denormalization for read-heavy operations
+- Connection pooling to reduce overhead
+- Query result caching with TTL
+- Database sharding for horizontal scaling
+
+## Content Delivery
+
+### 1. CDN Architecture
+
+```mermaid
+graph TD
+    subgraph "Origin Servers"
+        ORIGIN[Origin Storage<br/>S3/GCS]
+    end
+    
+    subgraph "CDN Edge Network"
+        EDGE_US_E[US East Edge]
+        EDGE_US_W[US West Edge]
+        EDGE_EU[Europe Edge]
+        EDGE_ASIA[Asia Edge]
+        EDGE_LATAM[Latin America Edge]
+    end
+    
+    subgraph "Content Types"
+        STATIC[Static Assets<br/>JS, CSS, Fonts]
+        IMAGES[Profile Images<br/>Thumbnails]
+        MEDIA[Videos & GIFs]
+        AVATARS[User Avatars]
+    end
+    
+    ORIGIN --> EDGE_US_E
+    ORIGIN --> EDGE_US_W
+    ORIGIN --> EDGE_EU
+    ORIGIN --> EDGE_ASIA
+    ORIGIN --> EDGE_LATAM
+    
+    STATIC --> EDGE_US_E
+    IMAGES --> EDGE_US_W
+    MEDIA --> EDGE_EU
+    AVATARS --> EDGE_ASIA
+```
+
+**CDN Features:**
+- Global edge network (100+ locations)
+- Smart routing based on geography
+- Cache hit ratio > 95%
+- Image optimization and transformation
+- Video streaming with adaptive bitrate
+
+### 2. Asset Pipeline
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        SOURCE[Source Assets]
+        MINIFY[Minification]
+        BUNDLE[Bundling]
+    end
+    
+    subgraph "Optimization"
+        COMPRESS[Compression<br/>Gzip, Brotli]
+        HASH[Content Hashing]
+        SPRITE[Image Sprites]
+    end
+    
+    subgraph "Distribution"
+        UPLOAD[Upload to CDN]
+        INVALIDATE[Cache Invalidation]
+        MONITOR[Performance Monitor]
+    end
+    
+    SOURCE --> MINIFY
+    MINIFY --> BUNDLE
+    BUNDLE --> COMPRESS
+    COMPRESS --> HASH
+    HASH --> SPRITE
+    SPRITE --> UPLOAD
+    UPLOAD --> INVALIDATE
+    INVALIDATE --> MONITOR
+```
+
+**Asset Optimization:**
+- JavaScript/CSS minification
+- Module bundling and code splitting
+- Brotli compression for text assets
+- Image sprites for icons
+- Content hashing for cache busting
+
+## Analytics & Business Intelligence
+
+### 1. Analytics Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Data Sources"
+        CLIENT_EVENTS[Client Events<br/>Clicks, Scrolls, Views]
+        SERVER_EVENTS[Server Events<br/>API Calls, Errors]
+        BUSINESS_EVENTS[Business Events<br/>Tweets, Follows, Likes]
+    end
+    
+    subgraph "Collection"
+        KAFKA_STREAM[Kafka Streams]
+        BATCH_IMPORT[Batch Import]
+    end
+    
+    subgraph "Processing"
+        REAL_TIME[Real-time Processing<br/>Apache Flink]
+        BATCH_PROCESS[Batch Processing<br/>Apache Spark]
+        ETL[ETL Pipeline]
+    end
+    
+    subgraph "Storage"
+        DATA_WAREHOUSE[Data Warehouse<br/>Snowflake/BigQuery]
+        DATA_LAKE[Data Lake<br/>HDFS/S3]
+    end
+    
+    subgraph "Visualization"
+        DASHBOARDS[Business Dashboards]
+        REPORTS[Analytics Reports]
+        ML_FEATURES[ML Feature Store]
+    end
+    
+    CLIENT_EVENTS --> KAFKA_STREAM
+    SERVER_EVENTS --> KAFKA_STREAM
+    BUSINESS_EVENTS --> BATCH_IMPORT
+    
+    KAFKA_STREAM --> REAL_TIME
+    BATCH_IMPORT --> BATCH_PROCESS
+    REAL_TIME --> ETL
+    BATCH_PROCESS --> ETL
+    
+    ETL --> DATA_WAREHOUSE
+    ETL --> DATA_LAKE
+    
+    DATA_WAREHOUSE --> DASHBOARDS
+    DATA_WAREHOUSE --> REPORTS
+    DATA_LAKE --> ML_FEATURES
+```
+
+**Analytics Use Cases:**
+- User engagement metrics
+- Tweet performance analytics
+- Revenue and business metrics
+- A/B testing analysis
+- Fraud detection
+
+### 2. Key Performance Indicators
+
+```mermaid
+graph TD
+    subgraph "User Metrics"
+        DAU[Daily Active Users]
+        MAU[Monthly Active Users]
+        RETENTION[User Retention Rate]
+        ENGAGEMENT[Engagement Rate]
+    end
+    
+    subgraph "Content Metrics"
+        TWEETS_DAY[Tweets per Day]
+        RETWEET_RATE[Retweet Rate]
+        REPLY_RATE[Reply Rate]
+        LIKE_RATE[Like Rate]
+    end
+    
+    subgraph "Technical Metrics"
+        LATENCY[API Latency P95]
+        AVAILABILITY[System Availability]
+        ERROR_RATE[Error Rate]
+        THROUGHPUT[Requests/Second]
+    end
+    
+    subgraph "Business Metrics"
+        REVENUE[Ad Revenue]
+        ARPU[Avg Revenue Per User]
+        GROWTH[User Growth Rate]
+        CHURN[Churn Rate]
+    end
+```
+
+**Target Metrics:**
+- **DAU**: 250+ million daily active users
+- **Tweets/Day**: 500+ million tweets
+- **API Latency**: P95 < 200ms
+- **Availability**: 99.9% uptime SLA
+
+## Mobile Architecture
+
+### 1. Mobile App Architecture
+
+```mermaid
+graph TD
+    subgraph "Client Layer"
+        IOS_APP[iOS App<br/>Swift]
+        ANDROID_APP[Android App<br/>Kotlin]
+    end
+    
+    subgraph "Networking"
+        REST[REST API Client]
+        WEBSOCKET[WebSocket Client]
+        GRAPHQL[GraphQL Client]
+    end
+    
+    subgraph "Local Storage"
+        CORE_DATA[CoreData/Room]
+        CACHE[Local Cache]
+        MEDIA_CACHE[Media Cache]
+    end
+    
+    subgraph "Features"
+        TIMELINE[Timeline View]
+        COMPOSE[Tweet Composer]
+        NOTIFICATIONS[Push Notifications]
+        DM[Direct Messages]
+    end
+    
+    IOS_APP --> REST
+    ANDROID_APP --> REST
+    IOS_APP --> WEBSOCKET
+    ANDROID_APP --> GRAPHQL
+    
+    REST --> CORE_DATA
+    WEBSOCKET --> CACHE
+    GRAPHQL --> MEDIA_CACHE
+    
+    CORE_DATA --> TIMELINE
+    CACHE --> COMPOSE
+    MEDIA_CACHE --> NOTIFICATIONS
+    CORE_DATA --> DM
+```
+
+**Mobile Features:**
+- Offline timeline caching
+- Background tweet synchronization
+- Image/video compression before upload
+- Progressive image loading
+- Battery and data optimization
+
+### 2. Push Notification System
+
+```mermaid
+flowchart LR
+    subgraph "Event Triggers"
+        MENTION[New Mention]
+        DM_NOTIF[New DM]
+        FOLLOWER[New Follower]
+        LIKE_NOTIF[Tweet Liked]
+    end
+    
+    subgraph "Processing"
+        AGGREGATOR[Notification Aggregator]
+        PERSONALIZE[Personalization Engine]
+        PRIORITY[Priority Ranking]
+    end
+    
+    subgraph "Delivery"
+        APNS[Apple Push<br/>Notification Service]
+        FCM[Firebase Cloud<br/>Messaging]
+        WEB_PUSH[Web Push API]
+    end
+    
+    subgraph "Client"
+        IOS[iOS Device]
+        ANDROID[Android Device]
+        WEB[Web Browser]
+    end
+    
+    MENTION --> AGGREGATOR
+    DM_NOTIF --> AGGREGATOR
+    FOLLOWER --> AGGREGATOR
+    LIKE_NOTIF --> AGGREGATOR
+    
+    AGGREGATOR --> PERSONALIZE
+    PERSONALIZE --> PRIORITY
+    
+    PRIORITY --> APNS
+    PRIORITY --> FCM
+    PRIORITY --> WEB_PUSH
+    
+    APNS --> IOS
+    FCM --> ANDROID
+    WEB_PUSH --> WEB
+```
+
+**Notification Strategy:**
+- Intelligent notification batching
+- User preference-based filtering
+- Quiet hours and do-not-disturb
+- Rich notifications with media
+- Deep linking to relevant content
+
+## Cost Optimization
+
+```mermaid
+pie title Twitter Infrastructure Cost Distribution
+    "Compute (Servers)" : 35
+    "Storage" : 20
+    "Network/Bandwidth" : 25
+    "Data Processing" : 10
+    "Security & Monitoring" : 10
+```
+
+### Optimization Strategies
+
+```mermaid
+graph TD
+    subgraph "Compute Optimization"
+        RIGHT_SIZE[Right-sizing Instances]
+        SPOT[Spot/Preemptible Instances]
+        AUTO_SCALE[Autoscaling Policies]
+    end
+    
+    subgraph "Storage Optimization"
+        LIFECYCLE[Data Lifecycle Policies]
+        COMPRESSION[Data Compression]
+        TIERING[Storage Tiering]
+    end
+    
+    subgraph "Network Optimization"
+        CDN_CACHE[CDN Caching]
+        COMPRESSION_NET[Content Compression]
+        SMART_ROUTING[Smart Routing]
+    end
+    
+    subgraph "Monitoring"
+        COST_TRACK[Cost Tracking]
+        BUDGET_ALERT[Budget Alerts]
+        OPTIMIZATION[Continuous Optimization]
+    end
+    
+    RIGHT_SIZE --> COST_TRACK
+    SPOT --> COST_TRACK
+    AUTO_SCALE --> BUDGET_ALERT
+    
+    LIFECYCLE --> COST_TRACK
+    COMPRESSION --> BUDGET_ALERT
+    TIERING --> OPTIMIZATION
+    
+    CDN_CACHE --> COST_TRACK
+    COMPRESSION_NET --> BUDGET_ALERT
+    SMART_ROUTING --> OPTIMIZATION
+```
+
+**Cost Reduction Tactics:**
+- Reserved instances for stable workloads (30-50% savings)
+- Spot instances for batch processing (up to 90% savings)
+- Aggressive caching to reduce compute load
+- Data compression and deduplication
+- Multi-cloud strategy for competitive pricing
+
+## API Architecture
+
+### 1. REST API
+
+```mermaid
+graph TD
+    subgraph "API Versions"
+        V1[API v1.1<br/>Legacy]
+        V2[API v2<br/>Current]
+    end
+    
+    subgraph "Endpoints"
+        TWEETS_EP["/tweets"]
+        USERS_EP["/users"]
+        TIMELINE_EP["/timeline"]
+        SEARCH_EP["/search"]
+    end
+    
+    subgraph "Features"
+        PAGINATION[Cursor Pagination]
+        FILTERING[Field Filtering]
+        EXPANSION[Object Expansion]
+        RATE[Rate Limiting]
+    end
+    
+    V1 --> TWEETS_EP
+    V2 --> USERS_EP
+    V2 --> TIMELINE_EP
+    V2 --> SEARCH_EP
+    
+    TWEETS_EP --> PAGINATION
+    USERS_EP --> FILTERING
+    TIMELINE_EP --> EXPANSION
+    SEARCH_EP --> RATE
+```
+
+**API Features:**
+- RESTful design principles
+- OAuth 2.0 authentication
+- Rate limiting (per endpoint, per user)
+- Webhook support for real-time updates
+- Comprehensive error handling
+
+### 2. GraphQL API
+
+```mermaid
+graph LR
+    subgraph "Client Request"
+        QUERY[GraphQL Query]
+        VARIABLES[Query Variables]
+    end
+    
+    subgraph "GraphQL Server"
+        PARSE[Query Parser]
+        VALIDATE[Validation]
+        RESOLVE[Resolver Functions]
+    end
+    
+    subgraph "Data Sources"
+        TWEET_SERVICE[Tweet Service]
+        USER_SERVICE[User Service]
+        MEDIA_SERVICE[Media Service]
+    end
+    
+    subgraph "Response"
+        SHAPE[Response Shaping]
+        CACHE_RESP[Response Caching]
+        RETURN[JSON Response]
+    end
+    
+    QUERY --> PARSE
+    VARIABLES --> PARSE
+    PARSE --> VALIDATE
+    VALIDATE --> RESOLVE
+    
+    RESOLVE --> TWEET_SERVICE
+    RESOLVE --> USER_SERVICE
+    RESOLVE --> MEDIA_SERVICE
+    
+    TWEET_SERVICE --> SHAPE
+    USER_SERVICE --> SHAPE
+    MEDIA_SERVICE --> SHAPE
+    SHAPE --> CACHE_RESP
+    CACHE_RESP --> RETURN
+```
+
+**GraphQL Benefits:**
+- Flexible data fetching (request only needed fields)
+- Single request for multiple resources
+- Strong typing and schema validation
+- Efficient for mobile clients (reduced bandwidth)
+
+## Ads Platform Architecture
+
+```mermaid
+graph TD
+    subgraph "Ad Creation"
+        ADVERTISER[Advertisers]
+        CAMPAIGN[Campaign Setup]
+        CREATIVE[Ad Creative]
+        TARGET[Targeting Rules]
+    end
+    
+    subgraph "Ad Serving"
+        REQUEST[Ad Request]
+        AUCTION[Real-time Auction]
+        RANK[Ad Ranking]
+        SELECT[Ad Selection]
+    end
+    
+    subgraph "Delivery"
+        INJECT[Timeline Injection]
+        TRACK[Impression Tracking]
+        CLICK[Click Tracking]
+        CONVERSION[Conversion Tracking]
+    end
+    
+    subgraph "Optimization"
+        PERFORMANCE[Performance Analysis]
+        BID_OPTIMIZE[Bid Optimization]
+        TARGET_OPT[Target Optimization]
+        REPORT[Reporting Dashboard]
+    end
+    
+    ADVERTISER --> CAMPAIGN
+    CAMPAIGN --> CREATIVE
+    CREATIVE --> TARGET
+    
+    TARGET --> REQUEST
+    REQUEST --> AUCTION
+    AUCTION --> RANK
+    RANK --> SELECT
+    
+    SELECT --> INJECT
+    INJECT --> TRACK
+    TRACK --> CLICK
+    CLICK --> CONVERSION
+    
+    CONVERSION --> PERFORMANCE
+    PERFORMANCE --> BID_OPTIMIZE
+    BID_OPTIMIZE --> TARGET_OPT
+    TARGET_OPT --> REPORT
+```
+
+**Ad Features:**
+- Promoted tweets
+- Promoted accounts
+- Promoted trends
+- Real-time bidding (RTB)
+- Sophisticated targeting (demographics, interests, behaviors)
+- Performance analytics and reporting
+
+## Future Architecture Evolution
+
+### Emerging Technologies
+
+```mermaid
+graph TD
+    subgraph "AI/ML Enhancements"
+        GPT[Large Language Models<br/>Content Moderation]
+        RECOMMEND_AI[Advanced Recommendations<br/>Deep Learning]
+        VISION[Computer Vision<br/>Image Understanding]
+    end
+    
+    subgraph "Infrastructure"
+        EDGE_COMPUTE[Edge Computing<br/>Reduced Latency]
+        SERVERLESS[Serverless Architecture<br/>Cost Optimization]
+        QUANTUM[Quantum Computing<br/>Complex Algorithms]
+    end
+    
+    subgraph "Features"
+        LONG_FORM[Long-form Content<br/>Articles, Newsletters]
+        AUDIO_SPACES[Enhanced Spaces<br/>Live Audio]
+        VIDEO[Short-form Video<br/>TikTok-style]
+        COMMERCE[Social Commerce<br/>In-app Shopping]
+    end
+    
+    subgraph "Privacy & Security"
+        ZERO_KNOWLEDGE[Zero-knowledge Proofs]
+        DECENTRALIZED[Decentralized Identity]
+        ENCRYPTED[End-to-end Encryption]
+    end
+```
+
+### Scalability Roadmap
+
+- **User Growth**: Support 1 billion+ users
+- **Real-time Processing**: Sub-second global propagation
+- **AI Integration**: Smarter recommendations and moderation
+- **New Content Types**: Audio, long-form, video
+- **Global Expansion**: Low-latency access worldwide
+
+## Conclusion
+
+Twitter/X's architecture demonstrates expertise in building ultra-scalable, real-time social networking platforms. The combination of intelligent caching, efficient fanout mechanisms, robust data storage, and advanced machine learning enables Twitter to handle billions of interactions daily while maintaining sub-second response times.
+
+Key architectural principles:
+- **Real-time First**: Optimized for immediate content distribution
+- **Horizontal Scalability**: Services scale independently
+- **Data Locality**: Cache and store data near users
+- **Fault Tolerance**: Graceful degradation and quick recovery
+- **Continuous Evolution**: Adapting to new technologies and user needs
+
+The platform continues to evolve, incorporating new features and optimizations to meet growing demands while maintaining the speed and reliability users expect from a real-time social network.
+
+> This architecture represents Twitter/X's known systems and best practices. Actual implementation details may vary as the platform continues to evolve.

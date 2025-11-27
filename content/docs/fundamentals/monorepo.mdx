@@ -1,0 +1,528 @@
+---
+title: Monorepo vs Multi-repo
+description: A comprehensive guide to repository strategies - choosing between monorepo and multi-repo architectures for your projects
+---
+
+## What is a Monorepo?
+
+A **Monorepo** (monolithic repository) is a single repository that contains multiple projects, applications, or packages. All code lives in one place, with shared tooling, dependencies, and configurations.
+
+> *Example:* Google, Meta, and Microsoft use monorepos containing thousands of projects and millions of lines of code.
+
+## What is Multi-repo?
+
+A **Multi-repo** (polyrepo) strategy uses separate repositories for each project, service, or package. Each repo is independently versioned, deployed, and maintained.
+
+> *Example:* Netflix uses separate repositories for each microservice, with clear ownership boundaries.
+
+---
+
+## Architecture Comparison
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Monorepo
+    MR[(Single Repository)]
+    MR --> App1[Frontend App]
+    MR --> App2[Backend API]
+    MR --> Lib1[Shared Utils]
+    MR --> Lib2[UI Components]
+    MR --> Svc1[Auth Service]
+    MR --> Svc2[Payment Service]
+  end
+
+  subgraph Multi-repo
+    R1[(frontend-app)]
+    R2[(backend-api)]
+    R3[(shared-utils)]
+    R4[(ui-components)]
+    R5[(auth-service)]
+    R6[(payment-service)]
+  end
+"
+/>
+
+| **Aspect**           | **Monorepo**                             | **Multi-repo**                          |
+|----------------------|------------------------------------------|-----------------------------------------|
+| **Code Location**    | Single repository                        | Separate repositories                   |
+| **Dependencies**     | Shared, always in sync                   | Versioned via package manager           |
+| **Tooling**          | Unified build/test/lint                  | Per-repo configuration                  |
+| **Visibility**       | Everyone sees all code                   | Access controlled per repo              |
+| **Atomic Changes**   | Cross-project changes in one commit      | Requires coordinated PRs                |
+| **CI/CD**            | Complex (need smart filtering)           | Simple per-repo pipelines               |
+
+---
+
+## Monorepo Deep Dive
+
+### Structure
+
+```
+my-company/
+├── apps/
+│   ├── web/                 # Main web application
+│   ├── mobile/              # React Native app
+│   └── admin-dashboard/     # Internal admin tool
+├── packages/
+│   ├── ui/                  # Shared UI components
+│   ├── utils/               # Common utilities
+│   ├── config/              # Shared configurations
+│   └── types/               # TypeScript definitions
+├── services/
+│   ├── api-gateway/         # API Gateway service
+│   ├── user-service/        # User management
+│   └── payment-service/     # Payment processing
+├── tools/
+│   └── scripts/             # Build and deployment scripts
+├── package.json             # Root package.json
+├── turbo.json               # Turborepo config
+└── nx.json                  # Nx config (alternative)
+```
+
+### Key Benefits
+
+#### 1. **Atomic Changes**
+
+Make cross-project changes in a single commit.
+
+<Mermaid
+  chart="
+sequenceDiagram
+  participant Dev as Developer
+  participant Repo as Monorepo
+  participant UI as UI Package
+  participant App as Web App
+  participant API as API Service
+
+  Dev->>Repo: Single PR
+  Repo->>UI: Update Button component
+  Repo->>App: Use new Button props
+  Repo->>API: Add new endpoint
+  Note over Repo: All changes atomic, tested together
+"
+/>
+
+```
+# One commit updates everything
+feat: add dark mode support
+
+- packages/ui: Add theme prop to Button
+- apps/web: Implement theme toggle
+- services/api: Add user preference endpoint
+```
+
+#### 2. **Shared Dependencies**
+
+Single source of truth for all dependencies.
+
+```json
+// Root package.json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
+
+No version conflicts. Update once, applies everywhere.
+
+#### 3. **Code Reuse**
+
+Import shared code directly without publishing packages.
+
+```typescript
+// apps/web/src/components/Header.tsx
+import { Button } from '@company/ui';
+import { formatDate } from '@company/utils';
+import type { User } from '@company/types';
+```
+
+#### 4. **Unified Tooling**
+
+One configuration for linting, testing, and building.
+
+```json
+// Root eslint.config.js applies to all projects
+// Root tsconfig.json shared across all TypeScript code
+// Single CI/CD pipeline with smart caching
+```
+
+---
+
+### Monorepo Tooling
+
+<Mermaid
+  chart="
+graph LR
+  subgraph Build Tools
+    Turbo[Turborepo]
+    Nx[Nx]
+    Bazel[Bazel]
+    Lerna[Lerna]
+  end
+
+  subgraph Package Management
+    PNPM[pnpm workspaces]
+    Yarn[Yarn workspaces]
+    NPM[npm workspaces]
+  end
+
+  subgraph Features
+    Cache[Remote Caching]
+    Graph[Task Graph]
+    Affected[Affected Detection]
+  end
+
+  Turbo --> Cache
+  Nx --> Graph
+  Bazel --> Affected
+"
+/>
+
+| **Tool**       | **Best For**                              | **Key Features**                        |
+|----------------|-------------------------------------------|-----------------------------------------|
+| **Turborepo**  | JavaScript/TypeScript projects            | Fast, simple, Vercel integration        |
+| **Nx**         | Enterprise monorepos                      | Plugins, generators, graph visualization|
+| **Bazel**      | Large-scale, multi-language               | Hermetic builds, Google-proven          |
+| **Lerna**      | Publishing npm packages                   | Versioning, changelog generation        |
+| **pnpm**       | Efficient package management              | Strict dependencies, disk efficient     |
+
+### Task Orchestration
+
+<Mermaid
+  chart="
+graph TD
+  subgraph Build Pipeline
+    Lint[Lint] --> TypeCheck[Type Check]
+    TypeCheck --> Test[Test]
+    Test --> Build[Build]
+  end
+
+  subgraph Parallel Execution
+    Build --> B1[Build UI]
+    Build --> B2[Build Utils]
+    Build --> B3[Build Types]
+    B1 --> B4[Build Web App]
+    B2 --> B4
+    B3 --> B4
+  end
+"
+/>
+
+```json
+// turbo.json
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    }
+  }
+}
+```
+
+### Affected Detection
+
+Only build/test what changed:
+
+```bash
+# Turborepo
+npx turbo run build --filter=...[origin/main]
+
+# Nx
+npx nx affected --target=build --base=origin/main
+```
+
+<Mermaid
+  chart="
+graph LR
+  Change[Change in utils/] --> Detect[Affected Detection]
+  Detect --> Skip1[Skip: auth-service]
+  Detect --> Skip2[Skip: payment-service]
+  Detect --> Run1[Run: web-app]
+  Detect --> Run2[Run: admin-dashboard]
+  Detect --> Run3[Run: utils tests]
+"
+/>
+
+---
+
+## Multi-repo Deep Dive
+
+### Structure
+
+```
+github.com/my-company/
+├── frontend-web/           # Main web application
+├── frontend-mobile/        # React Native app
+├── backend-api-gateway/    # API Gateway
+├── service-users/          # User service
+├── service-payments/       # Payment service
+├── lib-ui-components/      # Shared UI (npm package)
+├── lib-common-utils/       # Shared utilities (npm package)
+└── infra-terraform/        # Infrastructure as code
+```
+
+### Key Benefits
+
+#### 1. **Clear Ownership**
+
+Each repo has defined owners and access controls.
+
+```yaml
+# CODEOWNERS in service-payments/
+* @payments-team
+/src/fraud/ @security-team
+```
+
+#### 2. **Independent Lifecycles**
+
+Each service versions and deploys independently.
+
+<Mermaid
+  chart="
+graph LR
+  subgraph Payment Service
+    P1[v1.0.0] --> P2[v1.1.0] --> P3[v2.0.0]
+  end
+
+  subgraph User Service
+    U1[v3.2.0] --> U2[v3.2.1] --> U3[v3.3.0]
+  end
+
+  subgraph API Gateway
+    A1[v1.5.0] --> A2[v1.5.1]
+  end
+
+  Note1[Each deploys independently]
+"
+/>
+
+#### 3. **Simpler CI/CD**
+
+Each repo has its own straightforward pipeline.
+
+```yaml
+# .github/workflows/ci.yml (per repo)
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+```
+
+#### 4. **Technology Flexibility**
+
+Each repo can use different languages, frameworks, and tools.
+
+```
+service-users/       → Go + PostgreSQL
+service-payments/    → Java + Spring Boot
+service-analytics/   → Python + FastAPI
+frontend-web/        → React + TypeScript
+```
+
+---
+
+### Multi-repo Challenges & Solutions
+
+#### Challenge 1: Dependency Management
+
+<Mermaid
+  chart="
+graph TD
+  App[Web App] -->|depends on| UI[ui-components v2.1.0]
+  App -->|depends on| Utils[common-utils v1.5.0]
+  UI -->|depends on| Utils2[common-utils v1.3.0]
+
+  Conflict[Version Conflict!]
+"
+/>
+
+**Solutions:**
+- Semantic versioning with strict ranges
+- Automated dependency updates (Dependabot, Renovate)
+- Regular synchronization releases
+
+#### Challenge 2: Cross-repo Changes
+
+```bash
+# Updating shared library requires multiple PRs
+1. PR to lib-ui-components (bump version)
+2. Publish new npm version
+3. PR to frontend-web (update dependency)
+4. PR to frontend-mobile (update dependency)
+5. PR to admin-dashboard (update dependency)
+```
+
+**Solutions:**
+- Automation scripts for multi-repo updates
+- Codemods for breaking changes
+- Versioned contracts (API specs, TypeScript types)
+
+#### Challenge 3: Code Discovery
+
+**Solutions:**
+- Central documentation (Backstage, wiki)
+- Consistent naming conventions
+- Service catalog with ownership info
+
+---
+
+## Hybrid Approaches
+
+Many organizations use a combination of both strategies.
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Frontend Monorepo
+    FM[(frontend-monorepo)]
+    FM --> Web[Web App]
+    FM --> Mobile[Mobile App]
+    FM --> Admin[Admin Dashboard]
+    FM --> UILib[UI Components]
+  end
+
+  subgraph Backend Multi-repo
+    S1[(user-service)]
+    S2[(payment-service)]
+    S3[(notification-service)]
+    S4[(api-gateway)]
+  end
+
+  subgraph Shared Monorepo
+    SM[(shared-libs)]
+    SM --> Types[TypeScript Types]
+    SM --> Protos[Protobuf Definitions]
+    SM --> Contracts[API Contracts]
+  end
+
+  FM -.->|imports| SM
+  S1 -.->|imports| SM
+  S2 -.->|imports| SM
+"
+/>
+
+### Common Patterns
+
+| **Pattern**                | **Description**                                    |
+|----------------------------|----------------------------------------------------|
+| **Frontend Monorepo**      | All frontend apps + shared UI in one repo          |
+| **Backend Multi-repo**     | Each microservice in its own repo                  |
+| **Shared Libs Monorepo**   | Types, contracts, and configs in dedicated monorepo|
+| **Team Monorepos**         | Each team owns a monorepo for their domain         |
+
+---
+
+## Decision Framework
+
+<Mermaid
+  chart="
+graph TD
+  Start[Start] --> Q1{Team Size?}
+  Q1 -->|< 10 devs| Mono1[Consider Monorepo]
+  Q1 -->|> 50 devs| Multi1[Consider Multi-repo]
+  Q1 -->|10-50 devs| Q2{Code Sharing Needs?}
+
+  Q2 -->|High| Mono2[Monorepo]
+  Q2 -->|Low| Multi2[Multi-repo]
+  Q2 -->|Medium| Q3{Technology Diversity?}
+
+  Q3 -->|Single Stack| Mono3[Monorepo]
+  Q3 -->|Multiple Languages| Multi3[Multi-repo or Hybrid]
+
+  Mono1 --> Eval[Evaluate Tooling]
+  Mono2 --> Eval
+  Mono3 --> Eval
+  Multi1 --> Eval
+  Multi2 --> Eval
+  Multi3 --> Eval
+"
+/>
+
+### Choose Monorepo When
+
+- ✅ High code sharing between projects
+- ✅ Frequent cross-project changes
+- ✅ Single technology stack
+- ✅ Small to medium team size
+- ✅ Strong DevOps capabilities for tooling
+
+### Choose Multi-repo When
+
+- ✅ Clear service boundaries with minimal sharing
+- ✅ Teams need strong autonomy
+- ✅ Different technology stacks per service
+- ✅ Strict access control requirements
+- ✅ Simple CI/CD is a priority
+
+---
+
+## Migration Strategies
+
+### Monorepo → Multi-repo
+
+```bash
+# Extract service to new repo
+1. Create new repository
+2. Copy service code with git history (git filter-branch)
+3. Update CI/CD for new repo
+4. Remove code from monorepo
+5. Update dependencies to use published packages
+```
+
+### Multi-repo → Monorepo
+
+```bash
+# Merge repos while preserving history
+1. Create monorepo structure
+2. Use git subtree or custom scripts to import repos
+3. Update import paths
+4. Consolidate configurations
+5. Set up monorepo tooling (Nx, Turborepo)
+```
+
+---
+
+## Summary Table
+
+| **Factor**              | **Monorepo**                          | **Multi-repo**                       |
+|-------------------------|---------------------------------------|--------------------------------------|
+| **Code Sharing**        | Easy, direct imports                  | Via versioned packages               |
+| **Atomic Changes**      | Single commit across projects         | Coordinated PRs                      |
+| **CI/CD Complexity**    | High (needs smart tooling)            | Low (simple per-repo)                |
+| **Onboarding**          | Clone once, access all                | Clone multiple repos                 |
+| **Access Control**      | Harder to restrict                    | Fine-grained per repo                |
+| **Tooling Required**    | Nx, Turborepo, Bazel                  | Standard git workflows               |
+| **Scaling**             | Needs optimization at scale           | Scales naturally                     |
+| **Dependency Sync**     | Always in sync                        | Version management overhead          |
+
+---
+
+## Interview Tips
+
+- **Know the trade-offs:** Neither approach is universally better—it depends on team size, code sharing needs, and organizational structure.
+- **Discuss tooling:** Mention Nx, Turborepo, or Bazel for monorepos; discuss versioning strategies for multi-repo.
+- **Real-world examples:** Google, Meta, Microsoft use monorepos; Netflix, Amazon prefer multi-repo (for microservices).
+- **Hybrid is common:** Many companies use both—monorepo for related projects, multi-repo for independent services.
+- **Scaling challenges:** Discuss how monorepos need affected detection and remote caching at scale.
+- **Connect to microservices:** Multi-repo aligns well with microservices; monorepo works better for shared libraries and related apps.
+
+---
+
+**Repository strategy** is a foundational architectural decision. Choose based on your team's collaboration patterns, code sharing needs, and operational capabilities—not industry trends.

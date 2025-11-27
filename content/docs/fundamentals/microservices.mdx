@@ -1,0 +1,382 @@
+---
+title: Microservices Architecture
+description: A comprehensive guide to microservices architecture, patterns, and best practices for system design
+---
+
+## What are Microservices?
+
+**Microservices** is an architectural style where an application is built as a collection of small, independent services that communicate over well-defined APIs. Each service is:
+
+- **Independently deployable:** Deploy one service without affecting others.
+- **Loosely coupled:** Services interact through APIs, not shared databases.
+- **Organized around business capabilities:** Each service owns a specific domain.
+- **Owned by small teams:** Enables autonomous development and faster iteration.
+
+> *Example:* An e-commerce platform split into User Service, Product Catalog, Order Service, Payment Service, and Notification Service.
+
+---
+
+## Monolith vs Microservices
+
+<Mermaid
+  chart="
+graph LR
+  subgraph Monolith
+    A[Single Codebase] --> B[Single Database]
+    A --> C[Single Deployment]
+    A --> D[Tightly Coupled Modules]
+  end
+
+  subgraph Microservices
+    E[User Service] --> L[(User DB)]
+    F[Order Service] --> M[(Order DB)]
+    G[Payment Service] --> N[(Payment DB)]
+    H[API Gateway] --> E
+    H --> F
+    H --> G
+  end
+"
+/>
+
+| **Aspect**       | **Monolith**                          | **Microservices**                      |
+|------------------|---------------------------------------|----------------------------------------|
+| **Deployment**   | Single unit                           | Independent per service                |
+| **Scaling**      | Scale entire application              | Scale individual services              |
+| **Technology**   | Single stack                          | Polyglot (different tech per service)  |
+| **Failure**      | One bug can crash everything          | Isolated failures                      |
+| **Development**  | Simple initially, complex at scale    | Complex initially, manageable at scale |
+
+---
+
+## Core Principles
+
+### 1. **Single Responsibility**
+
+Each microservice should do one thing well, aligned with a specific business capability.
+
+> *Example:* Payment Service only handles payment processing—not user authentication or order management.
+
+### 2. **Decentralized Data Management**
+
+Each service owns its data. No shared databases between services.
+
+```
+✅ Order Service → Order Database
+✅ User Service → User Database
+❌ Shared Database for all services
+```
+
+### 3. **Design for Failure**
+
+Assume services will fail. Implement resilience patterns like retries, circuit breakers, and fallbacks.
+
+### 4. **Smart Endpoints, Dumb Pipes**
+
+Services contain business logic; communication channels (HTTP, messaging) are simple and stateless.
+
+---
+
+## Communication Patterns
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Synchronous
+    A[Service A] -->|REST/gRPC| B[Service B]
+    B -->|Response| A
+  end
+
+  subgraph Asynchronous
+    C[Service C] -->|Publish Event| Q[Message Queue]
+    Q -->|Subscribe| D[Service D]
+    Q -->|Subscribe| E[Service E]
+  end
+"
+/>
+
+### Synchronous Communication
+
+- **REST APIs:** Simple, widely adopted, uses HTTP/JSON.
+- **gRPC:** High-performance, uses Protocol Buffers, ideal for internal services.
+
+```http
+GET /api/users/123
+Host: user-service.internal
+
+Response:
+{
+  "id": 123,
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+### Asynchronous Communication
+
+- **Message Queues:** RabbitMQ, Amazon SQS for task queues.
+- **Event Streaming:** Apache Kafka, AWS Kinesis for real-time event processing.
+
+> *Best Practice:* Use async communication for operations that don't need immediate response (notifications, analytics, order processing).
+
+---
+
+## Key Patterns
+
+### API Gateway Pattern
+
+<Mermaid
+  chart="
+graph TD
+  Client[Mobile/Web Client] --> GW[API Gateway]
+  GW --> Auth[Auth Service]
+  GW --> Users[User Service]
+  GW --> Orders[Order Service]
+  GW --> Products[Product Service]
+
+  GW -.->|Rate Limiting| GW
+  GW -.->|Authentication| GW
+  GW -.->|Load Balancing| GW
+"
+/>
+
+**Purpose:** Single entry point for all client requests.
+
+**Responsibilities:**
+- Request routing
+- Authentication & authorization
+- Rate limiting
+- Load balancing
+- Response aggregation
+
+**Tools:** Kong, AWS API Gateway, Netflix Zuul, Nginx
+
+---
+
+### Service Discovery
+
+Services need to find each other dynamically in a distributed environment.
+
+<Mermaid
+  chart="
+graph LR
+  S1[Service A] -->|Register| SR[(Service Registry)]
+  S2[Service B] -->|Register| SR
+  S3[Service C] -->|Query| SR
+  SR -->|Service B: 10.0.0.5:8080| S3
+  S3 -->|Call| S2
+"
+/>
+
+| **Type**           | **How it Works**                        | **Tools**                |
+|--------------------|-----------------------------------------|--------------------------|
+| **Client-side**    | Client queries registry, picks instance | Netflix Eureka, Consul   |
+| **Server-side**    | Load balancer queries registry          | AWS ALB, Kubernetes      |
+
+---
+
+### Circuit Breaker Pattern
+
+Prevents cascading failures by stopping requests to a failing service.
+
+<Mermaid
+  chart="
+stateDiagram-v2
+  [*] --> Closed
+  Closed --> Open: Failures > Threshold
+  Open --> HalfOpen: Timeout Expires
+  HalfOpen --> Closed: Success
+  HalfOpen --> Open: Failure
+"
+/>
+
+**States:**
+- **Closed:** Normal operation, requests flow through.
+- **Open:** Failures exceeded threshold, requests fail immediately.
+- **Half-Open:** After timeout, allow limited requests to test recovery.
+
+**Tools:** Resilience4j, Hystrix (deprecated), Polly (.NET)
+
+---
+
+### Saga Pattern (Distributed Transactions)
+
+Manages transactions across multiple services without distributed locks.
+
+<Mermaid
+  chart="
+sequenceDiagram
+  participant Order as Order Service
+  participant Payment as Payment Service
+  participant Inventory as Inventory Service
+  participant Shipping as Shipping Service
+
+  Order->>Payment: 1. Process Payment
+  Payment-->>Order: Payment Success
+  Order->>Inventory: 2. Reserve Items
+  Inventory-->>Order: Items Reserved
+  Order->>Shipping: 3. Create Shipment
+  Shipping-->>Order: Shipment Created
+
+  Note over Order,Shipping: If any step fails, compensating transactions are triggered
+"
+/>
+
+| **Type**        | **Description**                              | **Use Case**                    |
+|-----------------|----------------------------------------------|---------------------------------|
+| **Choreography**| Services emit events, others react           | Simple workflows                |
+| **Orchestration**| Central coordinator manages the saga        | Complex multi-step transactions |
+
+---
+
+## Data Management Strategies
+
+### Database per Service
+
+Each service has its own database, ensuring loose coupling.
+
+```
+User Service     → PostgreSQL (relational data)
+Product Service  → MongoDB (flexible schema)
+Search Service   → Elasticsearch (full-text search)
+Session Service  → Redis (fast key-value access)
+```
+
+### Event Sourcing
+
+Store state changes as a sequence of events instead of current state.
+
+> *Example:* Instead of storing "Balance: $100", store events: "Deposit $50", "Withdraw $20", "Deposit $70".
+
+### CQRS (Command Query Responsibility Segregation)
+
+Separate read and write models for optimal performance.
+
+<Mermaid
+  chart="
+graph LR
+  Client -->|Write Commands| WriteAPI[Write API]
+  WriteAPI --> WriteDB[(Write Database)]
+  WriteDB -->|Events| Sync[Event Sync]
+  Sync --> ReadDB[(Read Database)]
+  Client -->|Read Queries| ReadAPI[Read API]
+  ReadAPI --> ReadDB
+"
+/>
+
+---
+
+## Deployment & Infrastructure
+
+### Containerization
+
+Package services with their dependencies for consistent deployment.
+
+```
+Dockerfile → Build Image → Push to Registry → Deploy to Kubernetes
+```
+
+**Tools:** Docker, containerd, Podman
+
+### Orchestration
+
+Manage containerized services at scale.
+
+<Mermaid
+  chart="
+graph TD
+  subgraph Kubernetes Cluster
+    Master[Control Plane]
+
+    subgraph Node1[Worker Node 1]
+      P1[User Service Pod]
+      P2[User Service Pod]
+    end
+
+    subgraph Node2[Worker Node 2]
+      P3[Order Service Pod]
+      P4[Payment Service Pod]
+    end
+
+    Master --> Node1
+    Master --> Node2
+  end
+
+  LB[Load Balancer] --> Master
+"
+/>
+
+**Tools:** Kubernetes, Docker Swarm, AWS ECS, Nomad
+
+---
+
+## Observability
+
+### The Three Pillars
+
+| **Pillar**    | **Purpose**                          | **Tools**                        |
+|---------------|--------------------------------------|----------------------------------|
+| **Logging**   | Record events and errors             | ELK Stack, Loki, Fluentd         |
+| **Metrics**   | Track performance indicators         | Prometheus, Grafana, Datadog     |
+| **Tracing**   | Follow requests across services      | Jaeger, Zipkin, AWS X-Ray        |
+
+### Distributed Tracing Example
+
+```
+Request ID: abc-123
+├── API Gateway (2ms)
+├── User Service (15ms)
+│   └── User Database (8ms)
+├── Order Service (45ms)
+│   ├── Inventory Check (12ms)
+│   └── Order Database (25ms)
+└── Total: 62ms
+```
+
+---
+
+## When to Use Microservices
+
+### ✅ Good Fit
+
+- Large teams needing independent deployment
+- Complex domains with clear boundaries
+- High scalability requirements for specific components
+- Need for technology diversity
+
+### ❌ Poor Fit
+
+- Small teams or simple applications
+- Startups in early stages (start with monolith)
+- Limited DevOps capabilities
+- Unclear domain boundaries
+
+> **Rule of Thumb:** Start with a well-structured monolith. Extract microservices when you have clear boundaries and scaling needs.
+
+---
+
+## Summary Table
+
+| **Concept**          | **Purpose**                              | **Tools/Examples**                  |
+|----------------------|------------------------------------------|-------------------------------------|
+| **API Gateway**      | Single entry point, routing              | Kong, AWS API Gateway               |
+| **Service Discovery**| Dynamic service location                 | Consul, Eureka, Kubernetes DNS      |
+| **Circuit Breaker**  | Prevent cascading failures               | Resilience4j, Polly                 |
+| **Saga**             | Distributed transactions                 | Orchestrator, Event-driven          |
+| **CQRS**             | Separate read/write models               | Event Sourcing, Read Replicas       |
+| **Containerization** | Package and deploy services              | Docker, Kubernetes                  |
+| **Observability**    | Monitor and debug distributed systems    | Prometheus, Jaeger, ELK             |
+
+---
+
+## Interview Tips
+
+- **Start with why:** Explain the problem microservices solve before diving into patterns.
+- **Know the trade-offs:** Microservices add complexity—discuss when a monolith is better.
+- **Use concrete examples:** Reference real systems (Netflix, Amazon, Uber) and their microservices journeys.
+- **Discuss data consistency:** Explain how you'd handle transactions across services (Saga, eventual consistency).
+- **Cover observability:** Distributed systems need strong logging, metrics, and tracing.
+- **Connect to CAP theorem:** Microservices often trade consistency for availability and partition tolerance.
+
+---
+
+**Microservices** enable teams to build scalable, resilient systems by decomposing applications into independent services. Success requires careful design, strong DevOps practices, and clear domain boundaries.

@@ -1,0 +1,490 @@
+---
+title: Micro-frontends Architecture
+description: A guide to micro frontend architecture - building scalable frontend applications with independent, deployable units
+---
+
+## What are Micro Frontends?
+
+**Micro Frontends** extend the microservices philosophy to frontend development. Instead of a single monolithic frontend application, the UI is composed of smaller, independent pieces that can be developed, tested, and deployed separately.
+
+Each micro frontend:
+- **Owns a feature or page:** Has clear boundaries and responsibilities.
+- **Is independently deployable:** Ship updates without coordinating with other teams.
+- **Can use different technologies:** Teams choose their own frameworks.
+- **Is developed by autonomous teams:** End-to-end ownership from UI to API.
+
+> *Example:* An e-commerce site where the Product Catalog, Shopping Cart, User Profile, and Checkout are separate micro frontends developed by different teams.
+
+---
+
+## Monolith vs Micro Frontend
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Monolith Frontend
+    MF[Single React/Angular App]
+    MF --> Catalog[Catalog Module]
+    MF --> Cart[Cart Module]
+    MF --> Profile[Profile Module]
+    MF --> Checkout[Checkout Module]
+  end
+
+  subgraph Micro Frontends
+    Shell[App Shell / Container]
+    Shell --> MFE1[Catalog MFE - React]
+    Shell --> MFE2[Cart MFE - Vue]
+    Shell --> MFE3[Profile MFE - React]
+    Shell --> MFE4[Checkout MFE - Angular]
+  end
+"
+/>
+
+| **Aspect**          | **Monolith Frontend**                 | **Micro Frontends**                   |
+|---------------------|---------------------------------------|---------------------------------------|
+| **Deployment**      | Deploy entire app together            | Deploy each MFE independently         |
+| **Team Ownership**  | Shared codebase, all teams            | Each team owns their MFE              |
+| **Technology**      | Single framework                      | Multiple frameworks possible          |
+| **Build Time**      | Long (entire app rebuilt)             | Fast (only changed MFE)               |
+| **Failure Impact**  | One bug can break whole UI            | Isolated failures per MFE             |
+| **Complexity**      | Simple architecture, complex codebase | Complex architecture, simpler codebases|
+
+---
+
+## Core Principles
+
+### 1. **Technology Agnostic**
+
+Each team can choose the best tools for their needs without affecting others.
+
+```
+Product Team     → React + TypeScript
+Checkout Team    → Angular + RxJS
+Marketing Team   → Vue + Nuxt
+Legacy Team      → jQuery (migrating gradually)
+```
+
+### 2. **Isolated Team Code**
+
+No shared state or global variables between micro frontends. Communicate through well-defined contracts.
+
+> *Rule:* If two MFEs need to share code, extract it to a versioned npm package.
+
+### 3. **Native Browser Features Over Custom APIs**
+
+Prefer browser events, URLs, and storage over custom frameworks for communication.
+
+### 4. **Resilient by Design**
+
+If one micro frontend fails, others should continue working.
+
+---
+
+## Integration Approaches
+
+<Mermaid
+  chart="
+graph TD
+  subgraph Build-time
+    A[MFE Package] -->|npm install| B[Host App Build]
+  end
+
+  subgraph Run-time Server
+    C[Server] -->|SSI/ESI| D[Composed HTML]
+  end
+
+  subgraph Run-time Client
+    E[Shell App] -->|Dynamic Import| F[MFE Bundle]
+    E -->|iframe| G[Isolated MFE]
+    E -->|Web Components| H[Custom Elements]
+  end
+"
+/>
+
+### 1. Build-time Integration
+
+Micro frontends are published as npm packages and composed during build.
+
+```json
+{
+  "dependencies": {
+    "@company/catalog-mfe": "^2.1.0",
+    "@company/cart-mfe": "^1.5.0",
+    "@company/checkout-mfe": "^3.0.0"
+  }
+}
+```
+
+| **Pros**                        | **Cons**                              |
+|---------------------------------|---------------------------------------|
+| Simple setup                    | Requires rebuilding host for updates  |
+| Single bundle optimization      | Tight coupling via versions           |
+| Works with any framework        | Slower release cycle                  |
+
+---
+
+### 2. Server-side Integration
+
+Compose micro frontends on the server using SSI (Server-Side Includes) or edge-side composition.
+
+```html
+<!-- Main page template -->
+<html>
+  <body>
+    <header><!--#include virtual="/mfe/header" --></header>
+    <main><!--#include virtual="/mfe/product-catalog" --></main>
+    <aside><!--#include virtual="/mfe/shopping-cart" --></aside>
+    <footer><!--#include virtual="/mfe/footer" --></footer>
+  </body>
+</html>
+```
+
+| **Pros**                        | **Cons**                              |
+|---------------------------------|---------------------------------------|
+| Fast initial load (complete HTML)| More complex server setup            |
+| SEO-friendly                    | Limited client-side interactivity     |
+| Independent deployment          | Requires edge/CDN support             |
+
+---
+
+### 3. Client-side Integration
+
+The browser loads and composes micro frontends dynamically.
+
+#### Module Federation (Webpack 5+)
+
+<Mermaid
+  chart="
+graph LR
+  Shell[Shell App] -->|remoteEntry.js| Catalog[Catalog MFE]
+  Shell -->|remoteEntry.js| Cart[Cart MFE]
+  Shell -->|remoteEntry.js| Checkout[Checkout MFE]
+
+  Catalog -->|Shared| React[React Runtime]
+  Cart -->|Shared| React
+  Checkout -->|Shared| React
+"
+/>
+
+```javascript
+// webpack.config.js - Shell App
+new ModuleFederationPlugin({
+  name: 'shell',
+  remotes: {
+    catalog: 'catalog@https://catalog.example.com/remoteEntry.js',
+    cart: 'cart@https://cart.example.com/remoteEntry.js',
+  },
+  shared: ['react', 'react-dom'],
+});
+
+// Usage in Shell
+const CatalogPage = React.lazy(() => import('catalog/ProductList'));
+```
+
+| **Pros**                        | **Cons**                              |
+|---------------------------------|---------------------------------------|
+| True independent deployment     | Webpack-specific (though Vite support exists)|
+| Shared dependencies (smaller bundles)| Complex configuration             |
+| Dynamic loading                 | Runtime errors possible               |
+
+---
+
+#### iframes
+
+Strongest isolation but with trade-offs.
+
+```html
+<iframe
+  src="https://checkout.example.com"
+  title="Checkout"
+  style="border: none; width: 100%; height: 600px;"
+></iframe>
+```
+
+| **Pros**                        | **Cons**                              |
+|---------------------------------|---------------------------------------|
+| Complete isolation              | Poor UX (no shared styling)           |
+| Works with any technology       | Performance overhead                  |
+| Security sandbox                | Communication is complex              |
+
+---
+
+#### Web Components
+
+Framework-agnostic custom elements.
+
+```javascript
+// Define in Cart MFE
+class ShoppingCart extends HTMLElement {
+  connectedCallback() {
+    this.innerHTML = `<div class="cart">...</div>`;
+  }
+}
+customElements.define('shopping-cart', ShoppingCart);
+
+// Use anywhere
+<shopping-cart items="3"></shopping-cart>
+```
+
+| **Pros**                        | **Cons**                              |
+|---------------------------------|---------------------------------------|
+| Native browser support          | Limited framework integration         |
+| True encapsulation (Shadow DOM) | Styling can be challenging            |
+| Works everywhere                | Learning curve for teams              |
+
+---
+
+## Communication Patterns
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Custom Events
+    MFE1[Cart MFE] -->|Dispatch Event| Window[Window/Document]
+    Window -->|Listen| MFE2[Header MFE]
+  end
+
+  subgraph Shared State
+    MFE3[Product MFE] -->|Update| Store[Shared Store]
+    Store -->|Subscribe| MFE4[Cart MFE]
+  end
+
+  subgraph URL State
+    MFE5[Search MFE] -->|Update URL| Router[Browser URL]
+    Router -->|Read URL| MFE6[Results MFE]
+  end
+"
+/>
+
+### 1. Custom Events (Recommended)
+
+```javascript
+// Cart MFE - Dispatch event
+window.dispatchEvent(new CustomEvent('cart:updated', {
+  detail: { itemCount: 5, total: 149.99 }
+}));
+
+// Header MFE - Listen for event
+window.addEventListener('cart:updated', (event) => {
+  updateCartBadge(event.detail.itemCount);
+});
+```
+
+### 2. URL/Route Parameters
+
+```
+/products?category=electronics&sort=price
+```
+
+Each MFE reads its relevant params from the URL. Changes are reflected across all MFEs.
+
+### 3. Shared State (Use Sparingly)
+
+For complex scenarios, use a lightweight shared store.
+
+```javascript
+// Shared event bus
+const eventBus = {
+  events: {},
+  emit(event, data) { ... },
+  on(event, callback) { ... },
+  off(event, callback) { ... }
+};
+```
+
+> **Best Practice:** Minimize shared state. Most communication should happen through events or URL parameters.
+
+---
+
+## Routing Strategies
+
+<Mermaid
+  chart="
+graph TD
+  Router[App Shell Router]
+  Router -->|/products/*| Catalog[Catalog MFE]
+  Router -->|/cart/*| Cart[Cart MFE]
+  Router -->|/checkout/*| Checkout[Checkout MFE]
+  Router -->|/account/*| Profile[Profile MFE]
+
+  Catalog -->|/products/123| ProductDetail[Product Detail Page]
+  Catalog -->|/products/category/shoes| CategoryPage[Category Page]
+"
+/>
+
+| **Strategy**        | **Description**                                      | **Best For**                |
+|---------------------|------------------------------------------------------|-----------------------------|
+| **Route-based**     | Each MFE owns a route prefix                         | Page-level micro frontends  |
+| **Component-based** | Multiple MFEs on same page                           | Widget-style composition    |
+| **Hybrid**          | Route-based with component-based widgets             | Complex applications        |
+
+---
+
+## Shared Dependencies
+
+### The Problem
+
+Multiple MFEs loading the same library (React, Lodash) wastes bandwidth and can cause conflicts.
+
+### Solutions
+
+<Mermaid
+  chart="
+graph LR
+  subgraph Without Sharing
+    MFE1[MFE 1 + React 18]
+    MFE2[MFE 2 + React 18]
+    MFE3[MFE 3 + React 18]
+    Total1[Total: 3x React loaded]
+  end
+
+  subgraph With Sharing
+    Shell[Shell loads React 18]
+    MFE4[MFE 1] -->|uses| Shell
+    MFE5[MFE 2] -->|uses| Shell
+    MFE6[MFE 3] -->|uses| Shell
+    Total2[Total: 1x React loaded]
+  end
+"
+/>
+
+```javascript
+// Module Federation shared config
+shared: {
+  react: { singleton: true, requiredVersion: '^18.0.0' },
+  'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
+}
+```
+
+---
+
+## Styling Strategies
+
+### Preventing Style Conflicts
+
+| **Approach**         | **How It Works**                          | **Tools**                    |
+|----------------------|-------------------------------------------|------------------------------|
+| **CSS Modules**      | Scoped class names per component          | Built into Webpack/Vite      |
+| **CSS-in-JS**        | Styles generated with unique identifiers  | styled-components, Emotion   |
+| **Shadow DOM**       | Encapsulated styles in Web Components     | Native browser feature       |
+| **BEM + Prefixes**   | Naming conventions with MFE prefix        | Manual discipline            |
+| **Design System**    | Shared tokens, independent components     | Custom or Chakra, MUI        |
+
+```css
+/* Prefixed approach */
+.catalog-mfe__product-card { ... }
+.cart-mfe__item-row { ... }
+.checkout-mfe__form-input { ... }
+```
+
+---
+
+## Testing Strategies
+
+### Testing Pyramid for Micro Frontends
+
+<Mermaid
+  chart="
+graph TB
+  subgraph Testing Levels
+    E2E[E2E Tests - Full Integration]
+    Integration[Integration Tests - MFE Composition]
+    Contract[Contract Tests - API/Event Contracts]
+    Unit[Unit Tests - Components & Logic]
+  end
+
+  Unit --> Contract --> Integration --> E2E
+"
+/>
+
+| **Level**           | **What It Tests**                        | **Tools**                    |
+|---------------------|------------------------------------------|------------------------------|
+| **Unit**            | Individual components and functions      | Jest, Vitest, Testing Library|
+| **Contract**        | Event schemas, API contracts             | Pact, JSON Schema            |
+| **Integration**     | MFE composition and communication        | Cypress Component Testing    |
+| **E2E**             | Full user journeys across MFEs           | Playwright, Cypress          |
+
+---
+
+## Real-World Example
+
+**Streaming Platform (like Spotify/Netflix):**
+
+<Mermaid
+  chart="
+graph TD
+  Shell[App Shell]
+  Shell --> Nav[Navigation MFE]
+  Shell --> Browse[Browse MFE]
+  Shell --> Player[Player MFE]
+  Shell --> Search[Search MFE]
+  Shell --> Profile[Profile MFE]
+
+  Browse --> API1[Catalog API]
+  Player --> API2[Streaming API]
+  Search --> API3[Search API]
+  Profile --> API4[User API]
+
+  Nav -.->|Custom Event| Player
+  Browse -.->|Play Event| Player
+  Search -.->|Play Event| Player
+"
+/>
+
+**Team Structure:**
+- **Platform Team:** Owns Shell, shared libraries, deployment infrastructure
+- **Browse Team:** Catalog browsing, recommendations
+- **Player Team:** Audio/video playback, queue management
+- **Search Team:** Search experience, filters
+- **Growth Team:** Onboarding, profiles, settings
+
+---
+
+## When to Use Micro Frontends
+
+### ✅ Good Fit
+
+- Large organizations with multiple frontend teams
+- Need for independent deployment cycles
+- Gradual migration from legacy systems
+- Different features require different technologies
+- Teams organized around business domains
+
+### ❌ Poor Fit
+
+- Small teams (< 5 developers)
+- Simple applications with few features
+- No CI/CD infrastructure
+- Strong need for consistent UX (harder to maintain)
+- Performance-critical applications (added overhead)
+
+> **Rule of Thumb:** If a single team can manage the entire frontend, a monolith is probably better. Micro frontends solve organizational problems, not technical ones.
+
+---
+
+## Summary Table
+
+| **Concept**               | **Purpose**                              | **Tools/Approaches**               |
+|---------------------------|------------------------------------------|------------------------------------|
+| **Module Federation**     | Runtime MFE loading with shared deps     | Webpack 5, Vite Plugin             |
+| **Web Components**        | Framework-agnostic UI components         | Native Custom Elements             |
+| **single-spa**            | Framework for composing MFEs             | single-spa, qiankun                |
+| **Custom Events**         | MFE-to-MFE communication                 | Browser CustomEvent API            |
+| **Design System**         | Consistent UI across MFEs                | Storybook, shared component lib    |
+| **Contract Testing**      | Ensure MFE compatibility                 | Pact, JSON Schema                  |
+
+---
+
+## Interview Tips
+
+- **Explain the "why":** Micro frontends solve team scalability, not technical complexity.
+- **Discuss trade-offs:** More infrastructure complexity, potential UX inconsistency, performance overhead.
+- **Compare approaches:** Know when to use Module Federation vs iframes vs Web Components.
+- **Cover communication:** Explain event-based patterns and why to avoid shared state.
+- **Mention real examples:** IKEA, Spotify, DAZN, and Zalando use micro frontends.
+- **Connect to microservices:** They're the frontend equivalent—same principles of independence and ownership.
+- **Address performance:** Discuss shared dependencies, lazy loading, and caching strategies.
+
+---
+
+**Micro Frontends** enable large organizations to scale frontend development by giving teams autonomy over their features. Success requires strong DevOps practices, clear team boundaries, and careful attention to UX consistency.

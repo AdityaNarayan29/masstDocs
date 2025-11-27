@@ -1,0 +1,1294 @@
+---
+title: ATM System
+description: 🏧 ATM networks process billions of transactions annually across millions of machines worldwide. This document outlines the comprehensive architecture that enables secure, reliable, and compliant banking transactions with 99.99% availability.
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "ATM Hardware Layer"
+        ATM1[ATM Terminal 1]
+        ATM2[ATM Terminal 2]
+        ATMN[ATM Terminal N]
+    end
+
+    subgraph "Network Layer"
+        VPN[VPN Gateway]
+        SWITCH[ATM Switch]
+        HSM[Hardware Security Module]
+        FIREWALL[Network Firewall]
+    end
+
+    subgraph "Transaction Processing"
+        TXN_ROUTER[Transaction Router]
+        AUTH_ENGINE[Authorization Engine]
+        FRAUD_ENGINE[Fraud Detection]
+        BALANCE_CHECK[Balance Service]
+    end
+
+    subgraph "Core Banking Interface"
+        CBS_GATEWAY[Core Banking Gateway]
+        ACCOUNT_SERVICE[Account Service]
+        LEDGER[General Ledger]
+        CLEARING[Clearing House]
+    end
+
+    subgraph "Data Layer"
+        ORACLE[(Oracle DB)]
+        REDIS[(Redis Cache)]
+        HSM_DB[(HSM Key Store)]
+        AUDIT_LOG[(Audit Logs)]
+    end
+
+    ATM1 --> VPN
+    ATM2 --> VPN
+    ATMN --> VPN
+
+    VPN --> FIREWALL
+    FIREWALL --> SWITCH
+    SWITCH --> HSM
+
+    HSM --> TXN_ROUTER
+    TXN_ROUTER --> AUTH_ENGINE
+    AUTH_ENGINE --> FRAUD_ENGINE
+    FRAUD_ENGINE --> BALANCE_CHECK
+
+    BALANCE_CHECK --> CBS_GATEWAY
+    CBS_GATEWAY --> ACCOUNT_SERVICE
+    ACCOUNT_SERVICE --> LEDGER
+    LEDGER --> CLEARING
+
+    AUTH_ENGINE --> ORACLE
+    BALANCE_CHECK --> REDIS
+    HSM --> HSM_DB
+    TXN_ROUTER --> AUDIT_LOG
+```
+
+## Core Components
+
+### 1. ATM Terminal Architecture
+
+```mermaid
+graph TD
+    subgraph "ATM Hardware"
+        CARD_READER[Card Reader<br/>EMV Chip + Magnetic]
+        PIN_PAD[Encrypted PIN Pad<br/>EPP Module]
+        DISPENSER[Cash Dispenser<br/>Note Handling]
+        RECEIPT[Receipt Printer<br/>Thermal Printer]
+        DISPLAY[Touch Display<br/>User Interface]
+        CAMERA[Camera<br/>Security Recording]
+    end
+
+    subgraph "ATM Controller"
+        OS[ATM Operating System<br/>Windows/Linux]
+        MIDDLEWARE[ATM Middleware<br/>XFS/NDC Protocol]
+        APP[ATM Application<br/>Transaction UI]
+        SECURITY[Security Module<br/>Encryption]
+    end
+
+    subgraph "Communication"
+        MODEM[Network Modem<br/>Primary Connection]
+        BACKUP[Backup Connection<br/>Cellular/Dial-up]
+        ENCRYPTION_MOD[Encryption Module<br/>TLS/IPSec]
+    end
+
+    subgraph "Cash Management"
+        CASSETTES[Cash Cassettes<br/>Denomination Storage]
+        REJECT_BIN[Reject Bin<br/>Failed Dispense]
+        COUNTER[Note Counter<br/>Inventory Tracking]
+        SENSOR[Sensor Array<br/>Jam Detection]
+    end
+
+    CARD_READER --> OS
+    PIN_PAD --> OS
+    DISPENSER --> OS
+    RECEIPT --> OS
+    DISPLAY --> OS
+    CAMERA --> OS
+
+    OS --> MIDDLEWARE
+    MIDDLEWARE --> APP
+    APP --> SECURITY
+
+    SECURITY --> MODEM
+    SECURITY --> BACKUP
+    MODEM --> ENCRYPTION_MOD
+
+    DISPENSER --> CASSETTES
+    CASSETTES --> REJECT_BIN
+    REJECT_BIN --> COUNTER
+    COUNTER --> SENSOR
+```
+
+**ATM Hardware Features:**
+- EMV chip and contactless card support
+- Triple DES encrypted PIN pad (EPP)
+- Multi-denomination cash dispensing
+- Real-time cash inventory tracking
+- Technologies: Windows 10 IoT, XFS standard, NDC/DDC protocols
+
+### 2. Card Authentication System
+
+```mermaid
+graph TD
+    subgraph "Card Types"
+        CHIP[EMV Chip Card<br/>Primary Auth]
+        MAGNETIC[Magnetic Stripe<br/>Fallback]
+        CONTACTLESS[Contactless<br/>NFC/RFID]
+        MOBILE[Mobile Wallet<br/>Apple/Google Pay]
+    end
+
+    subgraph "Authentication Flow"
+        READ_CARD[Read Card Data<br/>Track 2 / Chip]
+        VALIDATE_CARD[Validate Card<br/>Expiry, Status]
+        PIN_ENTRY[PIN Entry<br/>Encrypted Input]
+        PIN_VERIFY[PIN Verification<br/>HSM Validation]
+    end
+
+    subgraph "EMV Processing"
+        CARD_AUTH[Card Authentication<br/>DDA/CDA/SDA]
+        RISK_MGMT[Risk Management<br/>Floor Limits]
+        CARDHOLDER_VERIFY[Cardholder Verification<br/>PIN/Signature]
+        TXN_AUTH[Transaction Authorization<br/>Online/Offline]
+    end
+
+    subgraph "Security Measures"
+        BIN_LOOKUP[BIN Lookup<br/>Card Network ID]
+        VELOCITY[Velocity Check<br/>Frequency Limits]
+        GEO_CHECK[Geographic Check<br/>Location Validation]
+        BLACKLIST[Blacklist Check<br/>Stolen Cards]
+    end
+
+    CHIP --> READ_CARD
+    MAGNETIC --> READ_CARD
+    CONTACTLESS --> READ_CARD
+    MOBILE --> READ_CARD
+
+    READ_CARD --> VALIDATE_CARD
+    VALIDATE_CARD --> PIN_ENTRY
+    PIN_ENTRY --> PIN_VERIFY
+
+    PIN_VERIFY --> CARD_AUTH
+    CARD_AUTH --> RISK_MGMT
+    RISK_MGMT --> CARDHOLDER_VERIFY
+    CARDHOLDER_VERIFY --> TXN_AUTH
+
+    TXN_AUTH --> BIN_LOOKUP
+    BIN_LOOKUP --> VELOCITY
+    VELOCITY --> GEO_CHECK
+    GEO_CHECK --> BLACKLIST
+```
+
+### 3. PIN Security Architecture
+
+```mermaid
+graph TD
+    subgraph "PIN Entry"
+        EPP[Encrypted PIN Pad<br/>Hardware Encryption]
+        PIN_BLOCK[PIN Block Creation<br/>ISO Format 0/1/2/3]
+        CLEAR_PIN[Clear PIN<br/>Never Transmitted]
+    end
+
+    subgraph "HSM Processing"
+        HSM_ENCRYPT[HSM Encryption<br/>Zone Keys]
+        PIN_TRANSLATE[PIN Translation<br/>Key Exchange]
+        PIN_VERIFY_HSM[PIN Verification<br/>PVV/CVV]
+        KEY_MGMT[Key Management<br/>Master Keys]
+    end
+
+    subgraph "Key Hierarchy"
+        MASTER_KEY[Master Key<br/>Bank Master]
+        ZONE_KEY[Zone Master Key<br/>ATM Groups]
+        TERMINAL_KEY[Terminal Key<br/>Per ATM]
+        SESSION_KEY[Session Key<br/>Per Transaction]
+    end
+
+    subgraph "Security Standards"
+        PCI_PIN[PCI PIN Security<br/>Compliance]
+        ANSI_X9[ANSI X9.8<br/>PIN Management]
+        ISO_9564[ISO 9564<br/>PIN Formats]
+        TR31[TR-31<br/>Key Blocks]
+    end
+
+    EPP --> PIN_BLOCK
+    PIN_BLOCK --> HSM_ENCRYPT
+    CLEAR_PIN --> EPP
+
+    HSM_ENCRYPT --> PIN_TRANSLATE
+    PIN_TRANSLATE --> PIN_VERIFY_HSM
+    PIN_VERIFY_HSM --> KEY_MGMT
+
+    KEY_MGMT --> MASTER_KEY
+    MASTER_KEY --> ZONE_KEY
+    ZONE_KEY --> TERMINAL_KEY
+    TERMINAL_KEY --> SESSION_KEY
+
+    HSM_ENCRYPT --> PCI_PIN
+    PCI_PIN --> ANSI_X9
+    ANSI_X9 --> ISO_9564
+    ISO_9564 --> TR31
+```
+
+**PIN Security Features:**
+- Hardware encryption in EPP
+- Triple DES/AES encryption
+- Secure key injection
+- PIN translation for network routing
+- No clear PIN transmission
+
+### 4. Transaction Processing Engine
+
+```mermaid
+graph TD
+    subgraph "Transaction Types"
+        WITHDRAWAL[Cash Withdrawal<br/>Primary Function]
+        BALANCE[Balance Inquiry<br/>Account Query]
+        TRANSFER[Fund Transfer<br/>Between Accounts]
+        DEPOSIT[Cash/Check Deposit<br/>Deposit ATMs]
+        MINI_STMT[Mini Statement<br/>Recent Transactions]
+        PIN_CHANGE[PIN Change<br/>Security Update]
+    end
+
+    subgraph "Processing Steps"
+        RECEIVE[Receive Request<br/>From ATM]
+        PARSE[Parse Message<br/>ISO 8583]
+        VALIDATE_TXN[Validate Transaction<br/>Business Rules]
+        AUTHORIZE[Authorize<br/>Real-time Check]
+        EXECUTE[Execute<br/>Account Update]
+        RESPOND[Respond<br/>To ATM]
+    end
+
+    subgraph "Authorization Flow"
+        BALANCE_AUTH[Balance Check<br/>Available Funds]
+        LIMIT_AUTH[Limit Check<br/>Daily/Per TXN]
+        FRAUD_AUTH[Fraud Check<br/>Risk Score]
+        ISSUER_AUTH[Issuer Authorization<br/>Card Network]
+    end
+
+    subgraph "Response Codes"
+        APPROVED[Approved<br/>00 - Success]
+        DECLINED[Declined<br/>05 - Do Not Honor]
+        INSUFFICIENT[Insufficient Funds<br/>51]
+        INVALID_PIN[Invalid PIN<br/>55]
+        EXPIRED_CARD[Expired Card<br/>54]
+    end
+
+    WITHDRAWAL --> RECEIVE
+    BALANCE --> RECEIVE
+    TRANSFER --> RECEIVE
+    DEPOSIT --> RECEIVE
+
+    RECEIVE --> PARSE
+    PARSE --> VALIDATE_TXN
+    VALIDATE_TXN --> AUTHORIZE
+    AUTHORIZE --> EXECUTE
+    EXECUTE --> RESPOND
+
+    AUTHORIZE --> BALANCE_AUTH
+    BALANCE_AUTH --> LIMIT_AUTH
+    LIMIT_AUTH --> FRAUD_AUTH
+    FRAUD_AUTH --> ISSUER_AUTH
+
+    ISSUER_AUTH --> APPROVED
+    ISSUER_AUTH --> DECLINED
+    ISSUER_AUTH --> INSUFFICIENT
+    ISSUER_AUTH --> INVALID_PIN
+```
+
+### 5. Cash Inventory Management
+
+```mermaid
+graph TD
+    subgraph "Cash Tracking"
+        CASSETTE_COUNT[Cassette Count<br/>Per Denomination]
+        DISPENSE_LOG[Dispense Log<br/>Transaction Record]
+        REJECT_COUNT[Reject Count<br/>Failed Dispenses]
+        RETRACT_COUNT[Retract Count<br/>Customer Timeout]
+    end
+
+    subgraph "Inventory Operations"
+        REPLENISH[Replenishment<br/>Cash Loading]
+        RECONCILE[Reconciliation<br/>Physical vs System]
+        FORECAST[Demand Forecast<br/>ML Prediction]
+        OPTIMIZE[Route Optimization<br/>CIT Schedule]
+    end
+
+    subgraph "Cash Positions"
+        STARTING[Starting Cash<br/>Load Amount]
+        CURRENT[Current Position<br/>Real-time]
+        PROJECTED[Projected Usage<br/>Forecast]
+        THRESHOLD[Low Cash Alert<br/>Threshold Trigger]
+    end
+
+    subgraph "Denomination Management"
+        DENOM_CONFIG[Denomination Config<br/>Note Types]
+        MIX_ALGO[Mix Algorithm<br/>Optimal Dispense]
+        NOTE_FITNESS[Note Fitness<br/>Quality Check]
+        COUNTERFEIT[Counterfeit Detection<br/>Security Check]
+    end
+
+    CASSETTE_COUNT --> REPLENISH
+    DISPENSE_LOG --> RECONCILE
+    REJECT_COUNT --> FORECAST
+    RETRACT_COUNT --> OPTIMIZE
+
+    REPLENISH --> STARTING
+    RECONCILE --> CURRENT
+    FORECAST --> PROJECTED
+    OPTIMIZE --> THRESHOLD
+
+    DENOM_CONFIG --> MIX_ALGO
+    MIX_ALGO --> NOTE_FITNESS
+    NOTE_FITNESS --> COUNTERFEIT
+```
+
+**Cash Management Features:**
+- Real-time inventory tracking
+- Predictive replenishment
+- Denomination optimization
+- Reconciliation automation
+- CIT (Cash-in-Transit) scheduling
+
+### 6. Fraud Detection System
+
+```mermaid
+graph TD
+    subgraph "Detection Methods"
+        RULE_ENGINE[Rule Engine<br/>Business Rules]
+        ML_MODEL[ML Model<br/>Pattern Recognition]
+        VELOCITY_CHECK[Velocity Analysis<br/>Frequency Patterns]
+        BEHAVIORAL[Behavioral Analysis<br/>User Patterns]
+    end
+
+    subgraph "Risk Indicators"
+        LOCATION_RISK[Location Risk<br/>Unusual Geography]
+        TIME_RISK[Time Risk<br/>Unusual Hours]
+        AMOUNT_RISK[Amount Risk<br/>Unusual Amounts]
+        PATTERN_RISK[Pattern Risk<br/>Sequence Analysis]
+    end
+
+    subgraph "Real-time Checks"
+        CARD_PRESENT[Card Present Check<br/>Physical Validation]
+        SKIMMING[Skimming Detection<br/>Device Tampering]
+        JACKPOTTING[Jackpotting Detection<br/>ATM Malware]
+        SHOULDER_SURF[Surveillance<br/>Camera Analysis]
+    end
+
+    subgraph "Response Actions"
+        ALLOW[Allow Transaction<br/>Low Risk]
+        STEP_UP[Step-up Auth<br/>Additional Verify]
+        DECLINE_FRAUD[Decline<br/>High Risk]
+        ALERT_FRAUD[Alert Security<br/>Investigation]
+        CAPTURE_CARD[Capture Card<br/>Suspected Fraud]
+    end
+
+    RULE_ENGINE --> LOCATION_RISK
+    ML_MODEL --> TIME_RISK
+    VELOCITY_CHECK --> AMOUNT_RISK
+    BEHAVIORAL --> PATTERN_RISK
+
+    LOCATION_RISK --> CARD_PRESENT
+    TIME_RISK --> SKIMMING
+    AMOUNT_RISK --> JACKPOTTING
+    PATTERN_RISK --> SHOULDER_SURF
+
+    CARD_PRESENT --> ALLOW
+    SKIMMING --> STEP_UP
+    JACKPOTTING --> DECLINE_FRAUD
+    SHOULDER_SURF --> ALERT_FRAUD
+    DECLINE_FRAUD --> CAPTURE_CARD
+```
+
+## ISO 8583 Message Processing
+
+### 1. Message Format
+
+```mermaid
+graph TD
+    subgraph "Message Structure"
+        MTI[Message Type Indicator<br/>4 digits]
+        BITMAP[Bitmap<br/>Primary + Secondary]
+        DATA_ELEM[Data Elements<br/>Fields 1-128]
+    end
+
+    subgraph "Common MTIs"
+        MTI_0100[0100<br/>Authorization Request]
+        MTI_0110[0110<br/>Authorization Response]
+        MTI_0200[0200<br/>Financial Request]
+        MTI_0210[0210<br/>Financial Response]
+        MTI_0400[0400<br/>Reversal Request]
+        MTI_0420[0420<br/>Reversal Advice]
+    end
+
+    subgraph "Key Data Elements"
+        DE2[DE2: PAN<br/>Card Number]
+        DE3[DE3: Processing Code<br/>Transaction Type]
+        DE4[DE4: Amount<br/>Transaction Amount]
+        DE11[DE11: STAN<br/>Trace Number]
+        DE22[DE22: POS Entry Mode<br/>How Card Read]
+        DE35[DE35: Track 2 Data<br/>Card Data]
+        DE52[DE52: PIN Data<br/>Encrypted PIN]
+    end
+
+    subgraph "Response Elements"
+        DE38[DE38: Auth Code<br/>Approval Code]
+        DE39[DE39: Response Code<br/>Result Code]
+        DE54[DE54: Balances<br/>Account Balance]
+    end
+
+    MTI --> MTI_0100
+    MTI --> MTI_0200
+    MTI --> MTI_0400
+
+    BITMAP --> DE2
+    BITMAP --> DE3
+    BITMAP --> DE4
+    BITMAP --> DE11
+
+    DATA_ELEM --> DE38
+    DATA_ELEM --> DE39
+    DATA_ELEM --> DE54
+```
+
+### 2. Transaction Flow
+
+```mermaid
+sequenceDiagram
+    participant ATM
+    participant Switch as ATM Switch
+    participant HSM
+    participant Core as Core Banking
+    participant Network as Card Network
+
+    ATM->>Switch: 0100 Authorization Request
+    Switch->>HSM: PIN Verification
+    HSM-->>Switch: PIN Valid
+
+    alt On-Us Transaction (Same Bank)
+        Switch->>Core: Balance Check
+        Core-->>Switch: Balance OK
+        Switch->>Core: Debit Account
+        Core-->>Switch: Debit Complete
+    else Off-Us Transaction (Different Bank)
+        Switch->>Network: Forward to Issuer
+        Network-->>Switch: Issuer Response
+    end
+
+    Switch-->>ATM: 0110 Authorization Response
+
+    ATM->>Switch: 0200 Financial Request
+    Switch->>Core: Post Transaction
+    Core-->>Switch: Posted
+    Switch-->>ATM: 0210 Financial Response
+
+    Note over ATM,Network: Transaction Complete
+```
+
+## Data Architecture
+
+### 1. Oracle Database (Primary)
+
+```mermaid
+graph TD
+    subgraph "Database Clusters"
+        subgraph "RAC Cluster"
+            NODE1[(RAC Node 1<br/>Primary)]
+            NODE2[(RAC Node 2<br/>Active)]
+            NODE3[(RAC Node 3<br/>Active)]
+        end
+
+        subgraph "Data Guard"
+            STANDBY[(Standby DB<br/>DR Site)]
+        end
+    end
+
+    subgraph "Schema Design"
+        TXN_SCHEMA[Transaction Schema<br/>ATM Transactions]
+        ACCOUNT_SCHEMA[Account Schema<br/>Customer Accounts]
+        CARD_SCHEMA[Card Schema<br/>Card Management]
+        AUDIT_SCHEMA[Audit Schema<br/>Compliance Logs]
+    end
+
+    subgraph "Tables"
+        TXN_LOG[Transaction Log<br/>All Transactions]
+        TXN_PENDING[Pending Transactions<br/>In-flight]
+        REVERSALS[Reversal Log<br/>Failed Transactions]
+        SETTLEMENTS[Settlement Records<br/>End of Day]
+    end
+
+    NODE1 -.->|Synchronous| NODE2
+    NODE2 -.->|Synchronous| NODE3
+    NODE1 -.->|Async Replication| STANDBY
+
+    TXN_SCHEMA --> TXN_LOG
+    TXN_SCHEMA --> TXN_PENDING
+    TXN_SCHEMA --> REVERSALS
+    TXN_SCHEMA --> SETTLEMENTS
+```
+
+### 2. Redis Cache Layer
+
+```mermaid
+graph TD
+    subgraph "Redis Cluster"
+        REDIS_MASTER1[Master 1<br/>Balance Cache]
+        REDIS_REPLICA1[Replica 1<br/>Read Scaling]
+        REDIS_MASTER2[Master 2<br/>Session Cache]
+        REDIS_REPLICA2[Replica 2<br/>Read Scaling]
+    end
+
+    subgraph "Cache Data"
+        BALANCE_CACHE[Balance Cache<br/>Account Balances]
+        LIMIT_CACHE[Limit Cache<br/>Daily Limits]
+        CARD_STATUS[Card Status<br/>Active/Blocked]
+        HOT_CARD[Hot Card List<br/>Fraud List]
+    end
+
+    subgraph "TTL Policies"
+        BALANCE_TTL[Balance<br/>TTL: 30 seconds]
+        LIMIT_TTL[Limits<br/>TTL: 1 hour]
+        STATUS_TTL[Card Status<br/>TTL: 5 minutes]
+        HOT_TTL[Hot Card<br/>TTL: Real-time]
+    end
+
+    REDIS_MASTER1 -.->|Replication| REDIS_REPLICA1
+    REDIS_MASTER2 -.->|Replication| REDIS_REPLICA2
+
+    REDIS_MASTER1 --> BALANCE_CACHE
+    REDIS_MASTER1 --> LIMIT_CACHE
+    REDIS_MASTER2 --> CARD_STATUS
+    REDIS_MASTER2 --> HOT_CARD
+
+    BALANCE_CACHE --> BALANCE_TTL
+    LIMIT_CACHE --> LIMIT_TTL
+    CARD_STATUS --> STATUS_TTL
+    HOT_CARD --> HOT_TTL
+```
+
+### 3. Audit Logging
+
+```mermaid
+graph TD
+    subgraph "Audit Events"
+        TXN_EVENT[Transaction Events<br/>All ATM Transactions]
+        AUTH_EVENT[Authentication Events<br/>Card/PIN Attempts]
+        ADMIN_EVENT[Admin Events<br/>Configuration Changes]
+        SECURITY_EVENT[Security Events<br/>Alerts & Incidents]
+    end
+
+    subgraph "Log Storage"
+        HOT_LOGS[Hot Storage<br/>30 days<br/>Oracle DB]
+        WARM_LOGS[Warm Storage<br/>1 year<br/>Compressed]
+        COLD_LOGS[Cold Storage<br/>7+ years<br/>Archive]
+    end
+
+    subgraph "Compliance Requirements"
+        PCI_AUDIT[PCI DSS<br/>Requirement 10]
+        SOX_AUDIT[SOX Compliance<br/>Financial Controls]
+        BANK_REG[Banking Regulations<br/>Country Specific]
+        RETENTION[Retention Policy<br/>7-10 Years]
+    end
+
+    subgraph "Log Analysis"
+        SIEM[SIEM Integration<br/>Security Monitoring]
+        REPORTING[Compliance Reports<br/>Automated]
+        ALERTS[Alert System<br/>Real-time Notification]
+        FORENSICS[Forensic Analysis<br/>Investigation]
+    end
+
+    TXN_EVENT --> HOT_LOGS
+    AUTH_EVENT --> HOT_LOGS
+    ADMIN_EVENT --> HOT_LOGS
+    SECURITY_EVENT --> HOT_LOGS
+
+    HOT_LOGS --> WARM_LOGS
+    WARM_LOGS --> COLD_LOGS
+
+    HOT_LOGS --> PCI_AUDIT
+    WARM_LOGS --> SOX_AUDIT
+    COLD_LOGS --> BANK_REG
+
+    HOT_LOGS --> SIEM
+    SIEM --> REPORTING
+    REPORTING --> ALERTS
+    ALERTS --> FORENSICS
+```
+
+## Network Architecture
+
+### 1. ATM Network Topology
+
+```mermaid
+graph TB
+    subgraph "ATM Sites"
+        BRANCH_ATM[Branch ATMs<br/>Bank Premises]
+        OFFSITE_ATM[Off-site ATMs<br/>Retail Locations]
+        MOBILE_ATM[Mobile ATMs<br/>Events/Temporary]
+    end
+
+    subgraph "Network Connectivity"
+        PRIMARY_LINK[Primary Link<br/>Leased Line/MPLS]
+        BACKUP_LINK[Backup Link<br/>4G/5G Cellular]
+        SATELLITE[Satellite Link<br/>Remote Areas]
+    end
+
+    subgraph "ATM Switch Layer"
+        REGIONAL_SWITCH[Regional Switch<br/>Local Processing]
+        CENTRAL_SWITCH[Central Switch<br/>Main Hub]
+        DR_SWITCH[DR Switch<br/>Disaster Recovery]
+    end
+
+    subgraph "External Networks"
+        VISA[Visa Network<br/>VisaNet]
+        MASTERCARD[Mastercard Network<br/>Banknet]
+        NATIONAL[National Network<br/>NEFT/RTGS]
+        INTERBANK[Interbank Network<br/>Shared ATM]
+    end
+
+    BRANCH_ATM --> PRIMARY_LINK
+    OFFSITE_ATM --> PRIMARY_LINK
+    MOBILE_ATM --> BACKUP_LINK
+
+    PRIMARY_LINK --> REGIONAL_SWITCH
+    BACKUP_LINK --> REGIONAL_SWITCH
+    SATELLITE --> REGIONAL_SWITCH
+
+    REGIONAL_SWITCH --> CENTRAL_SWITCH
+    CENTRAL_SWITCH --> DR_SWITCH
+
+    CENTRAL_SWITCH --> VISA
+    CENTRAL_SWITCH --> MASTERCARD
+    CENTRAL_SWITCH --> NATIONAL
+    CENTRAL_SWITCH --> INTERBANK
+```
+
+### 2. Security Architecture
+
+```mermaid
+graph TB
+    subgraph "Physical Security"
+        SAFE[ATM Safe<br/>Reinforced Steel]
+        SENSORS[Tamper Sensors<br/>Detection]
+        CAMERAS[CCTV Cameras<br/>Recording]
+        ALARMS[Alarm System<br/>Intrusion Detection]
+    end
+
+    subgraph "Network Security"
+        VPN_TUNNEL[VPN Tunnel<br/>IPSec/TLS]
+        FIREWALL_NET[Firewall<br/>Packet Filtering]
+        IDS_IPS[IDS/IPS<br/>Intrusion Detection]
+        NAC[Network Access Control<br/>Device Auth]
+    end
+
+    subgraph "Application Security"
+        WHITELIST[Application Whitelist<br/>Allowed Apps Only]
+        HARDEN[OS Hardening<br/>Minimal Services]
+        PATCH[Patch Management<br/>Security Updates]
+        AV[Antivirus<br/>Malware Protection]
+    end
+
+    subgraph "Encryption"
+        TLS_ENCRYPT[TLS 1.3<br/>Transport]
+        PIN_ENCRYPT[3DES/AES<br/>PIN Encryption]
+        DISK_ENCRYPT[Disk Encryption<br/>Data at Rest]
+        HSM_PROTECT[HSM Protection<br/>Key Storage]
+    end
+
+    SAFE --> VPN_TUNNEL
+    SENSORS --> FIREWALL_NET
+    CAMERAS --> IDS_IPS
+    ALARMS --> NAC
+
+    VPN_TUNNEL --> WHITELIST
+    FIREWALL_NET --> HARDEN
+    IDS_IPS --> PATCH
+    NAC --> AV
+
+    WHITELIST --> TLS_ENCRYPT
+    HARDEN --> PIN_ENCRYPT
+    PATCH --> DISK_ENCRYPT
+    AV --> HSM_PROTECT
+```
+
+## High Availability & Disaster Recovery
+
+### 1. HA Architecture
+
+```mermaid
+graph TD
+    subgraph "ATM Switch HA"
+        ACTIVE_SWITCH[Active Switch<br/>Primary Processing]
+        STANDBY_SWITCH[Standby Switch<br/>Hot Standby]
+        LOAD_BAL[Load Balancer<br/>Traffic Distribution]
+    end
+
+    subgraph "Database HA"
+        ORACLE_RAC[Oracle RAC<br/>Active-Active]
+        DATA_GUARD_HA[Data Guard<br/>Sync Standby]
+        BACKUP_DB[Backup DB<br/>Point-in-time]
+    end
+
+    subgraph "HSM HA"
+        HSM_PRIMARY[Primary HSM<br/>Active]
+        HSM_BACKUP[Backup HSM<br/>Hot Standby]
+        HSM_DR[DR HSM<br/>Remote Site]
+    end
+
+    subgraph "Failover Scenarios"
+        SWITCH_FAIL[Switch Failure<br/>< 30 sec failover]
+        DB_FAIL[Database Failure<br/>< 60 sec failover]
+        SITE_FAIL[Site Failure<br/>< 5 min DR activation]
+        NETWORK_FAIL[Network Failure<br/>Backup link activation]
+    end
+
+    LOAD_BAL --> ACTIVE_SWITCH
+    LOAD_BAL --> STANDBY_SWITCH
+
+    ORACLE_RAC --> DATA_GUARD_HA
+    DATA_GUARD_HA --> BACKUP_DB
+
+    HSM_PRIMARY --> HSM_BACKUP
+    HSM_BACKUP --> HSM_DR
+
+    ACTIVE_SWITCH --> SWITCH_FAIL
+    ORACLE_RAC --> DB_FAIL
+    DATA_GUARD_HA --> SITE_FAIL
+    LOAD_BAL --> NETWORK_FAIL
+```
+
+### 2. Disaster Recovery
+
+```mermaid
+flowchart TD
+    subgraph "DR Strategy"
+        ACTIVE_ACTIVE[Active-Active<br/>Dual Site]
+        ACTIVE_PASSIVE[Active-Passive<br/>Hot Standby]
+        PILOT_LIGHT[Pilot Light<br/>Minimal DR]
+    end
+
+    subgraph "Recovery Metrics"
+        RTO[Recovery Time Objective<br/>< 1 hour]
+        RPO[Recovery Point Objective<br/>< 5 minutes]
+        MTTR[Mean Time to Repair<br/>< 30 minutes]
+    end
+
+    subgraph "DR Procedures"
+        DETECT[Failure Detection<br/>Monitoring Alert]
+        ASSESS[Impact Assessment<br/>Scope Analysis]
+        DECLARE[DR Declaration<br/>Management Decision]
+        ACTIVATE[DR Activation<br/>Switchover]
+        VALIDATE[Validation<br/>Service Check]
+        NOTIFY[Notification<br/>Stakeholder Update]
+    end
+
+    subgraph "DR Testing"
+        TABLETOP[Tabletop Exercise<br/>Quarterly]
+        SIMULATION[Simulation Test<br/>Semi-annual]
+        FULL_DR[Full DR Test<br/>Annual]
+    end
+
+    ACTIVE_ACTIVE --> RTO
+    ACTIVE_PASSIVE --> RPO
+    PILOT_LIGHT --> MTTR
+
+    RTO --> DETECT
+    DETECT --> ASSESS
+    ASSESS --> DECLARE
+    DECLARE --> ACTIVATE
+    ACTIVATE --> VALIDATE
+    VALIDATE --> NOTIFY
+
+    NOTIFY --> TABLETOP
+    TABLETOP --> SIMULATION
+    SIMULATION --> FULL_DR
+```
+
+## Monitoring & Operations
+
+### 1. Monitoring Dashboard
+
+```mermaid
+graph TD
+    subgraph "ATM Monitoring"
+        ATM_STATUS[ATM Status<br/>Online/Offline]
+        CASH_LEVEL[Cash Levels<br/>Per Cassette]
+        TXN_STATUS[Transaction Status<br/>Success/Fail]
+        DEVICE_HEALTH[Device Health<br/>Component Status]
+    end
+
+    subgraph "Transaction Monitoring"
+        TXN_VOLUME[Transaction Volume<br/>TPS Metrics]
+        RESPONSE_TIME[Response Time<br/>P95 Latency]
+        SUCCESS_RATE[Success Rate<br/>Approval Rate]
+        DECLINE_RATE[Decline Rate<br/>By Reason]
+    end
+
+    subgraph "Network Monitoring"
+        LINK_STATUS[Link Status<br/>Primary/Backup]
+        LATENCY[Network Latency<br/>RTT Metrics]
+        PACKET_LOSS[Packet Loss<br/>Quality Metrics]
+        BANDWIDTH[Bandwidth Usage<br/>Utilization]
+    end
+
+    subgraph "Security Monitoring"
+        FRAUD_ALERTS[Fraud Alerts<br/>Real-time]
+        TAMPER_ALERT[Tamper Alerts<br/>Physical Security]
+        AUTH_FAIL[Auth Failures<br/>Suspicious Activity]
+        SECURITY_EVENTS[Security Events<br/>SIEM Integration]
+    end
+
+    ATM_STATUS --> TXN_VOLUME
+    CASH_LEVEL --> RESPONSE_TIME
+    TXN_STATUS --> SUCCESS_RATE
+    DEVICE_HEALTH --> DECLINE_RATE
+
+    TXN_VOLUME --> LINK_STATUS
+    RESPONSE_TIME --> LATENCY
+    SUCCESS_RATE --> PACKET_LOSS
+    DECLINE_RATE --> BANDWIDTH
+
+    LINK_STATUS --> FRAUD_ALERTS
+    LATENCY --> TAMPER_ALERT
+    PACKET_LOSS --> AUTH_FAIL
+    BANDWIDTH --> SECURITY_EVENTS
+```
+
+### 2. Key Performance Indicators
+
+```mermaid
+graph TD
+    subgraph "Availability KPIs"
+        UPTIME[ATM Uptime<br/>Target: 99.5%]
+        MTBF_KPI[Mean Time Between Failures<br/>Target: 2000 hours]
+        FIRST_FIX[First-time Fix Rate<br/>Target: 85%]
+    end
+
+    subgraph "Performance KPIs"
+        AUTH_TIME[Authorization Time<br/>Target: < 3 seconds]
+        DISPENSE_TIME[Dispense Time<br/>Target: < 15 seconds]
+        TXN_SUCCESS[Transaction Success Rate<br/>Target: 99%]
+    end
+
+    subgraph "Cash KPIs"
+        CASH_AVAIL[Cash Availability<br/>Target: 99%]
+        REPLENISH_CYCLE[Replenishment Cycle<br/>Optimization]
+        CASH_EFFICIENCY[Cash Efficiency<br/>Idle Cash Reduction]
+    end
+
+    subgraph "Customer KPIs"
+        CUSTOMER_SAT[Customer Satisfaction<br/>NPS Score]
+        COMPLAINT_RATE[Complaint Rate<br/>Per 1000 TXN]
+        DISPUTE_RATE[Dispute Rate<br/>Failed TXN Claims]
+    end
+
+    UPTIME --> AUTH_TIME
+    MTBF_KPI --> DISPENSE_TIME
+    FIRST_FIX --> TXN_SUCCESS
+
+    AUTH_TIME --> CASH_AVAIL
+    DISPENSE_TIME --> REPLENISH_CYCLE
+    TXN_SUCCESS --> CASH_EFFICIENCY
+
+    CASH_AVAIL --> CUSTOMER_SAT
+    REPLENISH_CYCLE --> COMPLAINT_RATE
+    CASH_EFFICIENCY --> DISPUTE_RATE
+```
+
+## Compliance & Regulatory
+
+### 1. PCI DSS Compliance
+
+```mermaid
+graph TD
+    subgraph "PCI Requirements"
+        REQ1[Req 1: Firewall<br/>Network Security]
+        REQ3[Req 3: Protect Data<br/>Encryption at Rest]
+        REQ4[Req 4: Transmission<br/>Encryption in Transit]
+        REQ7[Req 7: Access Control<br/>Need to Know]
+        REQ9[Req 9: Physical Security<br/>Restrict Access]
+        REQ10[Req 10: Logging<br/>Audit Trail]
+    end
+
+    subgraph "PCI PIN Security"
+        PIN_REQ1[Req 1: Device Security<br/>EPP Standards]
+        PIN_REQ2[Req 2: Key Management<br/>Secure Keys]
+        PIN_REQ3[Req 3: PIN Processing<br/>Secure Handling]
+        PIN_REQ4[Req 4: Cryptographic<br/>Algorithm Standards]
+    end
+
+    subgraph "Assessment"
+        QSA[QSA Assessment<br/>Annual Audit]
+        SAQ[Self Assessment<br/>Quarterly]
+        PENTEST[Penetration Test<br/>Annual]
+        VULN_SCAN[Vulnerability Scan<br/>Quarterly]
+    end
+
+    REQ1 --> PIN_REQ1
+    REQ3 --> PIN_REQ2
+    REQ4 --> PIN_REQ3
+    REQ10 --> PIN_REQ4
+
+    PIN_REQ1 --> QSA
+    PIN_REQ2 --> SAQ
+    PIN_REQ3 --> PENTEST
+    PIN_REQ4 --> VULN_SCAN
+```
+
+### 2. Settlement & Reconciliation
+
+```mermaid
+graph TD
+    subgraph "Settlement Process"
+        EOD[End of Day<br/>Cutoff Time]
+        EXTRACT[Extract Transactions<br/>Daily File]
+        NETTING[Netting<br/>Calculate Net Position]
+        SETTLEMENT[Settlement<br/>Funds Transfer]
+    end
+
+    subgraph "Reconciliation"
+        ATM_RECON[ATM Reconciliation<br/>Cash vs Transactions]
+        SWITCH_RECON[Switch Reconciliation<br/>Messages Match]
+        NETWORK_RECON[Network Reconciliation<br/>External Networks]
+        ACCOUNT_RECON[Account Reconciliation<br/>Ledger Balance]
+    end
+
+    subgraph "Exception Handling"
+        UNMATCHED[Unmatched Items<br/>Investigation]
+        DISPUTES[Disputes<br/>Customer Claims]
+        CHARGEBACKS[Chargebacks<br/>Network Rules]
+        ADJUSTMENTS[Adjustments<br/>Manual Corrections]
+    end
+
+    subgraph "Reports"
+        DAILY_REPORT[Daily Settlement<br/>Summary]
+        EXCEPTION_REPORT[Exception Report<br/>Reconciliation]
+        AUDIT_REPORT[Audit Report<br/>Compliance]
+        MANAGEMENT_REPORT[Management Report<br/>KPIs]
+    end
+
+    EOD --> EXTRACT
+    EXTRACT --> NETTING
+    NETTING --> SETTLEMENT
+
+    SETTLEMENT --> ATM_RECON
+    ATM_RECON --> SWITCH_RECON
+    SWITCH_RECON --> NETWORK_RECON
+    NETWORK_RECON --> ACCOUNT_RECON
+
+    ACCOUNT_RECON --> UNMATCHED
+    UNMATCHED --> DISPUTES
+    DISPUTES --> CHARGEBACKS
+    CHARGEBACKS --> ADJUSTMENTS
+
+    ADJUSTMENTS --> DAILY_REPORT
+    DAILY_REPORT --> EXCEPTION_REPORT
+    EXCEPTION_REPORT --> AUDIT_REPORT
+    AUDIT_REPORT --> MANAGEMENT_REPORT
+```
+
+## Deployment and DevOps
+
+### 1. Software Deployment Pipeline
+
+```mermaid
+gitGraph
+    commit id: "Feature Dev"
+    branch feature-branch
+    checkout feature-branch
+    commit id: "Code Changes"
+    commit id: "Security Review"
+    checkout main
+    merge feature-branch
+    commit id: "Integration Tests" type: HIGHLIGHT
+    commit id: "Certification" type: HIGHLIGHT
+    commit id: "Staged Rollout" type: REVERSE
+```
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        CODE[Code Commit]
+        SECURITY_REV[Security Review<br/>Code Analysis]
+        BUILD[Build & Test]
+    end
+
+    subgraph "Certification"
+        LAB_TEST[Lab Testing<br/>EMV Certification]
+        VENDOR_CERT[Vendor Certification<br/>Hardware Compat]
+        NETWORK_CERT[Network Certification<br/>Visa, Mastercard]
+    end
+
+    subgraph "Deployment"
+        PILOT[Pilot Deployment<br/>Select ATMs]
+        MONITOR[Monitor<br/>Error Rates, Success]
+        ROLLOUT[Phased Rollout<br/>Region by Region]
+    end
+
+    subgraph "Rollback"
+        ALERT[Alert Triggered]
+        ROLLBACK[Rollback<br/>Previous Version]
+        INVESTIGATE[Investigation<br/>Root Cause]
+    end
+
+    CODE --> SECURITY_REV
+    SECURITY_REV --> BUILD
+    BUILD --> LAB_TEST
+    LAB_TEST --> VENDOR_CERT
+    VENDOR_CERT --> NETWORK_CERT
+    NETWORK_CERT --> PILOT
+    PILOT --> MONITOR
+    MONITOR --> ROLLOUT
+    MONITOR --> ALERT
+    ALERT --> ROLLBACK
+```
+
+- **EMV Certification**: Mandatory card network certification
+- **Phased rollout**: Geographic region deployment
+- **Fallback capability**: Maintain previous version
+- **Remote update**: Secure OTA updates
+
+### 2. Infrastructure as Code
+- **Configuration management**: Centralized ATM configuration
+- **Version control**: All configuration changes tracked
+- **Change management**: ITIL-based change process
+
+### 3. Resilience Testing
+
+```mermaid
+flowchart TD
+    subgraph "Test Scenarios"
+        NETWORK_FAIL[Network Failure<br/>Primary Link Down]
+        HOST_FAIL[Host Failure<br/>Switch Unavailable]
+        POWER_FAIL[Power Failure<br/>UPS Testing]
+        SECURITY_TEST[Security Test<br/>Penetration Testing]
+    end
+
+    subgraph "Target Systems"
+        ATM_TEST[ATM Software]
+        SWITCH_TEST[ATM Switch]
+        HSM_TEST[HSM Systems]
+        NETWORK_TEST[Network Links]
+    end
+
+    subgraph "Validation"
+        FAILOVER_VAL[Failover Validation<br/>< 30 seconds]
+        RECOVERY_VAL[Recovery Validation<br/>Data Integrity]
+        TXN_VAL[Transaction Validation<br/>No Loss]
+    end
+
+    NETWORK_FAIL --> ATM_TEST
+    HOST_FAIL --> SWITCH_TEST
+    POWER_FAIL --> HSM_TEST
+    SECURITY_TEST --> NETWORK_TEST
+
+    ATM_TEST --> FAILOVER_VAL
+    SWITCH_TEST --> RECOVERY_VAL
+    HSM_TEST --> TXN_VAL
+```
+
+## Cost Optimization
+
+### 1. Infrastructure Cost Distribution
+
+```mermaid
+pie title ATM Network Cost Distribution
+    "ATM Hardware & Maintenance" : 35
+    "Network & Connectivity" : 20
+    "Cash Management & CIT" : 20
+    "Software Licensing" : 10
+    "Security & Compliance" : 10
+    "Operations & Support" : 5
+```
+
+### 2. Cost Optimization Strategies
+
+```mermaid
+graph TD
+    subgraph "Hardware Optimization"
+        LIFECYCLE[Lifecycle Management<br/>7-10 Year Refresh]
+        MULTI_VENDOR[Multi-vendor<br/>Price Competition]
+        REFURBISH[Refurbishment<br/>Extend Life]
+        RECYCLERS[Cash Recyclers<br/>Reduce CIT]
+    end
+
+    subgraph "Cash Optimization"
+        FORECAST[Cash Forecasting<br/>ML Prediction]
+        DYNAMIC_LOAD[Dynamic Loading<br/>Demand-based]
+        DENOMINATION[Denomination Mix<br/>Optimize Notes]
+        FLOAT_REDUCE[Float Reduction<br/>Working Capital]
+    end
+
+    subgraph "Operations Optimization"
+        REMOTE_MGMT[Remote Management<br/>Reduce Visits]
+        PREDICTIVE[Predictive Maintenance<br/>Reduce Downtime]
+        SELF_HEALING[Self-healing<br/>Auto Recovery]
+        SHARED_SERVICES[Shared Services<br/>Multi-bank ATMs]
+    end
+
+    subgraph "Network Optimization"
+        COMPRESSION_ATM[Message Compression<br/>Bandwidth Savings]
+        FAILOVER_OPT[Failover Optimization<br/>Cost-effective Backup]
+        CLOUD_HYBRID[Cloud Hybrid<br/>Variable Capacity]
+    end
+
+    LIFECYCLE --> FORECAST
+    MULTI_VENDOR --> DYNAMIC_LOAD
+    REFURBISH --> DENOMINATION
+    RECYCLERS --> FLOAT_REDUCE
+
+    FORECAST --> REMOTE_MGMT
+    DYNAMIC_LOAD --> PREDICTIVE
+    DENOMINATION --> SELF_HEALING
+    FLOAT_REDUCE --> SHARED_SERVICES
+
+    REMOTE_MGMT --> COMPRESSION_ATM
+    PREDICTIVE --> FAILOVER_OPT
+    SELF_HEALING --> CLOUD_HYBRID
+```
+
+## Future Architecture Considerations
+
+### 1. Emerging Technologies
+
+```mermaid
+graph TD
+    subgraph "Cardless & Digital"
+        MOBILE_FIRST[Mobile-First<br/>App-based Banking]
+        QR_WITHDRAW[QR Withdrawal<br/>No Card Required]
+        DIGITAL_WALLET[Digital Wallet<br/>Apple/Google Pay]
+        CBDC[CBDC Support<br/>Digital Currency]
+    end
+
+    subgraph "Biometric Evolution"
+        PALM_VEIN[Palm Vein<br/>Contactless Biometric]
+        FACE_RECOG[Face Recognition<br/>Video Analytics]
+        VOICE_AUTH[Voice Authentication<br/>Natural Language]
+        MULTI_MODAL[Multi-modal<br/>Combined Biometrics]
+    end
+
+    subgraph "AI & Analytics"
+        PREDICTIVE_CASH[Predictive Cash<br/>ML Forecasting]
+        ANOMALY_ML[Anomaly Detection<br/>Real-time ML]
+        CUSTOMER_AI[Customer Analytics<br/>Personalization]
+        CHATBOT[AI Chatbot<br/>On-screen Assistance]
+    end
+
+    subgraph "Infrastructure Evolution"
+        CLOUD_NATIVE[Cloud-native<br/>ATM as a Service]
+        EDGE_COMPUTE[Edge Computing<br/>Local Processing]
+        API_BANKING[Open Banking<br/>API Integration]
+        BLOCKCHAIN_AUDIT[Blockchain<br/>Immutable Audit]
+    end
+
+    MOBILE_FIRST --> PALM_VEIN
+    QR_WITHDRAW --> FACE_RECOG
+    DIGITAL_WALLET --> VOICE_AUTH
+    CBDC --> MULTI_MODAL
+
+    PALM_VEIN --> PREDICTIVE_CASH
+    FACE_RECOG --> ANOMALY_ML
+    VOICE_AUTH --> CUSTOMER_AI
+    MULTI_MODAL --> CHATBOT
+
+    PREDICTIVE_CASH --> CLOUD_NATIVE
+    ANOMALY_ML --> EDGE_COMPUTE
+    CUSTOMER_AI --> API_BANKING
+    CHATBOT --> BLOCKCHAIN_AUDIT
+```
+
+## Modern ATM Innovations
+
+### 1. Next-Gen ATM Features
+
+```mermaid
+graph TD
+    subgraph "Cardless ATM"
+        QR_CODE[QR Code<br/>Mobile App Scan]
+        NFC[NFC Tap<br/>Contactless]
+        BIOMETRIC[Biometric Auth<br/>Fingerprint/Face]
+        OTP[OTP Withdrawal<br/>One-time Password]
+    end
+
+    subgraph "Enhanced Services"
+        VIDEO_TELLER[Video Teller<br/>Remote Assistance]
+        COIN_DISPENSE[Coin Dispensing<br/>Exact Change]
+        MULTI_CURRENCY[Multi-Currency<br/>Foreign Exchange]
+        BILL_PAY[Bill Payment<br/>Utility Services]
+    end
+
+    subgraph "Smart ATM"
+        RECYCLER[Cash Recycling<br/>Accept & Dispense]
+        AI_ANALYTICS[AI Analytics<br/>Predictive Maintenance]
+        DYNAMIC_PRICING[Dynamic Pricing<br/>Fee Optimization]
+        PERSONALIZATION[Personalization<br/>User Preferences]
+    end
+
+    subgraph "Security Innovations"
+        BEHAVIORAL[Behavioral Biometrics<br/>Continuous Auth]
+        JITTER[Anti-Skimming<br/>Card Jittering]
+        AI_FRAUD[AI Fraud Detection<br/>Real-time ML]
+        ZERO_TRUST[Zero Trust<br/>Verify Everything]
+    end
+
+    QR_CODE --> VIDEO_TELLER
+    NFC --> COIN_DISPENSE
+    BIOMETRIC --> MULTI_CURRENCY
+    OTP --> BILL_PAY
+
+    VIDEO_TELLER --> RECYCLER
+    COIN_DISPENSE --> AI_ANALYTICS
+    MULTI_CURRENCY --> DYNAMIC_PRICING
+    BILL_PAY --> PERSONALIZATION
+
+    RECYCLER --> BEHAVIORAL
+    AI_ANALYTICS --> JITTER
+    DYNAMIC_PRICING --> AI_FRAUD
+    PERSONALIZATION --> ZERO_TRUST
+```
+
+## Conclusion
+
+ATM system architecture represents a critical infrastructure for banking operations, requiring exceptional reliability, security, and compliance. The system successfully manages:
+
+- **Transaction Processing**: Millions of daily transactions with sub-3-second authorization
+- **Security**: Multi-layer encryption and fraud detection
+- **Availability**: 99.5%+ uptime with automatic failover
+- **Compliance**: PCI DSS, PCI PIN, and banking regulations
+- **Cash Management**: Efficient inventory and replenishment
+
+### Key Architectural Principles:
+
+1. **Security First**
+   - HSM-protected cryptographic operations
+   - End-to-end encryption
+   - Multi-factor authentication
+   - Real-time fraud detection
+
+2. **High Availability**
+   - Active-active switch clusters
+   - Oracle RAC for database
+   - Multiple network paths
+   - Automatic failover
+
+3. **Regulatory Compliance**
+   - PCI DSS certification
+   - PCI PIN security
+   - Comprehensive audit logging
+   - Settlement and reconciliation
+
+4. **Operational Excellence**
+   - Real-time monitoring
+   - Predictive cash management
+   - Automated reconciliation
+   - 24/7 support operations
+
+5. **Modern Innovation**
+   - Cardless transactions
+   - Biometric authentication
+   - Cash recycling technology
+   - AI-powered analytics
+
+The architecture continues to evolve with contactless technology, biometric authentication, and AI-powered fraud detection, while maintaining the foundational principles of security and reliability.
+
+> This architecture represents typical ATM network systems and industry best practices. Actual implementations may vary by institution.

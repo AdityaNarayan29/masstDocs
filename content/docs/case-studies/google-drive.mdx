@@ -1,0 +1,844 @@
+---
+title: Google Drive
+description: 🏗️ Google Drive serves over 1 billion users storing 2+ trillion files with 15GB free storage per account. This document outlines the comprehensive architecture that enables Google Drive to deliver reliable cloud storage with real-time collaboration at massive scale.
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        WEB[Web App]
+        DESKTOP[Desktop Sync<br/>Windows, Mac, Linux]
+        MOBILE[Mobile Apps<br/>iOS, Android]
+        API_CLIENT[Third-party Apps<br/>Drive API]
+    end
+
+    subgraph "Edge Layer"
+        CDN[Google CDN]
+        GFE[Google Frontend<br/>SSL Termination]
+        LB[Global Load Balancer]
+    end
+
+    subgraph "API Layer"
+        REST[REST API<br/>Drive API v3]
+        GRAPHQL[Internal GraphQL]
+        REALTIME[Realtime API<br/>Collaboration]
+    end
+
+    subgraph "Core Services"
+        FILE[File Service<br/>CRUD Operations]
+        SYNC[Sync Service<br/>Change Detection]
+        SHARE[Sharing Service<br/>Permissions]
+        SEARCH[Search Service<br/>Full-text Search]
+        COLLAB[Collaboration<br/>Real-time Editing]
+    end
+
+    subgraph "Storage Layer"
+        COLOSSUS[(Colossus<br/>Distributed FS)]
+        BIGTABLE[(Bigtable<br/>Metadata)]
+        SPANNER[(Cloud Spanner<br/>Permissions)]
+        BLOBSTORE[(Blobstore<br/>File Content)]
+    end
+
+    WEB --> CDN
+    DESKTOP --> GFE
+    MOBILE --> GFE
+    API_CLIENT --> GFE
+
+    CDN --> LB
+    GFE --> LB
+
+    LB --> REST
+    LB --> GRAPHQL
+    LB --> REALTIME
+
+    REST --> FILE
+    REST --> SYNC
+    REST --> SHARE
+    GRAPHQL --> SEARCH
+    REALTIME --> COLLAB
+
+    FILE --> COLOSSUS
+    FILE --> BIGTABLE
+    SYNC --> BIGTABLE
+    SHARE --> SPANNER
+    SEARCH --> BIGTABLE
+    COLLAB --> BLOBSTORE
+```
+
+## Core Components
+
+### 1. File Upload Pipeline
+
+Google Drive handles billions of file uploads daily with resumable upload support.
+
+```mermaid
+flowchart TD
+    subgraph "Upload Initiation"
+        CREATE[Create Upload Session<br/>Resumable URI]
+        CHUNK[Chunked Upload<br/>256KB - 5MB Chunks]
+        RESUME[Resume on Failure<br/>From Last Byte]
+    end
+
+    subgraph "Processing Pipeline"
+        VALIDATE[Content Validation<br/>Virus Scan]
+        DEDUP[Deduplication<br/>Content Hash]
+        THUMBNAIL[Generate Thumbnails<br/>Preview Images]
+    end
+
+    subgraph "Storage"
+        ENCRYPT[Encryption<br/>AES-256]
+        REPLICATE[Replication<br/>3x Redundancy]
+        INDEX[Index Metadata<br/>Search Integration]
+    end
+
+    subgraph "Post-Processing"
+        OCR[OCR Processing<br/>PDF, Images]
+        CONVERT[Format Conversion<br/>Google Docs Format]
+        NOTIFY[Notifications<br/>Activity Updates]
+    end
+
+    CREATE --> CHUNK
+    CHUNK --> RESUME
+    RESUME --> VALIDATE
+
+    VALIDATE --> DEDUP
+    DEDUP --> THUMBNAIL
+
+    THUMBNAIL --> ENCRYPT
+    ENCRYPT --> REPLICATE
+    REPLICATE --> INDEX
+
+    INDEX --> OCR
+    OCR --> CONVERT
+    CONVERT --> NOTIFY
+```
+
+**Upload Features:**
+- **Resumable Uploads**: Recover from network failures
+- **Chunked Transfer**: Efficient large file handling
+- **Deduplication**: Storage optimization across users
+- **Virus Scanning**: Automatic malware detection
+
+### 2. Sync Engine
+
+Powers desktop and mobile sync with conflict resolution.
+
+```mermaid
+sequenceDiagram
+    participant Client as Desktop Client
+    participant Sync as Sync Service
+    participant Changes as Changes API
+    participant Storage as Cloud Storage
+
+    Client->>Changes: Poll for Changes (pageToken)
+    Changes->>Client: Changed Files List
+    Client->>Client: Detect Local Changes
+
+    alt Remote Change
+        Client->>Storage: Download Updated File
+        Storage->>Client: File Content
+        Client->>Client: Apply to Local
+    else Local Change
+        Client->>Sync: Upload Changed File
+        Sync->>Storage: Store New Version
+        Sync->>Client: Confirm Sync
+    else Conflict
+        Client->>Sync: Report Conflict
+        Sync->>Client: Create Conflict Copy
+        Note over Client: User resolves<br/>manually
+    end
+```
+
+**Sync Architecture:**
+- **Delta Sync**: Only sync changed portions of files
+- **Change Tokens**: Efficient polling with page tokens
+- **Conflict Resolution**: Automatic conflict copy creation
+- **Offline Support**: Queue changes for later sync
+
+### 3. Sharing and Permissions
+
+Complex permission model supporting organizational hierarchies.
+
+```mermaid
+graph TD
+    subgraph "Permission Types"
+        OWNER[Owner<br/>Full Control]
+        EDITOR[Editor<br/>Edit + Share]
+        COMMENTER[Commenter<br/>View + Comment]
+        VIEWER[Viewer<br/>Read Only]
+    end
+
+    subgraph "Share Targets"
+        USER[User<br/>Email Address]
+        GROUP[Group<br/>Google Groups]
+        DOMAIN[Domain<br/>Organization]
+        ANYONE[Anyone<br/>Public Link]
+    end
+
+    subgraph "Access Control"
+        ACL[Access Control List<br/>Per File/Folder]
+        INHERIT[Inheritance<br/>Folder Hierarchy]
+        OVERRIDE[Override<br/>Specific Permissions]
+    end
+
+    subgraph "Advanced"
+        EXPIRY[Expiration<br/>Time-limited Access]
+        DOWNLOAD[Download Control<br/>Prevent Download]
+        COPY[Copy Control<br/>Prevent Copying]
+    end
+
+    OWNER --> ACL
+    EDITOR --> ACL
+    COMMENTER --> ACL
+    VIEWER --> ACL
+
+    USER --> INHERIT
+    GROUP --> INHERIT
+    DOMAIN --> INHERIT
+    ANYONE --> OVERRIDE
+
+    ACL --> EXPIRY
+    INHERIT --> DOWNLOAD
+    OVERRIDE --> COPY
+```
+
+### 4. Real-time Collaboration
+
+Powers Google Docs, Sheets, Slides with operational transformation.
+
+```mermaid
+graph TD
+    subgraph "Client Side"
+        EDITOR[Document Editor]
+        LOCAL_OT[Local OT Engine<br/>Optimistic Updates]
+        BUFFER[Operation Buffer<br/>Pending Changes]
+    end
+
+    subgraph "Server Side"
+        COLLAB_SVC[Collaboration Service]
+        OT_ENGINE[OT Server<br/>Transform Operations]
+        PRESENCE[Presence Service<br/>Active Users]
+    end
+
+    subgraph "Storage"
+        REVISION[Revision Store<br/>Version History]
+        SNAPSHOT[Snapshot Store<br/>Periodic Saves]
+        CURSOR[Cursor Store<br/>User Positions]
+    end
+
+    subgraph "Distribution"
+        PUBSUB[Pub/Sub<br/>Real-time Broadcast]
+        WEBSOCKET[WebSocket<br/>Bi-directional]
+    end
+
+    EDITOR --> LOCAL_OT
+    LOCAL_OT --> BUFFER
+    BUFFER --> WEBSOCKET
+
+    WEBSOCKET --> COLLAB_SVC
+    COLLAB_SVC --> OT_ENGINE
+    OT_ENGINE --> PRESENCE
+
+    OT_ENGINE --> REVISION
+    REVISION --> SNAPSHOT
+    PRESENCE --> CURSOR
+
+    OT_ENGINE --> PUBSUB
+    PUBSUB --> WEBSOCKET
+```
+
+**Collaboration Features:**
+- **Operational Transformation**: Conflict-free concurrent editing
+- **Real-time Cursors**: See collaborator positions
+- **Presence Awareness**: Active user indicators
+- **Version History**: Full revision tracking
+
+## Data Storage Architecture
+
+### Colossus (Distributed File System)
+
+```mermaid
+graph TD
+    subgraph "Colossus Architecture"
+        subgraph "Metadata"
+            CURATOR[Curator<br/>Metadata Manager]
+            CUSTODIAN[Custodian<br/>Background Tasks]
+        end
+
+        subgraph "Storage"
+            D1[D Server 1<br/>Data Storage]
+            D2[D Server 2<br/>Data Storage]
+            D3[D Server 3<br/>Data Storage]
+        end
+
+        subgraph "Data Layout"
+            STRIPE[Striping<br/>Parallel I/O]
+            ERASURE[Erasure Coding<br/>Reed-Solomon]
+            REPL[Replication<br/>3x Copies]
+        end
+    end
+
+    subgraph "Access Layer"
+        FILE_SVC[File Service]
+        BACKUP_SVC[Backup Service]
+        ARCHIVE[Archive Service]
+    end
+
+    FILE_SVC --> CURATOR
+    CURATOR --> D1
+    CURATOR --> D2
+    CURATOR --> D3
+
+    CUSTODIAN --> STRIPE
+    STRIPE --> ERASURE
+    ERASURE --> REPL
+
+    BACKUP_SVC --> REPL
+    ARCHIVE --> ERASURE
+```
+
+**Features:**
+- **Exabyte Scale**: Global distributed storage
+- **Erasure Coding**: 1.5x storage overhead vs 3x replication
+- **Automatic Repair**: Self-healing data corruption
+- **Tiered Storage**: Hot, warm, cold data tiers
+
+### Bigtable (Metadata Store)
+
+```mermaid
+graph TD
+    subgraph "Bigtable Schema"
+        subgraph "File Metadata Table"
+            FILE_ROW[Row Key: user_id#file_id]
+            META_CF[metadata: family<br/>name, size, type]
+            PERM_CF[permissions: family<br/>ACL entries]
+            VER_CF[versions: family<br/>revision history]
+        end
+
+        subgraph "Activity Table"
+            ACT_ROW[Row Key: user_id#timestamp]
+            EVENT_CF[events: family<br/>view, edit, share]
+        end
+    end
+
+    subgraph "Applications"
+        FILE_API[File Service]
+        ACTIVITY[Activity Feed]
+        SEARCH[Search Service]
+    end
+
+    FILE_API --> FILE_ROW
+    FILE_ROW --> META_CF
+    FILE_ROW --> PERM_CF
+    FILE_ROW --> VER_CF
+
+    ACTIVITY --> ACT_ROW
+    ACT_ROW --> EVENT_CF
+    SEARCH --> META_CF
+```
+
+### Cloud Spanner (Permissions)
+
+```mermaid
+graph TD
+    subgraph "Spanner Architecture"
+        subgraph "Global Distribution"
+            US[US Region<br/>Primary]
+            EU[EU Region<br/>Replica]
+            ASIA[Asia Region<br/>Replica]
+        end
+
+        subgraph "Tables"
+            PERMS[Permissions Table<br/>ACL Data]
+            SHARES[Shares Table<br/>Share Links]
+            GROUPS[Groups Table<br/>Group Memberships]
+        end
+    end
+
+    subgraph "Services"
+        SHARE_SVC[Sharing Service]
+        AUTH_SVC[Auth Service]
+        ADMIN[Admin Console]
+    end
+
+    US -.->|TrueTime Sync| EU
+    US -.->|TrueTime Sync| ASIA
+
+    SHARE_SVC --> PERMS
+    AUTH_SVC --> SHARES
+    ADMIN --> GROUPS
+```
+
+## Stream Processing Architecture
+
+```mermaid
+graph LR
+    subgraph "Event Sources"
+        FILE_EVT[File Events<br/>Create, Update, Delete]
+        SHARE_EVT[Share Events<br/>Permission Changes]
+        VIEW_EVT[View Events<br/>Access Logs]
+    end
+
+    subgraph "Stream Processing"
+        PUBSUB[Cloud Pub/Sub<br/>Event Bus]
+        DATAFLOW[Cloud Dataflow<br/>Stream Processing]
+    end
+
+    subgraph "Real-time Systems"
+        SYNC_PUSH[Sync Push<br/>Client Notifications]
+        ACTIVITY[Activity Feed<br/>Real-time Updates]
+        QUOTA[Quota Updates<br/>Storage Tracking]
+    end
+
+    subgraph "Analytics"
+        BQ[(BigQuery<br/>Analytics)]
+        ML[ML Pipeline<br/>Recommendations]
+        AUDIT[Audit Logs<br/>Compliance]
+    end
+
+    FILE_EVT --> PUBSUB
+    SHARE_EVT --> PUBSUB
+    VIEW_EVT --> PUBSUB
+
+    PUBSUB --> DATAFLOW
+    PUBSUB --> SYNC_PUSH
+
+    DATAFLOW --> ACTIVITY
+    DATAFLOW --> QUOTA
+    DATAFLOW --> BQ
+
+    BQ --> ML
+    BQ --> AUDIT
+```
+
+### Event Processing
+- **Cloud Pub/Sub**: Millions of events per second
+- **Cloud Dataflow**: Real-time and batch processing
+- **Activity Feed**: Sub-second updates
+- **Quota Tracking**: Real-time storage calculations
+
+## Scalability Patterns
+
+### 1. Content Addressing
+
+```mermaid
+flowchart TD
+    subgraph "Upload Flow"
+        FILE[File Upload]
+        HASH[SHA-256 Hash<br/>Content Address]
+        CHECK[Check Existence<br/>Dedup Lookup]
+    end
+
+    subgraph "Storage Decision"
+        EXISTS{Hash Exists?}
+        STORE[Store New Blob]
+        LINK[Link to Existing]
+    end
+
+    subgraph "Reference Counting"
+        REF[Reference Count<br/>Track Usage]
+        GC[Garbage Collection<br/>Delete Orphans]
+    end
+
+    FILE --> HASH
+    HASH --> CHECK
+    CHECK --> EXISTS
+
+    EXISTS -->|No| STORE
+    EXISTS -->|Yes| LINK
+
+    STORE --> REF
+    LINK --> REF
+    REF --> GC
+```
+
+**Benefits:**
+- **Storage Efficiency**: Single copy of duplicate content
+- **Fast Uploads**: Skip already-uploaded content
+- **Bandwidth Savings**: Only transfer unique data
+
+### 2. Hierarchical Caching
+
+```mermaid
+graph LR
+    subgraph "Client Cache"
+        LOCAL[Local Cache<br/>Desktop Sync]
+        BROWSER[Browser Cache<br/>Web App]
+    end
+
+    subgraph "Edge Cache"
+        CDN_CACHE[CDN Cache<br/>Static Assets]
+        EDGE_POP[Edge POPs<br/>Thumbnails]
+    end
+
+    subgraph "Backend Cache"
+        MEMCACHE[Memcached<br/>Hot Metadata]
+        L2_CACHE[L2 Cache<br/>File Headers]
+    end
+
+    subgraph "Storage"
+        HOT[Hot Storage<br/>Recent Files]
+        COLD[Cold Storage<br/>Archive]
+    end
+
+    LOCAL --> CDN_CACHE
+    BROWSER --> CDN_CACHE
+    CDN_CACHE --> EDGE_POP
+    EDGE_POP --> MEMCACHE
+    MEMCACHE --> L2_CACHE
+    L2_CACHE --> HOT
+    HOT --> COLD
+```
+
+### 3. Quotas and Rate Limiting
+
+```mermaid
+flowchart TD
+    subgraph "Quota Types"
+        STORAGE[Storage Quota<br/>15GB Free]
+        API[API Quota<br/>Requests/Second]
+        BANDWIDTH[Bandwidth Quota<br/>Download Limits]
+    end
+
+    subgraph "Enforcement"
+        CHECK[Quota Check<br/>Pre-request]
+        TRACK[Usage Tracking<br/>Real-time]
+        ALERT[Approaching Limit<br/>Notifications]
+    end
+
+    subgraph "Response"
+        ALLOW[Allow<br/>Under Quota]
+        WARN[Warning<br/>Near Limit]
+        BLOCK[Block<br/>Over Quota]
+    end
+
+    STORAGE --> CHECK
+    API --> CHECK
+    BANDWIDTH --> CHECK
+
+    CHECK --> TRACK
+    TRACK --> ALERT
+
+    TRACK --> ALLOW
+    ALERT --> WARN
+    TRACK --> BLOCK
+```
+
+## Security Architecture
+
+```mermaid
+graph TB
+    subgraph "Data Protection"
+        ENCRYPT_TRANSIT[TLS 1.3<br/>In Transit]
+        ENCRYPT_REST[AES-256<br/>At Rest]
+        KEY_MGMT[Cloud KMS<br/>Key Management]
+    end
+
+    subgraph "Access Control"
+        IAM[Cloud IAM<br/>Identity Management]
+        OAUTH[OAuth 2.0<br/>Authorization]
+        CONTEXT[Context-Aware<br/>Device, Location]
+    end
+
+    subgraph "Compliance"
+        DLP[Data Loss Prevention<br/>Content Scanning]
+        VAULT[Google Vault<br/>eDiscovery]
+        AUDIT[Audit Logs<br/>Activity Tracking]
+    end
+
+    subgraph "Threat Protection"
+        MALWARE[Malware Scan<br/>Upload Scanning]
+        PHISHING[Phishing Detection<br/>Link Scanning]
+        ABUSE[Abuse Detection<br/>ML Models]
+    end
+
+    ENCRYPT_TRANSIT --> KEY_MGMT
+    ENCRYPT_REST --> KEY_MGMT
+
+    IAM --> OAUTH
+    OAUTH --> CONTEXT
+
+    DLP --> VAULT
+    VAULT --> AUDIT
+
+    MALWARE --> PHISHING
+    PHISHING --> ABUSE
+```
+
+### Enterprise Security
+- **Data Loss Prevention**: Content inspection rules
+- **Information Rights Management**: Download/copy controls
+- **Google Vault**: Legal hold and eDiscovery
+- **Admin Console**: Centralized security management
+
+### File Protection
+- **Client-side encryption option**: BYOK support
+- **Link expiration**: Time-limited shares
+- **Download prevention**: View-only mode
+- **Watermarking**: Document tracking
+
+## Monitoring and Observability
+
+```mermaid
+graph LR
+    subgraph "Metrics Collection"
+        MONARCH[Monarch<br/>Time Series DB]
+        TRACE[Cloud Trace<br/>Request Tracing]
+        LOG[Cloud Logging<br/>Centralized Logs]
+    end
+
+    subgraph "Analysis"
+        BORGMON[Borgmon<br/>Alerting Rules]
+        DAPPER[Dapper<br/>Trace Analysis]
+        DREMEL[Dremel<br/>Log Analysis]
+    end
+
+    subgraph "Response"
+        ONCALL[On-Call SRE<br/>PagerDuty]
+        AUTO[Auto-Remediation<br/>Self-Healing]
+        ESCALATE[Escalation<br/>Incident Management]
+    end
+
+    subgraph "SLOs"
+        AVAIL[Availability<br/>99.9%]
+        LATENCY[Latency<br/>p99 < 200ms]
+        DURABILITY[Durability<br/>11 9s]
+    end
+
+    MONARCH --> BORGMON
+    TRACE --> DAPPER
+    LOG --> DREMEL
+
+    BORGMON --> ONCALL
+    DAPPER --> AUTO
+    DREMEL --> ESCALATE
+
+    ONCALL --> AVAIL
+    AUTO --> LATENCY
+    ESCALATE --> DURABILITY
+```
+
+## Deployment and DevOps
+
+### Continuous Integration/Continuous Deployment
+
+```mermaid
+gitGraph
+    commit id: "Feature Dev"
+    branch feature-branch
+    checkout feature-branch
+    commit id: "Code Changes"
+    commit id: "Unit Tests"
+    checkout main
+    merge feature-branch
+    commit id: "Integration Tests" type: HIGHLIGHT
+    commit id: "Build Release"
+    commit id: "Canary Deploy" type: HIGHLIGHT
+    commit id: "Regional Rollout"
+    commit id: "Global Deploy" type: REVERSE
+```
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        CODE[Code Commit<br/>Piper/CitC]
+        BUILD[Blaze Build]
+        TEST[TAP Tests]
+    end
+
+    subgraph "Release"
+        CANARY[Canary Release<br/>0.1% Traffic]
+        REGIONAL[Regional Rollout<br/>US → EU → Asia]
+        GLOBAL[Global Release]
+    end
+
+    subgraph "Safety"
+        ROLLBACK[Auto-Rollback<br/>Error Spike]
+        FEATURE_FLAG[Feature Flags<br/>Kill Switch]
+        DARK_LAUNCH[Dark Launch<br/>Shadow Traffic]
+    end
+
+    CODE --> BUILD
+    BUILD --> TEST
+    TEST --> CANARY
+    CANARY --> REGIONAL
+    REGIONAL --> GLOBAL
+
+    CANARY --> ROLLBACK
+    REGIONAL --> FEATURE_FLAG
+    GLOBAL --> DARK_LAUNCH
+```
+
+### Infrastructure (Borg)
+- **Container Orchestration**: Borg for all services
+- **Auto-scaling**: Traffic-based scaling
+- **Multi-region**: Global deployment
+- **Zero-downtime**: Rolling updates
+
+### Chaos Engineering
+
+```mermaid
+flowchart TD
+    subgraph "DiRT Exercises"
+        REGION[Region Failure<br/>Entire Datacenter]
+        SERVICE[Service Failure<br/>Dependency Outage]
+        DATA[Data Corruption<br/>Storage Failure]
+    end
+
+    subgraph "Targets"
+        STORAGE_SVC[Storage Service]
+        SYNC_SVC[Sync Service]
+        COLLAB_SVC[Collaboration]
+    end
+
+    subgraph "Measurement"
+        FAILOVER[Failover Time]
+        DATA_LOSS[Data Loss Check]
+        USER_IMPACT[User Impact]
+    end
+
+    subgraph "Learning"
+        POSTMORTEM[Blameless Post-Mortem]
+        IMPROVE[System Improvements]
+        RUNBOOK[Runbook Updates]
+    end
+
+    REGION --> STORAGE_SVC
+    SERVICE --> SYNC_SVC
+    DATA --> COLLAB_SVC
+
+    STORAGE_SVC --> FAILOVER
+    SYNC_SVC --> DATA_LOSS
+    COLLAB_SVC --> USER_IMPACT
+
+    FAILOVER --> POSTMORTEM
+    DATA_LOSS --> IMPROVE
+    USER_IMPACT --> RUNBOOK
+```
+
+**Practices:**
+- **DiRT (Disaster Recovery Testing)**: Annual large-scale tests
+- **Dependency Injection**: Simulated service failures
+- **Data Corruption Tests**: Storage integrity validation
+- **Regional Failovers**: Cross-region traffic migration
+
+## Analytics and Machine Learning
+
+### Data Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Event Sources"
+        FILE_LOG[File Operations<br/>CRUD Events]
+        SHARE_LOG[Sharing Events<br/>Permission Changes]
+        SEARCH_LOG[Search Events<br/>Query Logs]
+    end
+
+    subgraph "Processing"
+        PUBSUB[Cloud Pub/Sub]
+        DATAFLOW[Cloud Dataflow]
+        BIGQUERY[(BigQuery)]
+    end
+
+    subgraph "ML Applications"
+        SMART_REPLY[Smart Compose<br/>Docs Suggestions]
+        QUICK_ACCESS[Quick Access<br/>File Recommendations]
+        SEARCH_RANK[Search Ranking<br/>Relevance ML]
+    end
+
+    FILE_LOG --> PUBSUB
+    SHARE_LOG --> PUBSUB
+    SEARCH_LOG --> PUBSUB
+
+    PUBSUB --> DATAFLOW
+    DATAFLOW --> BIGQUERY
+
+    BIGQUERY --> SMART_REPLY
+    BIGQUERY --> QUICK_ACCESS
+    BIGQUERY --> SEARCH_RANK
+```
+
+### ML Use Cases
+- **Quick Access**: Predict files users need
+- **Search Ranking**: ML-powered search relevance
+- **Smart Compose**: Autocomplete in Docs
+- **Priority Inbox**: Important file notifications
+- **Abuse Detection**: Spam and malware identification
+
+## Cost Optimization
+
+```mermaid
+pie title Google Drive Infrastructure Cost Distribution
+    "Storage" : 45
+    "Compute" : 25
+    "Networking" : 15
+    "ML & Analytics" : 10
+    "Operations" : 5
+```
+
+```mermaid
+graph TD
+    subgraph "Storage Optimization"
+        DEDUP[Deduplication<br/>Content Addressing]
+        COMPRESS[Compression<br/>Snappy, Zstd]
+        TIERING[Storage Tiering<br/>Hot/Warm/Cold]
+    end
+
+    subgraph "Compute Optimization"
+        AUTOSCALE[Auto-scaling<br/>Traffic Patterns]
+        PREEMPTIBLE[Preemptible VMs<br/>Batch Jobs]
+        EFFICIENT[Efficient Encoding<br/>Thumbnails]
+    end
+
+    subgraph "Network Optimization"
+        EDGE[Edge Caching<br/>CDN]
+        DELTA[Delta Sync<br/>Bandwidth Savings]
+        COMPRESS_NET[Protocol Compression]
+    end
+
+    DEDUP --> COST[Cost Reduction]
+    COMPRESS --> COST
+    TIERING --> COST
+    AUTOSCALE --> COST
+    PREEMPTIBLE --> COST
+    EFFICIENT --> COST
+    EDGE --> COST
+    DELTA --> COST
+    COMPRESS_NET --> COST
+```
+
+### Key Strategies
+- **Content-Addressed Storage**: 30%+ storage savings
+- **Delta Sync**: 90%+ bandwidth reduction for edits
+- **Tiered Storage**: Automatic archival of old files
+- **Thumbnail Optimization**: Efficient preview generation
+
+## Future Architecture Considerations
+
+### Emerging Technologies
+- **AI Integration**: Gemini for document understanding
+- **Offline-First**: Enhanced offline capabilities
+- **Real-time Search**: Instant search results
+- **Cross-Platform**: Universal file access
+
+### Platform Evolution
+- **Workspace Integration**: Deeper Google Workspace ties
+- **Third-Party Ecosystem**: Enhanced API capabilities
+- **Enterprise Features**: Advanced admin controls
+- **Compliance**: New regulatory requirements
+
+### Infrastructure Roadmap
+- **Edge Computing**: Faster sync near users
+- **Green Storage**: Energy-efficient data centers
+- **Quantum-Safe**: Post-quantum encryption
+- **Multi-Cloud DR**: Cross-cloud disaster recovery
+
+## Conclusion
+
+Google Drive's architecture showcases Google's infrastructure expertise in building a globally distributed, highly available storage system. The combination of Colossus distributed storage, real-time collaboration via operational transformation, and intelligent features powered by ML enables Drive to serve billions of users reliably.
+
+The platform continues to evolve with deeper AI integration, enhanced collaboration features, and improved enterprise capabilities, all while maintaining the simplicity and reliability that users expect.
+
+> There might be iterations needed, current data is as close I could get.

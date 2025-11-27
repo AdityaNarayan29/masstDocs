@@ -1,0 +1,878 @@
+---
+title: Stripe
+description: 🏗️ Stripe processes hundreds of billions of dollars annually, handling millions of API requests per minute across 195+ countries. This document outlines the comprehensive architecture that enables Stripe to deliver reliable payment infrastructure with 99.999% uptime.
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        WEB[Web SDK<br/>Stripe.js]
+        MOBILE[Mobile SDKs<br/>iOS, Android]
+        SERVER[Server SDKs<br/>Ruby, Python, Node]
+        TERMINAL[Stripe Terminal<br/>In-person]
+    end
+
+    subgraph "Edge Layer"
+        CDN[Global CDN]
+        WAF[Web Application Firewall]
+        DDOS[DDoS Protection]
+    end
+
+    subgraph "API Gateway"
+        LB[Load Balancer]
+        AUTH[Authentication<br/>API Keys, OAuth]
+        RATE[Rate Limiter]
+        ROUTE[Request Router]
+    end
+
+    subgraph "Core Services"
+        PAYMENT[Payment Service]
+        CUSTOMER[Customer Service]
+        SUBSCRIPTION[Subscription Service]
+        INVOICE[Invoice Service]
+        FRAUD[Radar Fraud Detection]
+        PAYOUT[Payout Service]
+    end
+
+    subgraph "Data Layer"
+        POSTGRES[(PostgreSQL)]
+        REDIS[(Redis)]
+        KAFKA[Apache Kafka]
+        S3[(S3/Object Storage)]
+        ELASTIC[(Elasticsearch)]
+    end
+
+    WEB --> CDN
+    MOBILE --> CDN
+    SERVER --> CDN
+    TERMINAL --> CDN
+
+    CDN --> WAF
+    WAF --> DDOS
+    DDOS --> LB
+
+    LB --> AUTH
+    AUTH --> RATE
+    RATE --> ROUTE
+
+    ROUTE --> PAYMENT
+    ROUTE --> CUSTOMER
+    ROUTE --> SUBSCRIPTION
+    ROUTE --> INVOICE
+    ROUTE --> FRAUD
+    ROUTE --> PAYOUT
+
+    PAYMENT --> POSTGRES
+    PAYMENT --> REDIS
+    PAYMENT --> KAFKA
+    CUSTOMER --> POSTGRES
+    SUBSCRIPTION --> POSTGRES
+    INVOICE --> S3
+    FRAUD --> ELASTIC
+    PAYOUT --> KAFKA
+```
+
+## Core Components
+
+### 1. Payment Processing Pipeline
+
+Stripe's core payment flow processes millions of transactions per minute.
+
+```mermaid
+flowchart TD
+    subgraph "Payment Initiation"
+        CREATE[Create PaymentIntent]
+        VALIDATE[Input Validation<br/>Card, Amount, Currency]
+        TOKENIZE[Tokenization<br/>PCI Compliant]
+    end
+
+    subgraph "Risk Assessment"
+        RADAR[Radar ML Models<br/>Fraud Detection]
+        RULES[Custom Rules<br/>Merchant Config]
+        THREEDS[3D Secure<br/>SCA Compliance]
+    end
+
+    subgraph "Authorization"
+        NETWORK[Card Network<br/>Visa, Mastercard]
+        ISSUER[Issuing Bank<br/>Authorization]
+        RESPONSE[Auth Response<br/>Approved/Declined]
+    end
+
+    subgraph "Settlement"
+        CAPTURE[Capture Funds]
+        BATCH[Batch Processing<br/>Settlement Files]
+        RECONCILE[Reconciliation]
+    end
+
+    CREATE --> VALIDATE
+    VALIDATE --> TOKENIZE
+    TOKENIZE --> RADAR
+
+    RADAR --> RULES
+    RULES --> THREEDS
+    THREEDS --> NETWORK
+
+    NETWORK --> ISSUER
+    ISSUER --> RESPONSE
+
+    RESPONSE -->|Approved| CAPTURE
+    CAPTURE --> BATCH
+    BATCH --> RECONCILE
+```
+
+**Components:**
+- **PaymentIntent**: Tracks payment lifecycle from creation to confirmation
+- **Tokenization**: PCI-DSS compliant card data handling
+- **Radar**: ML-powered fraud detection (prevents $25B+ in fraud annually)
+- **Network Routing**: Intelligent routing for optimal authorization rates
+
+**Key Features:**
+- Idempotency for safe retries
+- Automatic card network selection
+- Dynamic 3D Secure authentication
+- Real-time fraud scoring
+
+### 2. Subscription & Billing Engine
+
+Handles complex recurring billing scenarios.
+
+```mermaid
+sequenceDiagram
+    participant Customer
+    participant API as Stripe API
+    participant Billing as Billing Engine
+    participant Payment as Payment Service
+    participant Webhook as Webhook System
+
+    Customer->>API: Create Subscription
+    API->>Billing: Initialize Subscription
+    Billing->>Billing: Calculate Proration
+    Billing->>Payment: Create Invoice
+    Payment->>Payment: Process Payment
+    Payment->>Billing: Payment Result
+    Billing->>Webhook: Emit Events
+    Webhook->>Customer: Notify Merchant
+    Note over Billing: Recurring billing<br/>on schedule
+```
+
+**Billing Features:**
+- **Proration**: Automatic pro-rated charges for plan changes
+- **Usage-based Billing**: Metered billing support
+- **Trials**: Free trial period management
+- **Dunning**: Smart retry logic for failed payments
+
+### 3. Fraud Detection (Radar)
+
+ML-powered fraud prevention system.
+
+```mermaid
+graph TD
+    subgraph "Data Collection"
+        DEVICE[Device Fingerprint<br/>Browser, Mobile]
+        BEHAVIOR[Behavioral Signals<br/>Typing, Mouse]
+        HISTORY[Transaction History<br/>Network Data]
+    end
+
+    subgraph "Feature Engineering"
+        REALTIME[Real-time Features<br/>Velocity, Amount]
+        AGGREGATE[Aggregate Features<br/>Card, Email, IP]
+        NETWORK[Network Features<br/>Cross-merchant]
+    end
+
+    subgraph "ML Models"
+        ENSEMBLE[Ensemble Model<br/>Multiple Algorithms]
+        RULES[Custom Rules<br/>Merchant-specific]
+        ALLOW_BLOCK[Allow/Block Lists]
+    end
+
+    subgraph "Decision"
+        SCORE[Risk Score<br/>0-100]
+        ACTION[Action Decision<br/>Allow, Block, Review]
+        EXPLAIN[Explanation<br/>Top Risk Factors]
+    end
+
+    DEVICE --> REALTIME
+    BEHAVIOR --> REALTIME
+    HISTORY --> AGGREGATE
+    AGGREGATE --> NETWORK
+
+    REALTIME --> ENSEMBLE
+    NETWORK --> ENSEMBLE
+    ENSEMBLE --> RULES
+    RULES --> ALLOW_BLOCK
+
+    ALLOW_BLOCK --> SCORE
+    SCORE --> ACTION
+    ACTION --> EXPLAIN
+```
+
+**Radar Capabilities:**
+- **Network Effect**: Learns from billions of transactions
+- **Adaptive ML**: Continuously updates with new fraud patterns
+- **Custom Rules**: Merchant-configurable rule engine
+- **3D Secure Integration**: Smart authentication triggers
+
+### 4. Payout System
+
+Distributes funds to millions of connected accounts.
+
+```mermaid
+graph TD
+    subgraph "Balance Management"
+        AVAILABLE[Available Balance<br/>Ready for Payout]
+        PENDING[Pending Balance<br/>Processing]
+        RESERVED[Reserve Balance<br/>Risk Mitigation]
+    end
+
+    subgraph "Payout Processing"
+        SCHEDULE[Payout Schedule<br/>Daily, Weekly, Manual]
+        BATCH[Batch Creation<br/>Bank Files]
+        SUBMIT[Submit to Banks]
+    end
+
+    subgraph "Bank Integration"
+        ACH[ACH Network<br/>US Domestic]
+        WIRE[Wire Transfer<br/>International]
+        LOCAL[Local Rails<br/>SEPA, BACS, etc.]
+    end
+
+    subgraph "Reconciliation"
+        CONFIRM[Bank Confirmation]
+        RETURN[Return Handling]
+        REPORTING[Financial Reporting]
+    end
+
+    AVAILABLE --> SCHEDULE
+    PENDING --> AVAILABLE
+    RESERVED --> PENDING
+
+    SCHEDULE --> BATCH
+    BATCH --> SUBMIT
+
+    SUBMIT --> ACH
+    SUBMIT --> WIRE
+    SUBMIT --> LOCAL
+
+    ACH --> CONFIRM
+    WIRE --> CONFIRM
+    LOCAL --> CONFIRM
+    CONFIRM --> RETURN
+    RETURN --> REPORTING
+```
+
+## Data Storage Architecture
+
+### PostgreSQL (Primary Database)
+
+```mermaid
+graph TD
+    subgraph "PostgreSQL Architecture"
+        subgraph "Write Path"
+            PRIMARY[(Primary<br/>All Writes)]
+            SYNC_REP[(Sync Replica<br/>Zero Data Loss)]
+        end
+
+        subgraph "Read Path"
+            ASYNC_REP1[(Async Replica 1<br/>Read Scaling)]
+            ASYNC_REP2[(Async Replica 2<br/>Analytics)]
+            ASYNC_REP3[(Async Replica 3<br/>Backup)]
+        end
+
+        subgraph "Sharding"
+            SHARD1[(Shard 1<br/>Merchants A-M)]
+            SHARD2[(Shard 2<br/>Merchants N-Z)]
+            SHARD3[(Shard N<br/>New Merchants)]
+        end
+    end
+
+    subgraph "Applications"
+        PAYMENT_SVC[Payment Service]
+        CUSTOMER_SVC[Customer Service]
+        REPORTING[Reporting Service]
+    end
+
+    PRIMARY -.->|Sync| SYNC_REP
+    PRIMARY -.->|Async| ASYNC_REP1
+    PRIMARY -.->|Async| ASYNC_REP2
+    PRIMARY -.->|Async| ASYNC_REP3
+
+    PAYMENT_SVC -->|Write| PRIMARY
+    PAYMENT_SVC -->|Read| ASYNC_REP1
+    CUSTOMER_SVC --> SHARD1
+    CUSTOMER_SVC --> SHARD2
+    REPORTING --> ASYNC_REP2
+```
+
+**Database Practices:**
+- **Synchronous Replication**: Zero data loss for transactions
+- **Sharding by Merchant**: Horizontal scalability
+- **Connection Pooling**: PgBouncer for efficient connections
+- **Encryption**: AES-256 at rest, TLS in transit
+
+### Redis (Caching & Queues)
+
+```mermaid
+graph TD
+    subgraph "Redis Cluster"
+        subgraph "Cache Layer"
+            RATE_CACHE[Rate Limit Counters<br/>API Throttling]
+            SESSION[Session Cache<br/>Dashboard Auth]
+            CONFIG[Config Cache<br/>Feature Flags]
+        end
+
+        subgraph "Queue Layer"
+            WEBHOOK_Q[Webhook Queue<br/>Event Delivery]
+            WORKER_Q[Worker Queue<br/>Async Jobs]
+        end
+    end
+
+    subgraph "Applications"
+        API_GW[API Gateway]
+        DASHBOARD[Dashboard]
+        WORKERS[Background Workers]
+    end
+
+    API_GW --> RATE_CACHE
+    DASHBOARD --> SESSION
+    API_GW --> CONFIG
+
+    WORKERS --> WEBHOOK_Q
+    WORKERS --> WORKER_Q
+```
+
+### Apache Kafka (Event Streaming)
+
+```mermaid
+graph LR
+    subgraph "Producers"
+        PAYMENT_EVT[Payment Events]
+        CUSTOMER_EVT[Customer Events]
+        WEBHOOK_EVT[Webhook Events]
+    end
+
+    subgraph "Kafka Cluster"
+        TOPIC1[payments<br/>Partitioned by merchant]
+        TOPIC2[customers<br/>Partitioned by customer]
+        TOPIC3[webhooks<br/>Partitioned by endpoint]
+    end
+
+    subgraph "Consumers"
+        ANALYTICS[Analytics Pipeline]
+        WEBHOOK_WORKER[Webhook Delivery]
+        SEARCH_INDEX[Search Indexer]
+        ML_PIPELINE[ML Feature Pipeline]
+    end
+
+    PAYMENT_EVT --> TOPIC1
+    CUSTOMER_EVT --> TOPIC2
+    WEBHOOK_EVT --> TOPIC3
+
+    TOPIC1 --> ANALYTICS
+    TOPIC1 --> ML_PIPELINE
+    TOPIC2 --> SEARCH_INDEX
+    TOPIC3 --> WEBHOOK_WORKER
+```
+
+## Stream Processing Architecture
+
+```mermaid
+graph LR
+    subgraph "Event Sources"
+        API[API Events<br/>Charges, Refunds]
+        BANK[Bank Events<br/>Settlements]
+        CARD[Card Events<br/>Auth, Capture]
+    end
+
+    subgraph "Stream Processing"
+        KAFKA[Apache Kafka<br/>Event Bus]
+        SORBET[Ruby Processing<br/>Sorbet Types]
+        TEMPORAL[Temporal<br/>Workflow Engine]
+    end
+
+    subgraph "Real-time Systems"
+        RADAR_RT[Radar Real-time<br/>Fraud Scoring]
+        BALANCE[Balance Updates<br/>Available Funds]
+        WEBHOOK[Webhook Dispatch<br/>Event Delivery]
+    end
+
+    subgraph "Batch Systems"
+        SPARK[Apache Spark<br/>Analytics]
+        WAREHOUSE[(Data Warehouse<br/>Presto)]
+        ML_TRAIN[ML Training<br/>Model Updates]
+    end
+
+    API --> KAFKA
+    BANK --> KAFKA
+    CARD --> KAFKA
+
+    KAFKA --> SORBET
+    KAFKA --> TEMPORAL
+
+    SORBET --> RADAR_RT
+    SORBET --> BALANCE
+    TEMPORAL --> WEBHOOK
+
+    KAFKA --> SPARK
+    SPARK --> WAREHOUSE
+    WAREHOUSE --> ML_TRAIN
+```
+
+### Temporal (Workflow Orchestration)
+- **Durable Execution**: Workflows survive process failures
+- **Payout Workflows**: Multi-step payout processing
+- **Subscription Lifecycle**: Complex billing state machines
+- **Retry Policies**: Configurable retry strategies
+
+## Scalability Patterns
+
+### 1. API Rate Limiting
+
+```mermaid
+flowchart TD
+    subgraph "Rate Limit Tiers"
+        TEST[Test Mode<br/>25 req/sec]
+        LIVE[Live Mode<br/>100 req/sec]
+        ENTERPRISE[Enterprise<br/>Custom Limits]
+    end
+
+    subgraph "Implementation"
+        TOKEN[Token Bucket<br/>Burst Handling]
+        REDIS_RL[Redis Counters<br/>Distributed State]
+        ADAPTIVE[Adaptive Limits<br/>Load-based]
+    end
+
+    subgraph "Response"
+        ALLOW[Allow Request<br/>200 OK]
+        RETRY[Retry After<br/>429 + Header]
+        BACKOFF[Exponential Backoff<br/>Client SDK]
+    end
+
+    TEST --> TOKEN
+    LIVE --> TOKEN
+    ENTERPRISE --> TOKEN
+
+    TOKEN --> REDIS_RL
+    REDIS_RL --> ADAPTIVE
+
+    ADAPTIVE --> ALLOW
+    ADAPTIVE --> RETRY
+    RETRY --> BACKOFF
+```
+
+### 2. Idempotency
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Stripe API
+    participant Cache as Idempotency Cache
+    participant DB as Database
+
+    Client->>API: POST /v1/charges (Idempotency-Key: abc123)
+    API->>Cache: Check Key
+    alt Key Not Found
+        API->>DB: Process Request
+        DB->>API: Result
+        API->>Cache: Store Result (24h TTL)
+        API->>Client: Response
+    else Key Found
+        Cache->>API: Cached Result
+        API->>Client: Cached Response
+    end
+```
+
+**Idempotency Features:**
+- **24-hour key validity**: Safe retries within window
+- **Atomic operations**: Prevents duplicate charges
+- **Response caching**: Consistent responses for same key
+
+### 3. Geographic Distribution
+
+```mermaid
+graph TD
+    subgraph "US Region"
+        US_LB[Load Balancer]
+        US_API[API Servers]
+        US_DB[(Database Primary)]
+    end
+
+    subgraph "EU Region"
+        EU_LB[Load Balancer]
+        EU_API[API Servers]
+        EU_DB[(Database Replica)]
+    end
+
+    subgraph "APAC Region"
+        APAC_LB[Load Balancer]
+        APAC_API[API Servers]
+        APAC_DB[(Database Replica)]
+    end
+
+    subgraph "Global Services"
+        DNS[Global DNS<br/>Latency Routing]
+        CARD_NET[Card Networks<br/>Direct Connect]
+    end
+
+    DNS --> US_LB
+    DNS --> EU_LB
+    DNS --> APAC_LB
+
+    US_LB --> US_API
+    EU_LB --> EU_API
+    APAC_LB --> APAC_API
+
+    US_API --> US_DB
+    EU_API --> EU_DB
+    APAC_API --> APAC_DB
+
+    US_DB -.->|Replication| EU_DB
+    US_DB -.->|Replication| APAC_DB
+
+    US_API --> CARD_NET
+    EU_API --> CARD_NET
+    APAC_API --> CARD_NET
+```
+
+## Security Architecture
+
+```mermaid
+graph TB
+    subgraph "PCI DSS Compliance"
+        TOKENIZE[Tokenization<br/>No Raw Card Data]
+        HSM[Hardware Security Modules<br/>Key Storage]
+        SEGMENT[Network Segmentation<br/>CDE Isolation]
+    end
+
+    subgraph "API Security"
+        API_KEY[API Key Auth<br/>Secret + Publishable]
+        OAUTH[OAuth 2.0<br/>Connect Platform]
+        WEBHOOK_SIG[Webhook Signatures<br/>HMAC Verification]
+    end
+
+    subgraph "Infrastructure"
+        TLS[TLS 1.3<br/>Certificate Pinning]
+        ENCRYPT[Encryption at Rest<br/>AES-256]
+        AUDIT[Audit Logging<br/>Immutable Trail]
+    end
+
+    subgraph "Fraud Prevention"
+        RADAR_SEC[Radar<br/>ML Fraud Detection]
+        VELOCITY[Velocity Checks<br/>Pattern Detection]
+        MANUAL[Manual Review<br/>High-risk Transactions]
+    end
+
+    TOKENIZE --> HSM
+    HSM --> SEGMENT
+
+    API_KEY --> TLS
+    OAUTH --> TLS
+    WEBHOOK_SIG --> TLS
+
+    TLS --> ENCRYPT
+    ENCRYPT --> AUDIT
+
+    RADAR_SEC --> VELOCITY
+    VELOCITY --> MANUAL
+```
+
+### PCI DSS Level 1
+- **Tokenization**: Card data never touches merchant servers
+- **HSM-backed encryption**: Hardware security for keys
+- **Annual audits**: Third-party security assessments
+- **Penetration testing**: Regular security testing
+
+### API Security
+- **Secret keys**: Server-side only, never exposed
+- **Publishable keys**: Client-side, limited scope
+- **Restricted keys**: Granular permission control
+- **Webhook verification**: HMAC signature validation
+
+## Monitoring and Observability
+
+```mermaid
+graph LR
+    subgraph "Data Collection"
+        METRICS[Prometheus Metrics<br/>Service Health]
+        TRACES[Distributed Traces<br/>Request Flow]
+        LOGS[Structured Logs<br/>JSON Format]
+    end
+
+    subgraph "Processing"
+        TSDB[Time Series DB<br/>Metrics Storage]
+        JAEGER[Jaeger<br/>Trace Analysis]
+        ELK[ELK Stack<br/>Log Analysis]
+    end
+
+    subgraph "Alerting"
+        ALERT[Alert Manager<br/>PagerDuty]
+        ANOMALY[Anomaly Detection<br/>ML-based]
+        SLO[SLO Monitoring<br/>Error Budgets]
+    end
+
+    subgraph "Response"
+        ONCALL[On-Call Engineer]
+        RUNBOOK[Runbooks<br/>Automated Response]
+        INCIDENT[Incident Management]
+    end
+
+    METRICS --> TSDB
+    TRACES --> JAEGER
+    LOGS --> ELK
+
+    TSDB --> ALERT
+    TSDB --> ANOMALY
+    TSDB --> SLO
+
+    ALERT --> ONCALL
+    ANOMALY --> RUNBOOK
+    SLO --> INCIDENT
+```
+
+### Key Metrics
+- **API Latency**: p50, p95, p99 response times
+- **Error Rates**: 4xx, 5xx by endpoint
+- **Payment Success Rate**: Authorization rate by network
+- **Webhook Delivery**: Success rate and latency
+
+## Deployment and DevOps
+
+### Continuous Integration/Continuous Deployment
+
+```mermaid
+gitGraph
+    commit id: "Feature Dev"
+    branch feature-branch
+    checkout feature-branch
+    commit id: "Code Changes"
+    commit id: "Type Check (Sorbet)"
+    checkout main
+    merge feature-branch
+    commit id: "Integration Tests" type: HIGHLIGHT
+    commit id: "Build Container"
+    commit id: "Canary Deploy" type: HIGHLIGHT
+    commit id: "Production Deploy" type: REVERSE
+```
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        CODE[Code Commit<br/>GitHub]
+        SORBET[Sorbet Type Check<br/>Ruby Types]
+        TEST[Test Suite<br/>RSpec]
+    end
+
+    subgraph "Build"
+        BUILD[Build Container<br/>Docker]
+        SCAN[Security Scan<br/>Vulnerability Check]
+        ARTIFACT[Artifact Registry]
+    end
+
+    subgraph "Deploy"
+        CANARY[Canary Deploy<br/>1% Traffic]
+        OBSERVE[Observe Metrics<br/>15 minutes]
+        ROLLOUT[Full Rollout]
+    end
+
+    subgraph "Rollback"
+        DETECT[Error Detection]
+        AUTO_ROLL[Automatic Rollback]
+        MANUAL[Manual Override]
+    end
+
+    CODE --> SORBET
+    SORBET --> TEST
+    TEST --> BUILD
+    BUILD --> SCAN
+    SCAN --> ARTIFACT
+
+    ARTIFACT --> CANARY
+    CANARY --> OBSERVE
+    OBSERVE --> ROLLOUT
+
+    OBSERVE --> DETECT
+    DETECT --> AUTO_ROLL
+    DETECT --> MANUAL
+```
+
+### Infrastructure
+- **Kubernetes**: Container orchestration
+- **Sorbet**: Gradual typing for Ruby
+- **Temporal**: Workflow orchestration
+- **Terraform**: Infrastructure as code
+
+### Chaos Engineering
+
+```mermaid
+flowchart TD
+    subgraph "Chaos Experiments"
+        NETWORK[Network Partition<br/>Cross-region Failure]
+        SERVICE[Service Failure<br/>Dependency Outage]
+        DB[Database Failover<br/>Primary Failure]
+    end
+
+    subgraph "Target Systems"
+        API_SYS[API Layer]
+        PAYMENT_SYS[Payment Processing]
+        PAYOUT_SYS[Payout System]
+    end
+
+    subgraph "Observation"
+        METRICS[System Metrics<br/>Latency, Errors]
+        ALERTS[Alert Triggers]
+        IMPACT[Customer Impact]
+    end
+
+    subgraph "Learning"
+        POSTMORTEM[Post-Mortem]
+        IMPROVE[System Hardening]
+        RUNBOOK[Runbook Updates]
+    end
+
+    NETWORK --> API_SYS
+    SERVICE --> PAYMENT_SYS
+    DB --> PAYOUT_SYS
+
+    API_SYS --> METRICS
+    PAYMENT_SYS --> ALERTS
+    PAYOUT_SYS --> IMPACT
+
+    METRICS --> POSTMORTEM
+    ALERTS --> IMPROVE
+    IMPACT --> RUNBOOK
+```
+
+**Chaos Practices:**
+- **GameDay Exercises**: Quarterly disaster recovery drills
+- **Dependency Failures**: Simulated network/bank outages
+- **Database Failovers**: Automated primary promotion
+- **Load Testing**: 10x traffic simulation
+
+## Analytics and Machine Learning
+
+### Data Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Event Sources"
+        TRANSACTION[Transaction Events<br/>Charges, Refunds]
+        MERCHANT[Merchant Events<br/>Onboarding, Updates]
+        FRAUD_EVT[Fraud Events<br/>Disputes, Chargebacks]
+    end
+
+    subgraph "Processing"
+        KAFKA[Apache Kafka<br/>Event Streaming]
+        SPARK[Apache Spark<br/>ETL Processing]
+        DBT[dbt<br/>Data Transformation]
+    end
+
+    subgraph "Storage"
+        WAREHOUSE[(Data Warehouse<br/>Presto/Trino)]
+        FEATURE_STORE[(Feature Store<br/>ML Features)]
+    end
+
+    subgraph "ML Applications"
+        RADAR_ML[Radar Models<br/>Fraud Detection]
+        ROUTING_ML[Smart Routing<br/>Auth Optimization]
+        RISK_ML[Risk Models<br/>Merchant Risk]
+    end
+
+    TRANSACTION --> KAFKA
+    MERCHANT --> KAFKA
+    FRAUD_EVT --> KAFKA
+
+    KAFKA --> SPARK
+    SPARK --> DBT
+    DBT --> WAREHOUSE
+
+    WAREHOUSE --> FEATURE_STORE
+    FEATURE_STORE --> RADAR_ML
+    FEATURE_STORE --> ROUTING_ML
+    FEATURE_STORE --> RISK_ML
+```
+
+### ML Use Cases
+- **Fraud Detection (Radar)**: Real-time transaction scoring
+- **Authorization Optimization**: Network routing for success rate
+- **Risk Assessment**: Merchant and account risk scoring
+- **Revenue Recovery**: Smart retry timing for failed payments
+- **Anomaly Detection**: System health and abuse detection
+
+## Cost Optimization
+
+```mermaid
+pie title Stripe Infrastructure Cost Distribution
+    "Compute & API" : 35
+    "Data Storage" : 25
+    "Network & Security" : 20
+    "ML Infrastructure" : 15
+    "Operations" : 5
+```
+
+```mermaid
+graph TD
+    subgraph "Compute Optimization"
+        AUTOSCALE[Auto-scaling<br/>Traffic Patterns]
+        RESERVED[Reserved Capacity<br/>Baseline Load]
+        SPOT[Spot Instances<br/>ML Training]
+    end
+
+    subgraph "Network Optimization"
+        DIRECT[Direct Peering<br/>Card Networks]
+        CDN_OPT[CDN Caching<br/>Static Assets]
+        COMPRESS[Compression<br/>API Responses]
+    end
+
+    subgraph "Storage Optimization"
+        TIERED[Tiered Storage<br/>Hot/Cold Data]
+        ARCHIVE[Archive Compliance Data<br/>7+ Years]
+        DEDUP[Deduplication<br/>Logs, Backups]
+    end
+
+    subgraph "Efficiency"
+        ROUTING[Smart Routing<br/>Cost-effective Networks]
+        BATCH[Batch Processing<br/>Off-peak Hours]
+        CACHE[Aggressive Caching<br/>Reduce DB Load]
+    end
+
+    AUTOSCALE --> ROUTING
+    RESERVED --> BATCH
+    SPOT --> CACHE
+    DIRECT --> CDN_OPT
+    TIERED --> ARCHIVE
+```
+
+### Key Strategies
+- **Interchange Optimization**: Intelligent card network routing
+- **Reserved Capacity**: Predictable baseline costs
+- **Data Lifecycle**: Automated archival for compliance data
+- **ML Efficiency**: Model optimization for inference cost
+
+## Future Architecture Considerations
+
+### Emerging Technologies
+- **Real-time Payments**: FedNow, RTP network integration
+- **Cryptocurrency**: Stablecoin and crypto payment support
+- **Embedded Finance**: Banking-as-a-Service expansion
+- **AI/ML**: Enhanced fraud detection and routing
+
+### Platform Evolution
+- **Global Expansion**: New payment methods and currencies
+- **Vertical Solutions**: Industry-specific payment products
+- **Developer Experience**: Enhanced APIs and tools
+- **Compliance Automation**: RegTech integration
+
+### Infrastructure Roadmap
+- **Edge Computing**: Reduced latency for global merchants
+- **Green Computing**: Carbon-neutral infrastructure
+- **Zero-Trust Security**: Enhanced security posture
+- **Multi-Cloud**: Resilience through cloud diversity
+
+## Conclusion
+
+Stripe's architecture demonstrates how to build financial infrastructure at scale while maintaining the highest standards of security, reliability, and developer experience. The combination of robust payment processing, ML-powered fraud detection, and global reach enables millions of businesses to accept payments worldwide.
+
+The platform continues to evolve with new payment methods, enhanced fraud prevention, and expanded financial services, all while maintaining the API simplicity and reliability that developers depend on.
+
+> There might be iterations needed, current data is as close I could get.

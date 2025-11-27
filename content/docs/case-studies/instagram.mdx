@@ -1,0 +1,847 @@
+---
+title: Instagram
+description: 🏗️ Instagram serves over 2 billion monthly active users, handling 500M+ daily Stories, 95M+ photos/videos shared daily, and 4.2B+ likes per day. This document outlines the comprehensive architecture that enables Instagram to deliver visual content at massive scale.
+---
+
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        IOS[iOS App]
+        ANDROID[Android App]
+        WEB[Web App]
+        LITE[Instagram Lite]
+    end
+
+    subgraph "Edge Layer"
+        CDN[Meta CDN]
+        POP[Edge POPs]
+        CACHE[Edge Cache]
+    end
+
+    subgraph "API Gateway"
+        LB[Load Balancer]
+        GRAPHQL[GraphQL Gateway]
+        REST[REST APIs]
+    end
+
+    subgraph "Core Services"
+        FEED[Feed Service]
+        STORIES[Stories Service]
+        REELS[Reels Service]
+        DM[Direct Messages]
+        SEARCH[Search Service]
+        PROFILE[Profile Service]
+    end
+
+    subgraph "Data Layer"
+        POSTGRES[(PostgreSQL)]
+        CASSANDRA[(Cassandra)]
+        ROCKSDB[(RocksDB)]
+        MEMCACHE[(Memcached)]
+        TAO[(TAO Graph)]
+    end
+
+    IOS --> CDN
+    ANDROID --> CDN
+    WEB --> CDN
+    LITE --> POP
+
+    CDN --> LB
+    POP --> LB
+    CACHE --> LB
+
+    LB --> GRAPHQL
+    LB --> REST
+    GRAPHQL --> FEED
+    GRAPHQL --> STORIES
+    GRAPHQL --> REELS
+    REST --> DM
+    REST --> SEARCH
+    REST --> PROFILE
+
+    FEED --> TAO
+    STORIES --> CASSANDRA
+    REELS --> ROCKSDB
+    DM --> POSTGRES
+    SEARCH --> CASSANDRA
+    PROFILE --> TAO
+```
+
+## Core Components
+
+### 1. Feed Generation Pipeline
+
+Instagram's feed processes billions of posts to create personalized timelines.
+
+```mermaid
+flowchart TD
+    subgraph "Content Sources"
+        FOLLOWING[Following Posts]
+        SUGGESTED[Suggested Content]
+        ADS[Sponsored Posts]
+        REELS_FEED[Reels Suggestions]
+    end
+
+    subgraph "Candidate Generation"
+        RETRIEVAL[Candidate Retrieval<br/>1000s of Posts]
+        FILTER[Eligibility Filter<br/>Policy, Blocks]
+        DEDUP[Deduplication<br/>Seen Content]
+    end
+
+    subgraph "Ranking Pipeline"
+        FEATURE[Feature Extraction<br/>User, Post, Context]
+        MODEL[ML Ranking Model<br/>Multi-task Learning]
+        DIVERSITY[Diversity Injection<br/>Topic Mixing]
+    end
+
+    subgraph "Final Assembly"
+        BLEND[Content Blending<br/>Organic + Ads]
+        CACHE[Feed Cache<br/>Pre-computed]
+        SERVE[Real-time Serving]
+    end
+
+    FOLLOWING --> RETRIEVAL
+    SUGGESTED --> RETRIEVAL
+    ADS --> RETRIEVAL
+    REELS_FEED --> RETRIEVAL
+
+    RETRIEVAL --> FILTER
+    FILTER --> DEDUP
+
+    DEDUP --> FEATURE
+    FEATURE --> MODEL
+    MODEL --> DIVERSITY
+
+    DIVERSITY --> BLEND
+    BLEND --> CACHE
+    CACHE --> SERVE
+```
+
+**Components:**
+- **Candidate Generation**: Retrieves 1000+ potential posts
+- **Ranking Model**: Multi-objective optimization (engagement, time spent)
+- **Diversity Engine**: Prevents feed monotony
+- **Real-time Updates**: Sub-second feed refresh
+
+**Key Features:**
+- Personalized ranking per user
+- Real-time content freshness
+- Ad integration without disruption
+- Explore page discovery
+
+### 2. Stories Pipeline
+
+Handles 500M+ daily Stories with 24-hour expiration.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Upload as Upload Service
+    participant Process as Media Pipeline
+    participant Store as Stories Store
+    participant CDN as Meta CDN
+    participant Viewer as Story Viewer
+
+    User->>Upload: Upload Story (Image/Video)
+    Upload->>Process: Queue for Processing
+    Process->>Process: Resize, Encode, Filter
+    Process->>Store: Store with TTL (24h)
+    Store->>CDN: Push to Edge
+    CDN->>Viewer: Stream Story
+    Note over Store: Auto-delete<br/>after 24 hours
+```
+
+**Architecture Details:**
+- **Ephemeral Storage**: 24-hour TTL with automatic deletion
+- **Sticker/Filter Pipeline**: Real-time AR processing
+- **Story Tray Ranking**: ML-based ordering
+- **View Tracking**: Real-time viewer list updates
+
+### 3. Reels Processing
+
+Video-first content with TikTok-style discovery.
+
+```mermaid
+graph TD
+    subgraph "Upload Pipeline"
+        UPLOAD[Video Upload<br/>Up to 90 seconds]
+        TRANSCODE[Transcoding<br/>Multiple Bitrates]
+        AUDIO[Audio Extraction<br/>Music Matching]
+    end
+
+    subgraph "Content Analysis"
+        CV[Computer Vision<br/>Object Detection]
+        AUDIO_ML[Audio Analysis<br/>Music ID, Speech]
+        TEXT_ML[Text Detection<br/>OCR, Captions]
+    end
+
+    subgraph "Distribution"
+        HASH[Content Hashing<br/>Duplicate Detection]
+        MODERATION[Content Moderation<br/>Policy Check]
+        INDEX[Search Indexing]
+    end
+
+    subgraph "Recommendation"
+        CANDIDATE[Candidate Pool<br/>Millions of Reels]
+        RANK[Ranking Model<br/>Watch Time Prediction]
+        SERVE[Serving Layer<br/>Personalized Feed]
+    end
+
+    UPLOAD --> TRANSCODE
+    TRANSCODE --> AUDIO
+    AUDIO --> CV
+    CV --> AUDIO_ML
+    AUDIO_ML --> TEXT_ML
+
+    TEXT_ML --> HASH
+    HASH --> MODERATION
+    MODERATION --> INDEX
+
+    INDEX --> CANDIDATE
+    CANDIDATE --> RANK
+    RANK --> SERVE
+```
+
+**Key Technologies:**
+- **Video Encoding**: H.264/H.265 adaptive bitrate
+- **Music Integration**: Audio fingerprinting with music library
+- **AR Effects**: Real-time face/body tracking
+- **Discovery Engine**: Interest-based recommendation
+
+### 4. Direct Messages (DM)
+
+End-to-end encrypted messaging for 2B+ users.
+
+```mermaid
+graph TD
+    subgraph "Message Flow"
+        SEND[Send Message]
+        ENCRYPT[End-to-End Encryption<br/>Signal Protocol]
+        QUEUE[Message Queue<br/>Async Delivery]
+        STORE[Message Store]
+    end
+
+    subgraph "Storage"
+        POSTGRES[(PostgreSQL<br/>Message Metadata)]
+        BLOB[Blob Storage<br/>Media Attachments]
+        CACHE[Message Cache<br/>Recent Conversations]
+    end
+
+    subgraph "Features"
+        GROUP[Group Chats<br/>Up to 32 Members]
+        VANISH[Vanish Mode<br/>Ephemeral Messages]
+        REACTIONS[Message Reactions]
+        VOICE[Voice Messages]
+    end
+
+    SEND --> ENCRYPT
+    ENCRYPT --> QUEUE
+    QUEUE --> STORE
+
+    STORE --> POSTGRES
+    STORE --> BLOB
+    STORE --> CACHE
+
+    CACHE --> GROUP
+    CACHE --> VANISH
+    CACHE --> REACTIONS
+    CACHE --> VOICE
+```
+
+## Data Storage Architecture
+
+### TAO (The Associations and Objects)
+
+Meta's distributed graph database powering Instagram's social graph.
+
+```mermaid
+graph TD
+    subgraph "TAO Architecture"
+        subgraph "Object Types"
+            USER[User Objects<br/>Profiles, Settings]
+            POST[Post Objects<br/>Photos, Videos, Reels]
+            COMMENT[Comment Objects]
+        end
+
+        subgraph "Association Types"
+            FOLLOW[Follow Edges<br/>User → User]
+            LIKE[Like Edges<br/>User → Post]
+            TAG[Tag Edges<br/>Post → User]
+        end
+
+        subgraph "Cache Layers"
+            L1[L1 Cache<br/>In-process]
+            L2[L2 Cache<br/>Memcached]
+            DB[(MySQL Shards)]
+        end
+    end
+
+    subgraph "Applications"
+        FEED_SVC[Feed Service]
+        PROFILE_SVC[Profile Service]
+        SOCIAL[Social Graph Service]
+    end
+
+    USER --> L1
+    POST --> L1
+    COMMENT --> L1
+
+    FOLLOW --> L2
+    LIKE --> L2
+    TAG --> L2
+
+    L1 --> L2
+    L2 --> DB
+
+    FEED_SVC --> USER
+    PROFILE_SVC --> POST
+    SOCIAL --> FOLLOW
+```
+
+**Characteristics:**
+- **Read-optimized**: 99.9% read operations
+- **Write-through caching**: Consistency guarantees
+- **Sharded by object ID**: Horizontal scalability
+- **Billions of objects**: Users, posts, comments, likes
+
+### Cassandra (Time-Series Data)
+
+```mermaid
+graph TD
+    subgraph "Cassandra Cluster"
+        subgraph "Keyspaces"
+            STORIES_KS[Stories Keyspace<br/>TTL: 24h]
+            ACTIVITY_KS[Activity Keyspace<br/>Notifications]
+            ANALYTICS_KS[Analytics Keyspace<br/>Engagement Metrics]
+        end
+
+        subgraph "Ring Structure"
+            N1[Node 1<br/>Token Range A]
+            N2[Node 2<br/>Token Range B]
+            N3[Node 3<br/>Token Range C]
+        end
+    end
+
+    subgraph "Use Cases"
+        STORY_SVC[Stories Service]
+        NOTIF_SVC[Notification Service]
+        ANALYTICS[Analytics Pipeline]
+    end
+
+    STORY_SVC --> STORIES_KS
+    NOTIF_SVC --> ACTIVITY_KS
+    ANALYTICS --> ANALYTICS_KS
+
+    STORIES_KS --> N1
+    ACTIVITY_KS --> N2
+    ANALYTICS_KS --> N3
+```
+
+**Use Cases:**
+- Stories with automatic expiration (TTL)
+- Activity feed and notifications
+- Real-time engagement metrics
+- Time-series analytics data
+
+### PostgreSQL (Transactional Data)
+
+```mermaid
+graph TD
+    subgraph "PostgreSQL Architecture"
+        subgraph "Primary-Replica"
+            PRIMARY[(Primary<br/>Write Operations)]
+            REPLICA1[(Replica 1<br/>Read Operations)]
+            REPLICA2[(Replica 2<br/>Read Operations)]
+        end
+
+        subgraph "Sharding Strategy"
+            SHARD1[(Shard 1<br/>Users A-M)]
+            SHARD2[(Shard 2<br/>Users N-Z)]
+        end
+    end
+
+    subgraph "Data Types"
+        DM_DATA[Direct Messages]
+        SETTINGS[User Settings]
+        AUTH[Authentication Data]
+    end
+
+    PRIMARY -.->|Streaming Replication| REPLICA1
+    PRIMARY -.->|Streaming Replication| REPLICA2
+
+    DM_DATA --> PRIMARY
+    SETTINGS --> SHARD1
+    AUTH --> SHARD2
+```
+
+## Stream Processing Architecture
+
+```mermaid
+graph LR
+    subgraph "Event Sources"
+        IMPRESSION[Impression Events]
+        ENGAGE[Engagement Events]
+        UPLOAD_EVT[Upload Events]
+        SEARCH_EVT[Search Events]
+    end
+
+    subgraph "Stream Processing"
+        SCRIBE[Scribe<br/>Log Aggregation]
+        PUMA[Puma<br/>Real-time Processing]
+        STYLUS[Stylus<br/>Stream Processing]
+    end
+
+    subgraph "Storage"
+        HIVE[(Hive<br/>Data Warehouse)]
+        PRESTO[Presto<br/>Interactive Queries]
+        SCUBA[(Scuba<br/>Real-time Analytics)]
+    end
+
+    subgraph "ML Pipeline"
+        FEATURE[Feature Store]
+        TRAIN[Model Training<br/>PyTorch]
+        SERVE[Model Serving<br/>Predictor]
+    end
+
+    IMPRESSION --> SCRIBE
+    ENGAGE --> SCRIBE
+    UPLOAD_EVT --> SCRIBE
+    SEARCH_EVT --> SCRIBE
+
+    SCRIBE --> PUMA
+    SCRIBE --> STYLUS
+    SCRIBE --> HIVE
+
+    PUMA --> SCUBA
+    STYLUS --> FEATURE
+    HIVE --> PRESTO
+
+    FEATURE --> TRAIN
+    TRAIN --> SERVE
+```
+
+### Meta's Stream Infrastructure
+- **Scribe**: Distributed log aggregation (100s of PB/day)
+- **Puma**: Real-time stream processing
+- **Stylus**: Complex event processing
+- **Scuba**: Sub-second analytics queries
+
+## Scalability Patterns
+
+### 1. Sharding Strategy
+
+```mermaid
+graph TD
+    subgraph "Sharding Dimensions"
+        USER_SHARD[User Sharding<br/>By User ID]
+        GEO_SHARD[Geographic Sharding<br/>By Region]
+        TIME_SHARD[Time Sharding<br/>By Timestamp]
+    end
+
+    subgraph "Shard Distribution"
+        SHARD1[(Shard 1<br/>Users 0-1M)]
+        SHARD2[(Shard 2<br/>Users 1M-2M)]
+        SHARD3[(Shard N<br/>Users ...)]
+    end
+
+    subgraph "Routing Layer"
+        ROUTER[Shard Router<br/>Consistent Hashing]
+        LOOKUP[Shard Lookup<br/>ZooKeeper]
+    end
+
+    USER_SHARD --> ROUTER
+    GEO_SHARD --> ROUTER
+    TIME_SHARD --> ROUTER
+
+    ROUTER --> LOOKUP
+    LOOKUP --> SHARD1
+    LOOKUP --> SHARD2
+    LOOKUP --> SHARD3
+```
+
+**Sharding Strategies:**
+- **User-based sharding**: Even distribution of load
+- **Geographic sharding**: Data locality for latency
+- **Time-based sharding**: Efficient queries for recent data
+
+### 2. Caching Architecture
+
+```mermaid
+graph LR
+    subgraph "Client Cache"
+        LOCAL[Local Storage<br/>Offline Support]
+        MEMORY[In-Memory<br/>Active Session]
+    end
+
+    subgraph "CDN Layer"
+        CDN_MEDIA[Media CDN<br/>Images, Videos]
+        CDN_STATIC[Static CDN<br/>JS, CSS]
+    end
+
+    subgraph "Application Cache"
+        MEMCACHE[Memcached<br/>Hot Objects]
+        TAO_CACHE[TAO L1/L2<br/>Graph Data]
+    end
+
+    subgraph "Database Cache"
+        ROCKSDB[RocksDB<br/>Embedded Cache]
+        QUERY_CACHE[Query Cache]
+    end
+
+    LOCAL --> CDN_MEDIA
+    MEMORY --> CDN_STATIC
+    CDN_MEDIA --> MEMCACHE
+    CDN_STATIC --> TAO_CACHE
+    MEMCACHE --> ROCKSDB
+    TAO_CACHE --> QUERY_CACHE
+```
+
+### 3. Rate Limiting
+
+```mermaid
+flowchart TD
+    subgraph "Rate Limit Types"
+        API_LIMIT[API Rate Limits<br/>Requests/Hour]
+        ACTION_LIMIT[Action Limits<br/>Follows, Likes/Day]
+        CONTENT_LIMIT[Content Limits<br/>Posts/Day]
+    end
+
+    subgraph "Enforcement"
+        TOKEN_BUCKET[Token Bucket<br/>Sliding Window]
+        REDIS_COUNTER[Redis Counters<br/>Distributed State]
+        CIRCUIT[Circuit Breaker<br/>Overload Protection]
+    end
+
+    subgraph "Response"
+        ALLOW[Allow Request]
+        THROTTLE[Throttle<br/>Slow Down]
+        BLOCK[Block<br/>429 Response]
+    end
+
+    API_LIMIT --> TOKEN_BUCKET
+    ACTION_LIMIT --> REDIS_COUNTER
+    CONTENT_LIMIT --> CIRCUIT
+
+    TOKEN_BUCKET --> ALLOW
+    TOKEN_BUCKET --> THROTTLE
+    REDIS_COUNTER --> BLOCK
+```
+
+## Security Architecture
+
+```mermaid
+graph TB
+    subgraph "Authentication"
+        OAUTH[OAuth 2.0<br/>Third-party Apps]
+        MFA[Two-Factor Auth<br/>SMS, Authenticator]
+        DEVICE[Device Auth<br/>Trusted Devices]
+    end
+
+    subgraph "Content Security"
+        HASH[Photo DNA<br/>CSAM Detection]
+        ML_MOD[ML Moderation<br/>Policy Violations]
+        HUMAN[Human Review<br/>Appeals]
+    end
+
+    subgraph "Infrastructure"
+        E2E[End-to-End Encryption<br/>DMs]
+        TLS[TLS 1.3<br/>Transit Encryption]
+        ENCRYPT_REST[Encryption at Rest<br/>Storage]
+    end
+
+    subgraph "Anti-Abuse"
+        BOT[Bot Detection<br/>ML Classification]
+        SPAM[Spam Detection<br/>Content Analysis]
+        FAKE[Fake Account Detection]
+    end
+
+    OAUTH --> E2E
+    MFA --> TLS
+    DEVICE --> ENCRYPT_REST
+
+    HASH --> ML_MOD
+    ML_MOD --> HUMAN
+
+    BOT --> SPAM
+    SPAM --> FAKE
+```
+
+### Content Integrity
+- **PhotoDNA**: Hash matching for harmful content
+- **ML Classifiers**: Real-time content moderation
+- **User Reports**: Community-driven moderation
+- **Appeals Process**: Human review for decisions
+
+### Account Security
+- **Login Alerts**: Notification of new device logins
+- **Suspicious Activity**: Automated account protection
+- **Recovery Options**: Multiple recovery methods
+- **Privacy Controls**: Granular sharing settings
+
+## Monitoring and Observability
+
+```mermaid
+graph LR
+    subgraph "Collection"
+        ODS[ODS Metrics<br/>Time Series]
+        SCUBA_LOG[Scuba Logs<br/>Real-time]
+        HIVE_LOG[Hive Logs<br/>Batch Analysis]
+    end
+
+    subgraph "Analysis"
+        ANOMALY[Anomaly Detection<br/>ML-based]
+        CORRELATION[Event Correlation<br/>Root Cause]
+        SLO[SLO Monitoring<br/>Error Budgets]
+    end
+
+    subgraph "Alerting"
+        ONCALL[On-Call System<br/>PagerDuty]
+        RUNBOOK[Runbooks<br/>Automated Response]
+        ESCALATION[Escalation Paths]
+    end
+
+    subgraph "Visualization"
+        UNIDASH[Unidash<br/>Dashboards]
+        MOBILE_DASH[Mobile Dashboard<br/>On-the-go]
+    end
+
+    ODS --> ANOMALY
+    SCUBA_LOG --> CORRELATION
+    HIVE_LOG --> SLO
+
+    ANOMALY --> ONCALL
+    CORRELATION --> RUNBOOK
+    SLO --> ESCALATION
+
+    ONCALL --> UNIDASH
+    RUNBOOK --> MOBILE_DASH
+```
+
+## Deployment and DevOps
+
+### Continuous Integration/Continuous Deployment
+
+```mermaid
+gitGraph
+    commit id: "Feature Dev"
+    branch feature-branch
+    checkout feature-branch
+    commit id: "Code Changes"
+    commit id: "Unit Tests"
+    checkout main
+    merge feature-branch
+    commit id: "Sandcastle Tests" type: HIGHLIGHT
+    commit id: "Build Package"
+    commit id: "Canary Deploy" type: HIGHLIGHT
+    commit id: "Regional Rollout"
+    commit id: "Full Deploy" type: REVERSE
+```
+
+```mermaid
+flowchart LR
+    subgraph "Development"
+        CODE[Code Commit<br/>Mercurial]
+        BUILD[Buck Build]
+        TEST[Sandcastle Tests]
+    end
+
+    subgraph "Release"
+        GATEKEEPER[Gatekeeper<br/>Feature Flags]
+        CANARY[Canary Release<br/>0.1% Users]
+        ROLLOUT[Progressive Rollout]
+    end
+
+    subgraph "Monitoring"
+        METRICS[Release Metrics]
+        COMPARE[A/B Comparison]
+        ROLLBACK[Auto-Rollback]
+    end
+
+    CODE --> BUILD
+    BUILD --> TEST
+    TEST --> GATEKEEPER
+    GATEKEEPER --> CANARY
+    CANARY --> ROLLOUT
+
+    CANARY --> METRICS
+    METRICS --> COMPARE
+    COMPARE --> ROLLBACK
+```
+
+### Gatekeeper (Feature Flags)
+- **Gradual Rollouts**: Percentage-based feature exposure
+- **A/B Testing**: Controlled experiments
+- **Kill Switches**: Instant feature disabling
+- **Targeting**: User segment-specific features
+
+### Chaos Engineering
+
+```mermaid
+flowchart TD
+    subgraph "Chaos Tools"
+        STORM[Storm Testing<br/>Load Simulation]
+        INJECT[Fault Injection<br/>Service Failures]
+        NETWORK[Network Chaos<br/>Latency, Partition]
+    end
+
+    subgraph "Targets"
+        API_SVC[API Services]
+        STORAGE_SVC[Storage Layer]
+        CACHE_SVC[Cache Layer]
+    end
+
+    subgraph "Observation"
+        IMPACT[Impact Analysis]
+        RECOVERY[Recovery Time]
+        CASCADE[Cascade Effects]
+    end
+
+    subgraph "Learning"
+        POSTMORTEM[Post-Mortem]
+        IMPROVE[System Improvements]
+        PLAYBOOK[Playbook Updates]
+    end
+
+    STORM --> API_SVC
+    INJECT --> STORAGE_SVC
+    NETWORK --> CACHE_SVC
+
+    API_SVC --> IMPACT
+    STORAGE_SVC --> RECOVERY
+    CACHE_SVC --> CASCADE
+
+    IMPACT --> POSTMORTEM
+    RECOVERY --> IMPROVE
+    CASCADE --> PLAYBOOK
+```
+
+## Analytics and Machine Learning
+
+### Data Pipeline
+
+```mermaid
+flowchart TD
+    subgraph "Data Sources"
+        APP_LOG[App Logs<br/>User Actions]
+        SERVER_LOG[Server Logs<br/>API Calls]
+        ML_LOG[ML Predictions<br/>Model Outputs]
+    end
+
+    subgraph "Processing"
+        SCRIBE[Scribe<br/>Log Collection]
+        SPARK[Spark<br/>ETL Jobs]
+        FEATURE[Feature Engineering]
+    end
+
+    subgraph "Storage"
+        WAREHOUSE[(Data Warehouse<br/>Hive)]
+        FEATURE_STORE[(Feature Store)]
+        MODEL_STORE[(Model Registry)]
+    end
+
+    subgraph "ML Applications"
+        RANKING[Feed Ranking]
+        INTEGRITY[Content Integrity]
+        GROWTH[Growth Models]
+    end
+
+    APP_LOG --> SCRIBE
+    SERVER_LOG --> SCRIBE
+    ML_LOG --> SCRIBE
+
+    SCRIBE --> SPARK
+    SPARK --> FEATURE
+
+    FEATURE --> WAREHOUSE
+    FEATURE --> FEATURE_STORE
+    WAREHOUSE --> MODEL_STORE
+
+    FEATURE_STORE --> RANKING
+    FEATURE_STORE --> INTEGRITY
+    MODEL_STORE --> GROWTH
+```
+
+### ML Use Cases
+- **Feed Ranking**: Personalized content ordering
+- **Explore Recommendations**: Interest-based discovery
+- **Content Moderation**: Policy violation detection
+- **Ad Targeting**: Relevance and engagement optimization
+- **Spam Detection**: Bot and fake account identification
+
+## Cost Optimization
+
+```mermaid
+pie title Instagram Infrastructure Cost Distribution
+    "Storage & CDN" : 35
+    "Compute" : 30
+    "ML Infrastructure" : 20
+    "Networking" : 10
+    "Operations" : 5
+```
+
+```mermaid
+graph TD
+    subgraph "Storage Optimization"
+        COMPRESS[Image Compression<br/>WebP, AVIF]
+        TIERING[Storage Tiering<br/>Hot/Cold]
+        DEDUP[Media Deduplication]
+    end
+
+    subgraph "Compute Optimization"
+        SPOT[Spot Instances<br/>ML Training]
+        AUTOSCALE[Auto-scaling<br/>Traffic Patterns]
+        EFFICIENT[Efficient Models<br/>Mobile-optimized]
+    end
+
+    subgraph "Network Optimization"
+        EDGE[Edge Caching<br/>95%+ Hit Rate]
+        PROTOCOL[Protocol Optimization<br/>QUIC, HTTP/3]
+        COMPRESS_NET[Payload Compression]
+    end
+
+    COMPRESS --> COST[Cost Reduction]
+    TIERING --> COST
+    DEDUP --> COST
+    SPOT --> COST
+    AUTOSCALE --> COST
+    EFFICIENT --> COST
+    EDGE --> COST
+    PROTOCOL --> COST
+    COMPRESS_NET --> COST
+```
+
+### Key Strategies
+- **Image Format Evolution**: WebP for 30% smaller images
+- **Video Compression**: H.265/HEVC for efficient streaming
+- **ML Model Optimization**: Quantization for mobile inference
+- **Predictive Scaling**: Traffic pattern-based capacity
+
+## Future Architecture Considerations
+
+### Emerging Technologies
+- **AR/VR Integration**: Meta Quest integration, AR filters
+- **AI Content Creation**: Generative AI for creators
+- **Decentralized Identity**: Fediverse compatibility
+- **Edge AI**: On-device ML for privacy
+
+### Platform Evolution
+- **Creator Economy**: Enhanced monetization tools
+- **Shopping Integration**: Native commerce features
+- **Threads Integration**: Cross-platform social graph
+- **Long-form Video**: Competing with YouTube
+
+### Infrastructure Roadmap
+- **Sustainability**: Carbon-neutral data centers
+- **Efficiency**: ML-optimized resource allocation
+- **Privacy**: Enhanced encryption and data minimization
+- **Global Expansion**: Emerging market optimization
+
+## Conclusion
+
+Instagram's architecture demonstrates Meta's ability to scale visual social networking to billions of users. The combination of TAO's graph database, efficient media pipelines, and sophisticated ML systems enables Instagram to deliver personalized experiences at massive scale.
+
+The platform continues to evolve with new features like Reels, enhanced shopping capabilities, and tighter integration with the broader Meta ecosystem, all while maintaining the performance and reliability users expect.
+
+> There might be iterations needed, current data is as close I could get.

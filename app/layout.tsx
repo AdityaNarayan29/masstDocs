@@ -82,7 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <link rel='apple-touch-icon' sizes='1024x1024' href='/app-icons/1024.png' />
 
         {/* Optional: Safari web app behavior */}
-        <meta name='apple-mobile-web-app-capable' content='yes' />
+        <meta name='mobile-web-app-capable' content='yes' />
         <meta
           name='apple-mobile-web-app-status-bar-style'
           content='black-translucent'

@@ -1,28 +1,49 @@
 import { hldSource } from "@/lib/source";
 import { DocsRenderer } from "@/components/DocsRenderer";
+import {
+  DocsPage,
+  DocsBody,
+  DocsDescription,
+  DocsTitle,
+} from "fumadocs-ui/page";
+import Link from "next/link";
 import type { Metadata } from "next";
 
-// --- Recursive filter for HLD pages/folders ---
-function filterHLDTree(node: any): any | null {
-  if (node.type === "page") return node.data?.icon === "hld" ? node : null;
-  if (node.type === "folder") {
-    const children = (node.children ?? []).map(filterHLDTree).filter(Boolean);
-    const index =
-      node.index &&
-      node.index.type === "page" &&
-      node.index.data?.icon === "hld"
-        ? node.index
-        : undefined;
-    if (!children.length && !index) return null;
-    return {
-      type: "folder",
-      name: String(node.name),
-      url: "",
-      children,
-      index,
-    };
-  }
-  return null;
+// -----------------
+// HLD Landing Page Component
+// -----------------
+function HLDLandingPage() {
+  return (
+    <DocsPage>
+      <DocsTitle>High-Level Design (HLD)</DocsTitle>
+      <DocsDescription>
+        Learn system design through real-world case studies
+      </DocsDescription>
+      <DocsBody>
+        <p>
+          High-Level Design focuses on the architectural overview of a system,
+          including major components, their interactions, and data flow between
+          them.
+        </p>
+        <h2>What you&apos;ll learn</h2>
+        <ul>
+          <li>System architecture patterns and best practices</li>
+          <li>Scalability and performance considerations</li>
+          <li>Database design and data modeling</li>
+          <li>API design and integration patterns</li>
+          <li>Real-world case studies from top tech companies</li>
+        </ul>
+        <h2>Get Started</h2>
+        <p>
+          Explore our{" "}
+          <Link href="/hld/case-studies" className="text-primary underline">
+            Case Studies
+          </Link>{" "}
+          to see how real systems are designed.
+        </p>
+      </DocsBody>
+    </DocsPage>
+  );
 }
 
 // -----------------
@@ -36,30 +57,19 @@ export default async function Page({
   const awaitedParams = await params;
   const slug = awaitedParams.slug ?? [];
 
-  const filteredSource: any = {
-    ...hldSource,
-    getPages: () =>
-      hldSource.getPages().filter((p: any) => p.data?.icon === "hld"),
-    getPageTree: () => {
-      const root = hldSource.getPageTree();
-      const children = (root.children ?? []).map(filterHLDTree).filter(Boolean);
-      return { name: String(root.name), children };
-    },
-  };
+  // Show landing page for /hld root
+  if (slug.length === 0) {
+    return <HLDLandingPage />;
+  }
 
-  return <DocsRenderer source={filteredSource} slug={slug} />;
+  return <DocsRenderer source={hldSource} slug={slug} />;
 }
 
 // -----------------
 // Generate static params for HLD pages
 // -----------------
 export async function generateStaticParams() {
-  return hldSource
-    .generateParams()
-    .filter(
-      (params: any) =>
-        hldSource.getPage(params.slug, params.lang)?.data?.icon === "hld"
-    );
+  return hldSource.generateParams();
 }
 
 // -----------------
@@ -72,7 +82,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const awaitedParams = await params;
   const slug = awaitedParams.slug ?? [];
-  const page: any = await hldSource.getPage(slug);
+  const page: any = hldSource.getPage(slug);
   if (!page) return {};
   return {
     title: page.data?.title,

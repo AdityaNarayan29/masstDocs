@@ -102,11 +102,14 @@ async function extractDiagrams(filePath) {
   return diagrams;
 }
 
+// Counter for unique temp file names
+let tempFileCounter = 0;
+
 /**
  * Render a single mermaid diagram using mmdc CLI
  */
 async function renderDiagram(code, theme, outputPath) {
-  const tempInput = path.join(CACHE_DIR, `temp-${Date.now()}.mmd`);
+  const tempInput = path.join(CACHE_DIR, `temp-${Date.now()}-${tempFileCounter++}-${theme}.mmd`);
 
   try {
     // Write diagram code to temp file

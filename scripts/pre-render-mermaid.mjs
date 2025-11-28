@@ -111,22 +111,22 @@ let tempFileCounter = 0;
 async function renderDiagram(code, theme, outputPath) {
   const tempInput = path.join(CACHE_DIR, `temp-${Date.now()}-${tempFileCounter++}-${theme}.mmd`);
 
+  // Write diagram code to temp file
+  await fs.writeFile(tempInput, code);
+
+  // Render using mmdc (mermaid CLI)
+  const mmdcPath = path.join(ROOT_DIR, 'node_modules', '.bin', 'mmdc');
+
+  const args = [
+    '-i', tempInput,
+    '-o', outputPath,
+    '-t', theme,
+    '-b', 'transparent',
+    '--quiet',
+  ];
+
   try {
-    // Write diagram code to temp file
-    await fs.writeFile(tempInput, code);
-
-    // Render using mmdc (mermaid CLI)
-    const mmdcPath = path.join(ROOT_DIR, 'node_modules', '.bin', 'mmdc');
-
-    const args = [
-      '-i', tempInput,
-      '-o', outputPath,
-      '-t', theme,
-      '-b', 'transparent',
-      '--quiet',
-    ];
-
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve) => {
       const proc = spawn(mmdcPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
@@ -136,8 +136,8 @@ async function renderDiagram(code, theme, outputPath) {
         stderr += data.toString();
       });
 
-      proc.on('close', (code) => {
-        if (code === 0) {
+      proc.on('close', (exitCode) => {
+        if (exitCode === 0) {
           resolve(true);
         } else {
           console.error(`mmdc error: ${stderr}`);
@@ -150,8 +150,10 @@ async function renderDiagram(code, theme, outputPath) {
         resolve(false);
       });
     });
+
+    return result;
   } finally {
-    // Clean up temp file
+    // Clean up temp file after mmdc has finished
     try {
       await fs.unlink(tempInput);
     } catch {}

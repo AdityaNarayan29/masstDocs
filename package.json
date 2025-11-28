@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "pre-render-mermaid": "node scripts/pre-render-mermaid.mjs",
+    "build": "npm run pre-render-mermaid && next build",
     "dev": "next dev --turbo",
     "start": "next start",
     "postinstall": "fumadocs-mdx"
@@ -20,6 +21,7 @@
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/mdx": "^2.0.13",
     "@types/node": "24.1.0",

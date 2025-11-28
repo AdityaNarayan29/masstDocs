@@ -1,8 +1,13 @@
 import { source } from "@/lib/source";
 import { DocsRenderer } from "@/components/DocsRenderer";
 
-export default function Page({ params }: { params: { slug?: string[] } }) {
-  return <DocsRenderer source={source} slug={params.slug} />;
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
+  const { slug } = await params;
+  return <DocsRenderer source={source} slug={slug} />;
 }
 
 export async function generateStaticParams() {
@@ -12,9 +17,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug?: string[] };
+  params: Promise<{ slug?: string[] }>;
 }) {
-  const page = source.getPage(params.slug);
+  const { slug } = await params;
+  const page = source.getPage(slug);
   if (!page) return {};
   return { title: page.data.title, description: page.data.description };
 }

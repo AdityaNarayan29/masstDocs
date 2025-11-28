@@ -4,7 +4,7 @@ import {
   frontmatterSchema,
   metaSchema,
 } from 'fumadocs-mdx/config';
-import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins';
+import { remarkMermaidInline } from './lib/remark-mermaid-inline.mjs';
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs
@@ -19,6 +19,8 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins:[remarkMdxMermaid],
+    // Use our custom plugin that inlines pre-rendered SVGs
+    // Falls back to client-side Mermaid component if SVGs not found
+    remarkPlugins: [remarkMermaidInline],
   },
 });

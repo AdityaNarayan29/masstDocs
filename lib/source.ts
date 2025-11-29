@@ -27,7 +27,7 @@ const hldFolderSet = new Set(HLD_FOLDERS);
  * Check if a page belongs to an HLD section
  * A page is HLD if its path starts with any of the HLD_FOLDERS
  */
-function isHLDPage(page: any): boolean {
+function isHLDPage(page: ReturnType<typeof rawHldSource.getPage>): boolean {
   if (!page) return false;
 
   const slugs = page.slugs as string[];

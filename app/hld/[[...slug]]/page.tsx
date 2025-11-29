@@ -82,7 +82,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const awaitedParams = await params;
   const slug = awaitedParams.slug ?? [];
-  const page: any = hldSource.getPage(slug);
+  const page = hldSource.getPage(slug);
   if (!page) return {};
   return {
     title: page.data?.title,

@@ -187,6 +187,12 @@ async function processSvg(svgPath, className) {
  * Main function
  */
 async function main() {
+  // Skip on Vercel - pre-rendered SVGs should be committed to the repo
+  if (process.env.VERCEL) {
+    console.log('⏭️  Skipping mermaid pre-render on Vercel (SVGs should be committed to repo)\n');
+    return;
+  }
+
   console.log('🎨 Pre-rendering Mermaid diagrams...\n');
 
   // Ensure cache directory exists

@@ -49,6 +49,7 @@ export function Mermaid({ chart }: { chart: string }) {
     if (!mounted) return;
 
     let cancelled = false;
+    const renderId = `mermaid-${id.replace(/:/g, "-")}`;
 
     async function render() {
       try {
@@ -62,7 +63,7 @@ export function Mermaid({ chart }: { chart: string }) {
         });
 
         const { svg } = await mermaid.render(
-          id.replace(/:/g, "-"),
+          renderId,
           chart.replace(/\\n/g, "\n")
         );
 
@@ -82,6 +83,16 @@ export function Mermaid({ chart }: { chart: string }) {
 
     return () => {
       cancelled = true;
+      // Clean up mermaid's internal DOM element to prevent memory leaks
+      const el = document.getElementById(renderId);
+      if (el) {
+        el.remove();
+      }
+      // Also clean up any wrapper elements mermaid may have created
+      const wrapper = document.getElementById(`d${renderId}`);
+      if (wrapper) {
+        wrapper.remove();
+      }
     };
   }, [chart, resolvedTheme, id, mounted]);
 

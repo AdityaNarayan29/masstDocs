@@ -443,12 +443,14 @@ function TopicNode({
   onNavigate,
   isExpanded,
   hasChildren,
+  isVisited = false,
 }: {
   node: TreeNode;
   onToggle: (id: string) => void;
-  onNavigate: (href: string) => void;
+  onNavigate: (href: string, nodeId: string) => void;
   isExpanded: boolean;
   hasChildren: boolean;
+  isVisited?: boolean;
 }) {
   const isSection = node.isSection;
   const childCount = countDescendants(node);
@@ -457,7 +459,7 @@ function TopicNode({
     if (hasChildren) {
       onToggle(node.id);
     } else if (node.href) {
-      onNavigate(node.href);
+      onNavigate(node.href, node.id);
     }
   }, [hasChildren, node.id, node.href, onToggle, onNavigate]);
 
@@ -518,6 +520,7 @@ function TopicNode({
         ${colors.bg} ${colors.border} ${colors.hover} ${colors.text}
         ${hasChildren || node.href ? "cursor-pointer" : "cursor-default"}
         shadow-lg hover:shadow-xl hover:scale-105 active:scale-100
+        ${isVisited && !isSection ? "opacity-60 ring-2 ring-emerald-400 ring-offset-1 dark:ring-offset-slate-900" : ""}
       `}
     >
       <div className='flex items-center gap-2'>
@@ -551,8 +554,13 @@ function TopicNode({
         )}
 
         {/* Link arrow */}
-        {node.href && !hasChildren && (
+        {node.href && !hasChildren && !isVisited && (
           <span className='opacity-60 text-xs'>→</span>
+        )}
+
+        {/* Visited checkmark */}
+        {isVisited && !isSection && (
+          <span className='text-xs opacity-80'>✓</span>
         )}
       </div>
     </button>
@@ -694,11 +702,13 @@ function RoadmapSection({
   expandedNodes,
   onToggle,
   onNavigate,
+  visitedNodes,
 }: {
   node: TreeNode;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
-  onNavigate: (href: string) => void;
+  onNavigate: (href: string, nodeId: string) => void;
+  visitedNodes: Set<string>;
   isRoot?: boolean;
 }) {
   const hasChildren = !!(node.children && node.children.length > 0);
@@ -713,6 +723,7 @@ function RoadmapSection({
         onNavigate={onNavigate}
         isExpanded={isExpanded}
         hasChildren={hasChildren}
+        isVisited={visitedNodes.has(node.id)}
       />
 
       {/* Children */}
@@ -734,6 +745,7 @@ function RoadmapSection({
                     onNavigate={onNavigate}
                     isExpanded={childIsExpanded}
                     hasChildren={childHasChildren}
+                    isVisited={visitedNodes.has(child.id)}
                   />
 
                   {/* Nested children (subsections) */}
@@ -758,6 +770,7 @@ function RoadmapSection({
                                 onNavigate={onNavigate}
                                 isExpanded={gcIsExpanded}
                                 hasChildren={gcHasChildren}
+                                isVisited={visitedNodes.has(grandchild.id)}
                               />
 
                               {/* Level 4 children */}
@@ -775,6 +788,7 @@ function RoadmapSection({
                                           onNavigate={onNavigate}
                                           isExpanded={false}
                                           hasChildren={false}
+                                          isVisited={visitedNodes.has(ggc.id)}
                                         />
                                       ))}
                                     </ChildrenBox>
@@ -796,6 +810,8 @@ function RoadmapSection({
   );
 }
 
+const STORAGE_KEY = "sd-roadmap-visited";
+
 export default function SystemDesignRoadmap() {
   const router = useRouter();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
@@ -805,6 +821,93 @@ export default function SystemDesignRoadmap() {
   const [searchResults, setSearchResults] = useState<TreeNode[]>([]);
   const [selectedResultIndex, setSelectedResultIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Progress tracking
+  const [visitedNodes, setVisitedNodes] = useState<Set<string>>(new Set());
+  const [resetBackup, setResetBackup] = useState<string[] | null>(null);
+  const [undoCountdown, setUndoCountdown] = useState(0);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load visited nodes from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setVisitedNodes(new Set(JSON.parse(stored)));
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  // Save visited nodes to localStorage
+  const saveVisited = useCallback((nodes: Set<string>) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...nodes]));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  // Mark node as visited
+  const markVisited = useCallback((nodeId: string) => {
+    setVisitedNodes((prev) => {
+      const next = new Set(prev);
+      next.add(nodeId);
+      saveVisited(next);
+      return next;
+    });
+  }, [saveVisited]);
+
+  // Reset progress with undo
+  const resetProgress = useCallback(() => {
+    // Save backup for undo
+    setResetBackup([...visitedNodes]);
+    setVisitedNodes(new Set());
+    saveVisited(new Set());
+    setUndoCountdown(10);
+
+    // Clear any existing timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    // Start countdown
+    const countdown = () => {
+      setUndoCountdown((prev) => {
+        if (prev <= 1) {
+          setResetBackup(null);
+          return 0;
+        }
+        undoTimeoutRef.current = setTimeout(countdown, 1000);
+        return prev - 1;
+      });
+    };
+    undoTimeoutRef.current = setTimeout(countdown, 1000);
+  }, [visitedNodes, saveVisited]);
+
+  // Undo reset
+  const undoReset = useCallback(() => {
+    if (resetBackup) {
+      const restored = new Set(resetBackup);
+      setVisitedNodes(restored);
+      saveVisited(restored);
+      setResetBackup(null);
+      setUndoCountdown(0);
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    }
+  }, [resetBackup, saveVisited]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Flatten tree for search
   const flattenTree = useCallback((node: TreeNode): TreeNode[] => {
@@ -923,10 +1026,11 @@ export default function SystemDesignRoadmap() {
   }, []);
 
   const onNavigate = useCallback(
-    (href: string) => {
+    (href: string, nodeId: string) => {
+      markVisited(nodeId);
       router.push(href);
     },
-    [router]
+    [router, markVisited]
   );
 
   const expandAll = useCallback(() => {
@@ -1037,7 +1141,7 @@ export default function SystemDesignRoadmap() {
       </div>
 
       {/* Controls */}
-      <div className='flex justify-center items-center gap-4 mb-6'>
+      <div className='flex flex-wrap justify-center items-center gap-4 mb-6'>
         <button
           onClick={expandAll}
           className='px-3 py-1.5 text-xs font-medium rounded-md bg-fd-card border border-fd-border hover:bg-fd-accent transition-colors'
@@ -1045,7 +1149,7 @@ export default function SystemDesignRoadmap() {
           Expand All
         </button>
         <span className='text-xs text-fd-muted-foreground'>
-          {countTopics} topics
+          {visitedNodes.size}/{countTopics} completed
         </span>
         <button
           onClick={collapseAll}
@@ -1053,6 +1157,23 @@ export default function SystemDesignRoadmap() {
         >
           Collapse All
         </button>
+        {undoCountdown > 0 ? (
+          <button
+            onClick={undoReset}
+            className='px-3 py-1.5 text-xs font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors'
+          >
+            Undo ({undoCountdown}s)
+          </button>
+        ) : (
+          visitedNodes.size > 0 && (
+            <button
+              onClick={resetProgress}
+              className='px-3 py-1.5 text-xs font-medium rounded-md bg-fd-card border border-fd-border hover:bg-red-100 hover:border-red-300 dark:hover:bg-red-900/30 dark:hover:border-red-700 transition-colors'
+            >
+              Reset Progress
+            </button>
+          )
+        )}
       </div>
       {/* Roadmap container */}
       <div className='w-full max-h-[700px] overflow-auto rounded-xl border border-fd-border p-8'>
@@ -1064,6 +1185,7 @@ export default function SystemDesignRoadmap() {
             onNavigate={onNavigate}
             isExpanded={rootExpanded}
             hasChildren={true}
+            isVisited={visitedNodes.has(learningTree.id)}
           />
 
           {/* Main sections flow */}
@@ -1079,6 +1201,7 @@ export default function SystemDesignRoadmap() {
                       expandedNodes={expandedNodes}
                       onToggle={toggleNode}
                       onNavigate={onNavigate}
+                      visitedNodes={visitedNodes}
                       isRoot={true}
                     />
 

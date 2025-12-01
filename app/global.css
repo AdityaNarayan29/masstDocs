@@ -43,13 +43,3 @@
   }
 }
 
-@keyframes borderGlow {
-  0%, 100% {
-    opacity: 0.7;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    filter: brightness(1.2);
-  }
-}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import ReactFlow, {
   Controls,
   Background,
@@ -11,6 +11,7 @@ import ReactFlow, {
   Edge,
   Handle,
   Position,
+  ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -73,9 +74,10 @@ const initialEdges: Edge[] = [
   },
 ];
 
-export default function OneToOneFlow() {
+function FlowInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -84,10 +86,20 @@ export default function OneToOneFlow() {
 
   const handleReset = () => {
     setNodes(initialNodes);
+    setEdges(initialEdges);
   };
 
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear state on unmount
+      setNodes([]);
+      setEdges([]);
+    };
+  }, [setNodes, setEdges]);
+
   return (
-    <div className='relative w-full h-[350px] bg-transparent'>
+    <div ref={containerRef} className='relative w-full h-[350px] bg-transparent'>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -108,5 +120,13 @@ export default function OneToOneFlow() {
         Reset
       </button>
     </div>
+  );
+}
+
+export default function OneToOneFlow() {
+  return (
+    <ReactFlowProvider>
+      <FlowInner />
+    </ReactFlowProvider>
   );
 }

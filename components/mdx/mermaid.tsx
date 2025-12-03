@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { memo, useEffect, useId, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 
 /**
  * Loading skeleton for mermaid diagrams
  */
-function MermaidSkeleton() {
+const MermaidSkeleton = memo(function MermaidSkeleton() {
   return (
     <div className="mermaid-skeleton animate-pulse my-6">
       <div className="h-64 w-full rounded-lg bg-fd-muted/50 flex items-center justify-center">
@@ -26,7 +26,7 @@ function MermaidSkeleton() {
       </div>
     </div>
   );
-}
+});
 
 /**
  * Mermaid component - Client-side fallback renderer
@@ -34,16 +34,19 @@ function MermaidSkeleton() {
  * This component is only used when pre-rendered SVGs are not available.
  * Most diagrams will be inlined at build time by the remarkMermaidInline plugin.
  */
-export function Mermaid({ chart }: { chart: string }) {
+export const Mermaid = memo(function Mermaid({ chart }: { chart: string }) {
   const id = useId();
   const { resolvedTheme } = useTheme();
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  // Capture theme at mount time to avoid re-renders on theme change
+  const initialThemeRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
+    initialThemeRef.current = resolvedTheme;
     setMounted(true);
-  }, []);
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -59,7 +62,7 @@ export function Mermaid({ chart }: { chart: string }) {
           startOnLoad: false,
           securityLevel: "loose",
           fontFamily: "inherit",
-          theme: resolvedTheme === "dark" ? "dark" : "default",
+          theme: initialThemeRef.current === "dark" ? "dark" : "default",
         });
 
         const { svg } = await mermaid.render(
@@ -94,7 +97,7 @@ export function Mermaid({ chart }: { chart: string }) {
         wrapper.remove();
       }
     };
-  }, [chart, resolvedTheme, id, mounted]);
+  }, [chart, id, mounted]);
 
   if (!mounted || (!svg && !error)) {
     return <MermaidSkeleton />;
@@ -115,4 +118,4 @@ export function Mermaid({ chart }: { chart: string }) {
       dangerouslySetInnerHTML={{ __html: svg! }}
     />
   );
-}
+});

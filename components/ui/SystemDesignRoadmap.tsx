@@ -441,6 +441,7 @@ function TopicNode({
   node,
   onToggle,
   onNavigate,
+  onUncheck,
   isExpanded,
   hasChildren,
   isVisited = false,
@@ -448,6 +449,7 @@ function TopicNode({
   node: TreeNode;
   onToggle: (id: string) => void;
   onNavigate: (href: string, nodeId: string) => void;
+  onUncheck: (nodeId: string) => void;
   isExpanded: boolean;
   hasChildren: boolean;
   isVisited?: boolean;
@@ -459,9 +461,14 @@ function TopicNode({
     if (hasChildren) {
       onToggle(node.id);
     } else if (node.href) {
-      onNavigate(node.href, node.id);
+      // If already visited, uncheck instead of navigating
+      if (isVisited) {
+        onUncheck(node.id);
+      } else {
+        onNavigate(node.href, node.id);
+      }
     }
-  }, [hasChildren, node.id, node.href, onToggle, onNavigate]);
+  }, [hasChildren, node.id, node.href, onToggle, onNavigate, onUncheck, isVisited]);
 
   // Color schemes based on type (light and dark theme support)
   const getColors = () => {
@@ -560,7 +567,9 @@ function TopicNode({
 
         {/* Visited checkmark */}
         {isVisited && !isSection && (
-          <span className='text-xs opacity-80'>✓</span>
+          <span className='text-xs opacity-80' title='Click to unmark'>
+            ✓
+          </span>
         )}
       </div>
     </button>
@@ -702,12 +711,14 @@ function RoadmapSection({
   expandedNodes,
   onToggle,
   onNavigate,
+  onUncheck,
   visitedNodes,
 }: {
   node: TreeNode;
   expandedNodes: Set<string>;
   onToggle: (id: string) => void;
   onNavigate: (href: string, nodeId: string) => void;
+  onUncheck: (nodeId: string) => void;
   visitedNodes: Set<string>;
   isRoot?: boolean;
 }) {
@@ -721,6 +732,7 @@ function RoadmapSection({
         node={node}
         onToggle={onToggle}
         onNavigate={onNavigate}
+        onUncheck={onUncheck}
         isExpanded={isExpanded}
         hasChildren={hasChildren}
         isVisited={visitedNodes.has(node.id)}
@@ -743,6 +755,7 @@ function RoadmapSection({
                     node={child}
                     onToggle={onToggle}
                     onNavigate={onNavigate}
+                    onUncheck={onUncheck}
                     isExpanded={childIsExpanded}
                     hasChildren={childHasChildren}
                     isVisited={visitedNodes.has(child.id)}
@@ -768,6 +781,7 @@ function RoadmapSection({
                                 node={grandchild}
                                 onToggle={onToggle}
                                 onNavigate={onNavigate}
+                                onUncheck={onUncheck}
                                 isExpanded={gcIsExpanded}
                                 hasChildren={gcHasChildren}
                                 isVisited={visitedNodes.has(grandchild.id)}
@@ -786,6 +800,7 @@ function RoadmapSection({
                                           node={ggc}
                                           onToggle={onToggle}
                                           onNavigate={onNavigate}
+                                          onUncheck={onUncheck}
                                           isExpanded={false}
                                           hasChildren={false}
                                           isVisited={visitedNodes.has(ggc.id)}
@@ -849,11 +864,15 @@ export default function SystemDesignRoadmap() {
     }
   }, []);
 
-  // Mark node as visited
-  const markVisited = useCallback((nodeId: string) => {
+  // Toggle node visited status
+  const toggleVisited = useCallback((nodeId: string) => {
     setVisitedNodes((prev) => {
       const next = new Set(prev);
-      next.add(nodeId);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
       saveVisited(next);
       return next;
     });
@@ -1027,10 +1046,23 @@ export default function SystemDesignRoadmap() {
 
   const onNavigate = useCallback(
     (href: string, nodeId: string) => {
-      markVisited(nodeId);
+      toggleVisited(nodeId);
       router.push(href);
     },
-    [router, markVisited]
+    [router, toggleVisited]
+  );
+
+  // Uncheck a visited node
+  const handleUncheck = useCallback(
+    (nodeId: string) => {
+      setVisitedNodes((prev) => {
+        const next = new Set(prev);
+        next.delete(nodeId);
+        saveVisited(next);
+        return next;
+      });
+    },
+    [saveVisited]
   );
 
   const expandAll = useCallback(() => {
@@ -1183,6 +1215,7 @@ export default function SystemDesignRoadmap() {
             node={learningTree}
             onToggle={toggleNode}
             onNavigate={onNavigate}
+            onUncheck={handleUncheck}
             isExpanded={rootExpanded}
             hasChildren={true}
             isVisited={visitedNodes.has(learningTree.id)}
@@ -1201,6 +1234,7 @@ export default function SystemDesignRoadmap() {
                       expandedNodes={expandedNodes}
                       onToggle={toggleNode}
                       onNavigate={onNavigate}
+                      onUncheck={handleUncheck}
                       visitedNodes={visitedNodes}
                       isRoot={true}
                     />

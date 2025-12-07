@@ -1,0 +1,53 @@
+{
+  "packageId": "com.masst.docs",
+  "host": "docs.masst.dev",
+  "name": "Masst Docs",
+  "launcherName": "Masst Docs",
+  "display": "standalone",
+  "themeColor": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#000000",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://docs.masst.dev/app-icons/512.png",
+  "maskableIconUrl": "https://docs.masst.dev/app-icons/512.png",
+  "monochromeIconUrl": "https://docs.masst.dev/app-icons/512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "masst-docs"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortcuts": [
+    {
+      "name": "High Level Design",
+      "shortName": "HLD",
+      "url": "/hld",
+      "chosenIconUrl": "https://docs.masst.dev/app-icons/192.png"
+    },
+    {
+      "name": "System Design",
+      "shortName": "SD",
+      "url": "/sd",
+      "chosenIconUrl": "https://docs.masst.dev/app-icons/192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://docs.masst.dev/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://docs.masst.dev/",
+  "minSdkVersion": 23,
+  "orientation": "portrait",
+  "fingerprints": []
+}

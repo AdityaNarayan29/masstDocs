@@ -1,0 +1,478 @@
+---
+title: Parking Lot System Design
+description: Design a parking lot management system (LLD focused).
+---
+
+## Problem Statement
+
+Design an object-oriented parking lot system that manages vehicle parking, pricing, and availability.
+
+---
+
+## Requirements
+
+### Functional Requirements
+- Multiple floors with different spot types
+- Vehicle types: motorcycle, car, bus/truck
+- Track available spots
+- Entry/exit with ticketing
+- Calculate parking fees
+- Support multiple entry/exit points
+
+### Non-Functional Requirements
+- Handle concurrent entries/exits
+- Real-time availability
+- Fault tolerance
+
+---
+
+## Object-Oriented Design
+
+### Class Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ParkingLot (Singleton)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  - id: String                                                        │
+│  - floors: List<ParkingFloor>                                       │
+│  - entryPanels: List<EntryPanel>                                    │
+│  - exitPanels: List<ExitPanel>                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  + getAvailableSpots(VehicleType): int                              │
+│  + parkVehicle(Vehicle): ParkingTicket                              │
+│  + unparkVehicle(ParkingTicket): Payment                            │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              │ has many
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         ParkingFloor                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  - floorNumber: int                                                 │
+│  - spots: Map<SpotType, List<ParkingSpot>>                         │
+│  - displayBoard: DisplayBoard                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  + getAvailableSpot(VehicleType): ParkingSpot                       │
+│  + updateDisplayBoard(): void                                       │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              │ has many
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         ParkingSpot                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│  - spotId: String                                                   │
+│  - spotType: SpotType                                               │
+│  - isOccupied: boolean                                              │
+│  - vehicle: Vehicle                                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  + assignVehicle(Vehicle): boolean                                  │
+│  + removeVehicle(): Vehicle                                         │
+│  + canFitVehicle(VehicleType): boolean                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Core Enums
+
+```java
+enum VehicleType {
+    MOTORCYCLE,
+    CAR,
+    BUS
+}
+
+enum SpotType {
+    MOTORCYCLE,  // Small
+    COMPACT,     // Small + Car
+    LARGE,       // Small + Car + Bus
+    HANDICAPPED,
+    ELECTRIC
+}
+
+enum TicketStatus {
+    ACTIVE,
+    PAID,
+    LOST
+}
+
+enum PaymentStatus {
+    PENDING,
+    COMPLETED,
+    FAILED,
+    REFUNDED
+}
+```
+
+---
+
+## Core Classes
+
+### Vehicle (Abstract)
+
+```java
+public abstract class Vehicle {
+    private String licensePlate;
+    private VehicleType type;
+    private ParkingTicket ticket;
+
+    public abstract VehicleType getType();
+}
+
+public class Car extends Vehicle {
+    @Override
+    public VehicleType getType() {
+        return VehicleType.CAR;
+    }
+}
+
+public class Motorcycle extends Vehicle {
+    @Override
+    public VehicleType getType() {
+        return VehicleType.MOTORCYCLE;
+    }
+}
+
+public class Bus extends Vehicle {
+    @Override
+    public VehicleType getType() {
+        return VehicleType.BUS;
+    }
+}
+```
+
+### ParkingSpot
+
+```java
+public class ParkingSpot {
+    private String spotId;
+    private SpotType spotType;
+    private boolean isOccupied;
+    private Vehicle vehicle;
+
+    public boolean canFitVehicle(VehicleType vehicleType) {
+        switch (vehicleType) {
+            case MOTORCYCLE:
+                return true; // Fits any spot
+            case CAR:
+                return spotType != SpotType.MOTORCYCLE;
+            case BUS:
+                return spotType == SpotType.LARGE;
+            default:
+                return false;
+        }
+    }
+
+    public synchronized boolean assignVehicle(Vehicle vehicle) {
+        if (isOccupied || !canFitVehicle(vehicle.getType())) {
+            return false;
+        }
+        this.vehicle = vehicle;
+        this.isOccupied = true;
+        return true;
+    }
+
+    public synchronized Vehicle removeVehicle() {
+        Vehicle v = this.vehicle;
+        this.vehicle = null;
+        this.isOccupied = false;
+        return v;
+    }
+}
+```
+
+### ParkingTicket
+
+```java
+public class ParkingTicket {
+    private String ticketId;
+    private String licensePlate;
+    private ParkingSpot spot;
+    private LocalDateTime entryTime;
+    private LocalDateTime exitTime;
+    private TicketStatus status;
+
+    public ParkingTicket(Vehicle vehicle, ParkingSpot spot) {
+        this.ticketId = generateTicketId();
+        this.licensePlate = vehicle.getLicensePlate();
+        this.spot = spot;
+        this.entryTime = LocalDateTime.now();
+        this.status = TicketStatus.ACTIVE;
+    }
+
+    public Duration getParkingDuration() {
+        LocalDateTime end = exitTime != null ? exitTime : LocalDateTime.now();
+        return Duration.between(entryTime, end);
+    }
+}
+```
+
+---
+
+## Pricing Strategy (Strategy Pattern)
+
+```java
+public interface PricingStrategy {
+    double calculatePrice(ParkingTicket ticket);
+}
+
+public class HourlyPricing implements PricingStrategy {
+    private Map<VehicleType, Double> hourlyRates;
+
+    public HourlyPricing() {
+        hourlyRates = new HashMap<>();
+        hourlyRates.put(VehicleType.MOTORCYCLE, 1.0);
+        hourlyRates.put(VehicleType.CAR, 2.0);
+        hourlyRates.put(VehicleType.BUS, 5.0);
+    }
+
+    @Override
+    public double calculatePrice(ParkingTicket ticket) {
+        long hours = ticket.getParkingDuration().toHours();
+        if (hours == 0) hours = 1; // Minimum 1 hour
+
+        VehicleType type = ticket.getSpot().getVehicle().getType();
+        return hours * hourlyRates.get(type);
+    }
+}
+
+public class FlatRatePricing implements PricingStrategy {
+    private double flatRate;
+
+    @Override
+    public double calculatePrice(ParkingTicket ticket) {
+        return flatRate;
+    }
+}
+
+public class WeekendPricing implements PricingStrategy {
+    private PricingStrategy weekdayStrategy;
+    private double weekendMultiplier;
+
+    @Override
+    public double calculatePrice(ParkingTicket ticket) {
+        double basePrice = weekdayStrategy.calculatePrice(ticket);
+        if (isWeekend(ticket.getEntryTime())) {
+            return basePrice * weekendMultiplier;
+        }
+        return basePrice;
+    }
+}
+```
+
+---
+
+## ParkingLot (Singleton)
+
+```java
+public class ParkingLot {
+    private static ParkingLot instance;
+    private String id;
+    private String name;
+    private List<ParkingFloor> floors;
+    private List<EntryPanel> entryPanels;
+    private List<ExitPanel> exitPanels;
+    private PricingStrategy pricingStrategy;
+
+    private ParkingLot() {
+        floors = new ArrayList<>();
+        entryPanels = new ArrayList<>();
+        exitPanels = new ArrayList<>();
+        pricingStrategy = new HourlyPricing();
+    }
+
+    public static synchronized ParkingLot getInstance() {
+        if (instance == null) {
+            instance = new ParkingLot();
+        }
+        return instance;
+    }
+
+    public ParkingTicket parkVehicle(Vehicle vehicle) {
+        ParkingSpot spot = findAvailableSpot(vehicle.getType());
+        if (spot == null) {
+            throw new ParkingFullException("No spot available");
+        }
+
+        spot.assignVehicle(vehicle);
+        ParkingTicket ticket = new ParkingTicket(vehicle, spot);
+        updateDisplayBoards();
+        return ticket;
+    }
+
+    public Payment unparkVehicle(ParkingTicket ticket) {
+        ticket.setExitTime(LocalDateTime.now());
+        double amount = pricingStrategy.calculatePrice(ticket);
+
+        ticket.getSpot().removeVehicle();
+        ticket.setStatus(TicketStatus.PAID);
+        updateDisplayBoards();
+
+        return new Payment(amount, ticket);
+    }
+
+    private ParkingSpot findAvailableSpot(VehicleType type) {
+        for (ParkingFloor floor : floors) {
+            ParkingSpot spot = floor.getAvailableSpot(type);
+            if (spot != null) {
+                return spot;
+            }
+        }
+        return null;
+    }
+
+    public int getAvailableSpots(VehicleType type) {
+        return floors.stream()
+            .mapToInt(f -> f.getAvailableSpotsCount(type))
+            .sum();
+    }
+}
+```
+
+---
+
+## Entry/Exit Panels
+
+```java
+public class EntryPanel {
+    private String panelId;
+    private ParkingLot parkingLot;
+
+    public ParkingTicket processEntry(Vehicle vehicle) {
+        if (parkingLot.getAvailableSpots(vehicle.getType()) == 0) {
+            displayFull();
+            return null;
+        }
+
+        ParkingTicket ticket = parkingLot.parkVehicle(vehicle);
+        printTicket(ticket);
+        openGate();
+        return ticket;
+    }
+}
+
+public class ExitPanel {
+    private String panelId;
+    private ParkingLot parkingLot;
+    private PaymentProcessor paymentProcessor;
+
+    public void processExit(ParkingTicket ticket) {
+        Payment payment = parkingLot.unparkVehicle(ticket);
+        displayAmount(payment.getAmount());
+
+        if (paymentProcessor.processPayment(payment)) {
+            openGate();
+        } else {
+            displayPaymentError();
+        }
+    }
+}
+```
+
+---
+
+## Display Board
+
+```java
+public class DisplayBoard {
+    private String boardId;
+    private Map<SpotType, Integer> availableSpots;
+
+    public void update(Map<SpotType, Integer> counts) {
+        this.availableSpots = counts;
+        render();
+    }
+
+    private void render() {
+        System.out.println("=== Available Spots ===");
+        for (Map.Entry<SpotType, Integer> entry : availableSpots.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue());
+        }
+    }
+}
+```
+
+---
+
+## Concurrency Handling
+
+```java
+public class ConcurrentParkingSpot {
+    private final ReentrantLock lock = new ReentrantLock();
+    private volatile boolean isOccupied;
+    private Vehicle vehicle;
+
+    public boolean assignVehicle(Vehicle vehicle) {
+        lock.lock();
+        try {
+            if (isOccupied) {
+                return false;
+            }
+            this.vehicle = vehicle;
+            this.isOccupied = true;
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+
+// Or using optimistic locking with database
+@Entity
+public class ParkingSpotEntity {
+    @Id
+    private String spotId;
+
+    @Version
+    private Long version;  // Optimistic locking
+
+    private boolean isOccupied;
+}
+```
+
+---
+
+## API Design (for System Integration)
+
+```
+POST /api/v1/parking/entry
+Request: { "licensePlate": "ABC123", "vehicleType": "CAR" }
+Response: { "ticketId": "TKT-001", "spotId": "F1-A-001", "entryTime": "..." }
+
+POST /api/v1/parking/exit
+Request: { "ticketId": "TKT-001" }
+Response: { "amount": 10.00, "duration": "2h 30m", "paymentUrl": "..." }
+
+GET /api/v1/parking/availability
+Response: {
+  "floors": [
+    { "floor": 1, "motorcycle": 10, "compact": 25, "large": 5 },
+    { "floor": 2, "motorcycle": 8, "compact": 30, "large": 3 }
+  ]
+}
+```
+
+---
+
+## Design Patterns Used
+
+| **Pattern** | **Usage** |
+|------------|-----------|
+| Singleton | ParkingLot instance |
+| Factory | Vehicle creation |
+| Strategy | Pricing calculation |
+| Observer | Display board updates |
+| State | Ticket status management |
+
+---
+
+## Interview Tips
+
+- Start with requirements clarification
+- Draw class diagram first
+- Discuss concurrency handling
+- Explain Strategy pattern for pricing
+- Cover edge cases: full lot, lost ticket
+- Mention extension points

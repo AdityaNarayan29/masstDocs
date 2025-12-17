@@ -1,0 +1,391 @@
+---
+title: News Feed System Design
+description: Design a social media news feed like Facebook or Twitter.
+---
+
+## Problem Statement
+
+Design a news feed system that displays personalized content from friends/followers in real-time.
+
+---
+
+## Requirements
+
+### Functional Requirements
+- User can create posts
+- User sees feed of posts from people they follow
+- Feed sorted by relevance/time
+- Support likes, comments, shares
+- Real-time updates
+
+### Non-Functional Requirements
+- Low latency: under 200ms feed load
+- High availability
+- Handle 500M+ daily active users
+- Scalable to billions of posts
+
+---
+
+## Capacity Estimation
+
+```
+Assumptions:
+- 500M DAU
+- Average user follows 200 people
+- Average user creates 2 posts/day
+- Average user checks feed 10 times/day
+
+Traffic:
+- Writes: 500M × 2 = 1B posts/day ≈ 12K/sec
+- Reads: 500M × 10 = 5B feeds/day ≈ 58K/sec
+- Read:Write ratio ≈ 5:1
+
+Storage:
+- Post: 1 KB average (text, metadata)
+- Daily posts: 1B × 1 KB = 1 TB/day
+- 5 years: 1.8 PB (without media)
+```
+
+---
+
+## Feed Generation Approaches
+
+### Pull Model (Fan-out on Read)
+
+```
+User requests feed:
+┌──────────┐
+│  User A  │ requests feed
+└────┬─────┘
+     │
+     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                        Feed Service                               │
+│  1. Get A's following list: [B, C, D, E, F...]                   │
+│  2. For each followed user:                                      │
+│     - Query their recent posts from Posts DB                     │
+│  3. Merge and sort all posts                                     │
+│  4. Apply ranking algorithm                                      │
+│  5. Return top N posts                                           │
+└──────────────────────────────────────────────────────────────────┘
+
+Pros: Simple, storage efficient
+Cons: Slow for users following many people
+```
+
+### Push Model (Fan-out on Write)
+
+```
+User B creates post:
+┌──────────┐
+│  User B  │ creates post
+└────┬─────┘
+     │
+     ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                        Feed Service                               │
+│  1. Get B's followers: [A, X, Y, Z...]                           │
+│  2. For each follower:                                           │
+│     - Add post to their pre-computed feed cache                  │
+│  3. Done (async)                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+When A requests feed:
+- Simply read from A's pre-computed feed cache
+
+Pros: Fast reads
+Cons: Celebrity problem (millions of followers)
+```
+
+### Hybrid Approach (Recommended)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Hybrid Strategy                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Celebrity (>10K followers):                                        │
+│  └─ Pull model: Fetch posts on demand                               │
+│                                                                      │
+│  Regular users (<10K followers):                                    │
+│  └─ Push model: Pre-compute feeds                                   │
+│                                                                      │
+│  Feed Generation:                                                   │
+│  1. Get pre-computed feed (push)                                    │
+│  2. Fetch celebrity posts (pull)                                    │
+│  3. Merge, rank, return                                             │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                              Clients                                 │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                           Load Balancer                              │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+              ▼                  ▼                  ▼
+       ┌───────────┐      ┌───────────┐      ┌───────────┐
+       │Post Service│      │Feed Service│      │User Service│
+       └─────┬─────┘      └─────┬─────┘      └─────┬─────┘
+             │                  │                  │
+             │                  │                  │
+      ┌──────┴──────┐    ┌──────┴──────┐   ┌──────┴──────┐
+      │             │    │             │   │             │
+      ▼             ▼    ▼             ▼   ▼             │
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │
+│Posts DB  │ │  Kafka   │ │Feed Cache│ │ Graph DB │     │
+│(Cassandra│ │(Events)  │ │ (Redis)  │ │(Follows) │     │
+└──────────┘ └──────────┘ └──────────┘ └──────────┘     │
+                  │                                      │
+                  ▼                                      │
+          ┌──────────────┐                              │
+          │Feed Generator│                              │
+          │  Workers     │                              │
+          └──────────────┘                              │
+```
+
+---
+
+## Database Schema
+
+### Posts Table (Cassandra)
+
+```sql
+CREATE TABLE posts (
+    post_id UUID,
+    user_id UUID,
+    content TEXT,
+    media_urls LIST<TEXT>,
+    created_at TIMESTAMP,
+    likes_count INT,
+    comments_count INT,
+    shares_count INT,
+    PRIMARY KEY (user_id, created_at, post_id)
+) WITH CLUSTERING ORDER BY (created_at DESC);
+
+-- For fetching specific user's posts
+CREATE TABLE posts_by_id (
+    post_id UUID PRIMARY KEY,
+    user_id UUID,
+    content TEXT,
+    media_urls LIST<TEXT>,
+    created_at TIMESTAMP
+);
+```
+
+### Feed Cache (Redis)
+
+```
+Key: feed:{user_id}
+Value: Sorted Set of post_ids with scores (timestamp/rank)
+
+ZADD feed:user123 1705312800 post:abc123
+ZADD feed:user123 1705312700 post:def456
+
+ZREVRANGE feed:user123 0 19  # Get top 20 posts
+```
+
+### Social Graph (Neo4j / Graph DB)
+
+```
+(User A)-[:FOLLOWS]->(User B)
+(User A)-[:FOLLOWS]->(User C)
+(User B)-[:FOLLOWS]->(User A)
+
+Query followers:
+MATCH (u:User {id: 'userB'})<-[:FOLLOWS]-(follower)
+RETURN follower.id
+```
+
+---
+
+## Feed Generation Flow
+
+### Publishing a Post
+
+```
+1. User creates post
+   │
+   ▼
+2. Post Service
+   - Validate content
+   - Store in Posts DB
+   - Publish to Kafka
+   │
+   ▼
+3. Fan-out Workers (consume from Kafka)
+   │
+   ├─── Check user type
+   │    │
+   │    ├─ Regular user (<10K followers)
+   │    │  │
+   │    │  └─ For each follower:
+   │    │     - Add post_id to follower's feed cache
+   │    │     - ZADD feed:{follower_id} {timestamp} {post_id}
+   │    │
+   │    └─ Celebrity (>10K followers)
+   │       │
+   │       └─ Only store in Posts DB
+   │          (Fetched on demand)
+   │
+   ▼
+4. Notify relevant users (optional real-time)
+```
+
+### Reading Feed
+
+```
+1. User requests feed
+   │
+   ▼
+2. Feed Service
+   │
+   ├─ Get pre-computed feed from Redis
+   │  ZREVRANGE feed:{user_id} 0 19
+   │
+   ├─ Get list of celebrities user follows
+   │
+   ├─ Fetch recent posts from celebrities
+   │  (Pull model)
+   │
+   ├─ Merge all posts
+   │
+   ├─ Apply ranking algorithm
+   │
+   └─ Return top N posts with full content
+   │
+   ▼
+3. Return to client
+```
+
+---
+
+## Ranking Algorithm
+
+```
+Score = Affinity × PostWeight × TimeDecay
+
+Components:
+┌─────────────────────────────────────────────────────────────────────┐
+│  Affinity (How close is this friend?)                               │
+│  - Interaction frequency (likes, comments, messages)                │
+│  - Profile views                                                    │
+│  - Mutual friends                                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│  PostWeight (How engaging is this post?)                            │
+│  - Likes count (normalized)                                         │
+│  - Comments count (weighted higher)                                 │
+│  - Shares count (weighted highest)                                  │
+│  - Media presence (photos/videos boost)                             │
+├─────────────────────────────────────────────────────────────────────┤
+│  TimeDecay (How recent?)                                            │
+│  - decay = 1 / (1 + age_hours^1.5)                                 │
+│  - More recent = higher score                                       │
+└─────────────────────────────────────────────────────────────────────┘
+
+ML-Based Ranking:
+- Use historical data to train model
+- Features: user interactions, post features, context
+- Predict: probability of engagement
+```
+
+---
+
+## Real-Time Updates
+
+```
+WebSocket / Server-Sent Events:
+
+┌────────┐         ┌───────────┐         ┌──────────────┐
+│ Client │◄───────►│ WebSocket │◄────────│ Notification │
+│        │         │  Server   │         │   Service    │
+└────────┘         └───────────┘         └──────┬───────┘
+                                                │
+                                         ┌──────┴───────┐
+                                         │    Redis     │
+                                         │   Pub/Sub    │
+                                         └──────────────┘
+
+Flow:
+1. User B posts
+2. Fan-out adds to followers' feeds
+3. Publish notification to Redis Pub/Sub
+4. WebSocket server receives, pushes to connected clients
+5. Client shows "New posts available" or auto-refreshes
+```
+
+---
+
+## Caching Strategy
+
+```
+Multi-Level Caching:
+
+┌───────────────────────────────────────────────────────┐
+│  L1: CDN (Static assets, public posts)               │
+├───────────────────────────────────────────────────────┤
+│  L2: Application Cache (Hot posts, user sessions)    │
+├───────────────────────────────────────────────────────┤
+│  L3: Feed Cache - Redis Cluster                      │
+│      - Pre-computed feeds per user                   │
+│      - Last 500 posts per feed                       │
+│      - TTL: 24 hours (rebuild if missed)            │
+├───────────────────────────────────────────────────────┤
+│  L4: Database (Cassandra)                            │
+│      - Source of truth                               │
+│      - Historical posts                              │
+└───────────────────────────────────────────────────────┘
+```
+
+---
+
+## Handling Edge Cases
+
+### New User
+
+```
+Problem: New user with no pre-computed feed
+
+Solution:
+1. Check for pre-computed feed → Empty
+2. Generate cold-start feed:
+   - Popular posts from followed users
+   - Trending posts globally
+   - Content based on interests
+3. Trigger async feed generation
+```
+
+### Celebrity Following
+
+```
+Problem: User follows celebrity with 100M followers
+
+Solution:
+1. Don't fan-out to celebrity's followers
+2. When user requests feed:
+   - Pull celebrity posts on demand
+   - Merge with pre-computed feed
+3. Cache celebrity posts aggressively (shared by many)
+```
+
+---
+
+## Interview Tips
+
+- Explain push vs pull trade-offs
+- Discuss hybrid approach for celebrities
+- Cover ranking algorithm basics
+- Mention real-time updates strategy
+- Discuss caching layers
+- Handle cold start for new users

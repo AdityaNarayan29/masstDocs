@@ -176,6 +176,17 @@ const learningTree: TreeNode = {
             { id: "pub-sub", label: "Pub/Sub", href: "/sd/building-blocks/pub-sub", designType: "HLD" },
           ],
         },
+        {
+          id: "distributed-systems",
+          label: "Distributed Systems",
+          isSection: true,
+          children: [
+            { id: "consistent-hashing", label: "Consistent Hashing", href: "/sd/building-blocks/consistent-hashing", designType: "HLD" },
+            { id: "bloom-filters", label: "Bloom Filters", href: "/sd/building-blocks/bloom-filters", designType: "HLD" },
+            { id: "leader-election", label: "Leader Election", href: "/sd/building-blocks/leader-election", designType: "HLD" },
+            { id: "distributed-locking", label: "Distributed Locking", href: "/sd/building-blocks/distributed-locking", designType: "HLD" },
+          ],
+        },
       ],
     },
     {
@@ -231,8 +242,29 @@ const learningTree: TreeNode = {
       ],
     },
     {
+      id: "security",
+      label: "6. Security",
+      isSection: true,
+      children: [
+        { id: "authentication", label: "Authentication", href: "/sd/security/authentication", designType: "HLD" },
+        { id: "authorization", label: "Authorization", href: "/sd/security/authorization", designType: "HLD" },
+        { id: "api-security", label: "API Security", href: "/sd/security/api-security", designType: "HLD" },
+        { id: "encryption", label: "Encryption", href: "/sd/security/encryption", designType: "HLD" },
+      ],
+    },
+    {
+      id: "observability",
+      label: "7. Observability",
+      isSection: true,
+      children: [
+        { id: "logging", label: "Logging", href: "/sd/observability/logging", designType: "HLD" },
+        { id: "monitoring", label: "Monitoring & Metrics", href: "/sd/observability/monitoring", designType: "HLD" },
+        { id: "tracing", label: "Distributed Tracing", href: "/sd/observability/tracing", designType: "HLD" },
+      ],
+    },
+    {
       id: "lld-concepts",
-      label: "6. LLD Concepts",
+      label: "8. LLD Concepts",
       isSection: true,
       children: [
         {
@@ -243,7 +275,7 @@ const learningTree: TreeNode = {
         },
         {
           id: "design-patterns-lld",
-          label: "Design Patterns",
+          label: "Design Patterns (OOP)",
           href: "/sd/fundamentals/design-patterns-lld",
           designType: "LLD",
         },
@@ -257,7 +289,7 @@ const learningTree: TreeNode = {
     },
     {
       id: "estimation",
-      label: "7. Estimation",
+      label: "9. Estimation",
       isSection: true,
       children: [
         {
@@ -276,7 +308,7 @@ const learningTree: TreeNode = {
     },
     {
       id: "case-studies",
-      label: "8. Case Studies",
+      label: "10. Case Studies",
       isSection: true,
       children: [
         {
@@ -413,24 +445,34 @@ const learningTree: TreeNode = {
           ],
         },
         {
+          id: "search-feed",
+          label: "Search & Feed",
+          isSection: true,
+          children: [
+            { id: "typeahead", label: "Typeahead/Autocomplete", href: "/sd/case-studies/typeahead", designType: "HLD" },
+            { id: "web-crawler", label: "Web Crawler", href: "/sd/case-studies/web-crawler", designType: "HLD" },
+            { id: "news-feed", label: "News Feed", href: "/sd/case-studies/news-feed", designType: "HLD" },
+          ],
+        },
+        {
+          id: "booking-systems",
+          label: "Booking Systems",
+          isSection: true,
+          children: [
+            { id: "ticket-booking", label: "Ticket Booking", href: "/sd/case-studies/ticket-booking", designType: "HLD" },
+            { id: "parking-lot", label: "Parking Lot", href: "/sd/case-studies/parking-lot", designType: "LLD" },
+          ],
+        },
+        {
           id: "other-cases",
           label: "Other Systems",
           isSection: true,
           children: [
-            {
-              id: "atm",
-              label: "ATM System",
-              href: "/sd/case-studies/atm-system",
-              designType: "LLD",
-            },
             { id: "url-shortener", label: "URL Shortener", href: "/sd/case-studies/url-shortener", designType: "HLD" },
+            { id: "pastebin", label: "Pastebin", href: "/sd/case-studies/pastebin", designType: "HLD" },
             { id: "rate-limiter", label: "Rate Limiter", href: "/sd/case-studies/rate-limiter", designType: "HLD" },
-            {
-              id: "notification",
-              label: "Notification System",
-              href: "/sd/case-studies/notification-system",
-              designType: "HLD",
-            },
+            { id: "notification", label: "Notification System", href: "/sd/case-studies/notification-system", designType: "HLD" },
+            { id: "atm", label: "ATM System", href: "/sd/case-studies/atm-system", designType: "LLD" },
           ],
         },
       ],

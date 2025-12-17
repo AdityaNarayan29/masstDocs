@@ -1,0 +1,248 @@
+---
+title: Strong Consistency
+description: Understanding strong consistency in distributed systems and how to achieve it.
+---
+
+## What is Strong Consistency?
+
+**Strong Consistency** guarantees that any read operation returns the most recent write. All nodes in the system see the same data at the same time, as if there was only one copy.
+
+---
+
+## Types of Strong Consistency
+
+### Linearizability
+
+The strongest guarantee:
+- Operations appear to execute atomically at some point between invocation and response
+- Real-time ordering preserved
+- All processes see operations in the same order
+
+### Sequential Consistency
+
+Slightly weaker:
+- All processes see operations in the same order
+- Order consistent with program order for each process
+- No real-time guarantee
+
+---
+
+## How It Works
+
+Strong consistency typically requires synchronous replication:
+
+```
+Client                 Leader              Follower 1          Follower 2
+  │                      │                     │                   │
+  │──── Write X=1 ──────►│                     │                   │
+  │                      │──── Replicate ─────►│                   │
+  │                      │──── Replicate ───────────────────────►│
+  │                      │                     │                   │
+  │                      │◄─── ACK ────────────│                   │
+  │                      │◄─── ACK ─────────────────────────────│
+  │                      │                     │                   │
+  │◄─── ACK (committed) ─│                     │                   │
+  │                      │                     │                   │
+  │──── Read X ─────────►│                     │                   │
+  │◄─── X=1 ─────────────│                     │                   │
+```
+
+---
+
+## Achieving Strong Consistency
+
+### Consensus Protocols
+
+Algorithms that allow distributed nodes to agree on values:
+
+| **Protocol** | **Used By** | **Characteristics** |
+|-------------|------------|---------------------|
+| Paxos | Google Chubby, Spanner | Complex, foundational |
+| Raft | etcd, Consul, CockroachDB | Understandable, popular |
+| ZAB | Apache ZooKeeper | Designed for primary-backup |
+| PBFT | Blockchain systems | Byzantine fault tolerant |
+
+### Quorum-Based Replication
+
+Ensure reads see the latest write:
+
+```
+N = Total replicas
+W = Write quorum (nodes that must acknowledge write)
+R = Read quorum (nodes to read from)
+
+Strong consistency: R + W > N
+```
+
+**Example** with N=5:
+- W=3, R=3: At least one node has both read and write
+- Any read will see the latest write
+
+---
+
+## Real-World Examples
+
+### Google Spanner
+
+- Globally distributed, strongly consistent
+- Uses TrueTime (GPS + atomic clocks) for synchronization
+- External consistency: Transactions appear in real-time order
+
+### CockroachDB
+
+- Distributed SQL with strong consistency
+- Uses Raft consensus
+- Serializable isolation by default
+
+### etcd
+
+- Distributed key-value store
+- Uses Raft consensus
+- Foundation for Kubernetes
+
+### ZooKeeper
+
+- Distributed coordination service
+- Sequential consistency with sync operation for linearizability
+- Used for leader election, configuration management
+
+---
+
+## Implementation Patterns
+
+### Single Leader (Primary-Backup)
+
+```
+All writes ──► Leader ──► Followers
+All reads  ──► Leader (or Followers with sync)
+```
+
+**Pros**: Simple, strong consistency easy
+**Cons**: Leader is bottleneck, failover complexity
+
+### Multi-Paxos / Raft
+
+```
+1. Leader proposes value
+2. Majority of nodes accept
+3. Value is committed
+4. All nodes apply in same order
+```
+
+**Pros**: Fault tolerant, well-understood
+**Cons**: Latency for consensus, leader election
+
+### Two-Phase Commit (2PC)
+
+```
+Phase 1 (Prepare):
+  Coordinator ──► All participants: "Can you commit?"
+  All participants ──► Coordinator: "Yes/No"
+
+Phase 2 (Commit):
+  If all yes: Coordinator ──► All participants: "Commit"
+  If any no:  Coordinator ──► All participants: "Abort"
+```
+
+**Pros**: Atomic transactions across nodes
+**Cons**: Blocking, coordinator is single point of failure
+
+---
+
+## Trade-offs
+
+| **Aspect** | **Strong Consistency** | **Eventual Consistency** |
+|-----------|----------------------|------------------------|
+| Latency | Higher (wait for consensus) | Lower |
+| Availability | Lower during partitions | Higher |
+| Complexity | Simpler application logic | Complex conflict handling |
+| Throughput | Lower (coordination overhead) | Higher |
+| Use cases | Critical data | High-volume, tolerant |
+
+---
+
+## When to Use Strong Consistency
+
+### Must Have
+
+| **Use Case** | **Why** |
+|-------------|---------|
+| Financial transactions | Money must be accurate |
+| Inventory management | Prevent overselling |
+| Booking systems | No double bookings |
+| User authentication | Security critical |
+| Configuration management | Consistent state required |
+
+### Consider Trade-offs
+
+| **Use Case** | **Consideration** |
+|-------------|-------------------|
+| E-commerce orders | Strong for payment, eventual for catalog |
+| Social media | Strong for account data, eventual for feeds |
+| Gaming | Strong for purchases, eventual for leaderboards |
+
+---
+
+## Challenges
+
+### CAP Theorem Constraints
+
+During network partitions:
+- CP systems reject requests to maintain consistency
+- Users may see errors or timeouts
+
+### Latency
+
+Synchronous replication adds latency:
+- Same datacenter: ~1-5ms
+- Cross-region: ~50-200ms
+
+### Scalability
+
+Coordination overhead limits throughput:
+- Single leader limits write throughput
+- Consensus protocols have message overhead
+
+---
+
+## Performance Optimizations
+
+### Batching
+
+Group multiple operations into single consensus round:
+- Reduces per-operation overhead
+- Higher throughput, slightly higher latency
+
+### Read Leases
+
+Allow reads from followers with time-limited guarantee:
+- Followers can serve reads within lease period
+- Reduces load on leader
+
+### Multi-Region Placement
+
+Strategic replica placement:
+- Quorum within same region for low latency
+- Cross-region replicas for durability
+
+---
+
+## Interview Tips
+
+- **Know the protocols**: Raft, Paxos, 2PC at a high level
+- **Understand quorums**: R + W > N for strong consistency
+- **Discuss trade-offs**: CAP theorem implications
+- **Give examples**: Spanner, CockroachDB, etcd
+- **When to use**: Critical data where correctness matters
+
+---
+
+## Summary
+
+Strong consistency ensures all nodes see the same data at the same time. It's essential for:
+
+- Financial systems
+- Booking and inventory
+- Security-critical applications
+
+The cost is higher latency and reduced availability during partitions. Choose strong consistency when correctness is more important than performance.

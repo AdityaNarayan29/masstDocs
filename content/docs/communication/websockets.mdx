@@ -1,0 +1,114 @@
+---
+title: WebSockets
+description: Understanding WebSockets for real-time bidirectional communication.
+---
+
+## What is WebSocket?
+
+**WebSocket** is a protocol that provides full-duplex communication channels over a single TCP connection. Unlike HTTP, both client and server can send messages at any time.
+
+---
+
+## HTTP vs WebSocket
+
+| **Aspect** | **HTTP** | **WebSocket** |
+|-----------|---------|---------------|
+| Connection | New for each request | Persistent |
+| Direction | Request-response | Bidirectional |
+| Overhead | Headers on every request | Low after handshake |
+| Use case | Traditional web | Real-time apps |
+
+---
+
+## WebSocket Handshake
+
+```
+Client                                  Server
+   │                                      │
+   │─── HTTP Upgrade Request ────────────►│
+   │    Upgrade: websocket                │
+   │    Connection: Upgrade               │
+   │                                      │
+   │◄── HTTP 101 Switching Protocols ─────│
+   │                                      │
+   │◄─────── WebSocket Messages ─────────►│
+   │         (bidirectional)              │
+```
+
+---
+
+## Connection Lifecycle
+
+```
+┌─────────┐    ┌───────────────┐    ┌─────────┐
+│ Opening │───►│   Connected   │───►│ Closing │
+└─────────┘    └───────────────┘    └─────────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │  Messages     │
+              │  (send/recv)  │
+              └───────────────┘
+```
+
+---
+
+## Code Example (JavaScript)
+
+```javascript
+// Client
+const ws = new WebSocket('wss://example.com/socket');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: 'subscribe', channel: 'prices' }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected');
+};
+```
+
+---
+
+## Use Cases
+
+| **Use Case** | **Example** |
+|-------------|------------|
+| Chat applications | Slack, WhatsApp Web |
+| Live updates | Stock tickers, sports scores |
+| Gaming | Multiplayer games |
+| Collaborative editing | Google Docs |
+| Notifications | Real-time alerts |
+
+---
+
+## Scaling WebSockets
+
+### Challenge
+Each server maintains connections; users on different servers can't communicate.
+
+### Solutions
+
+```
+┌─────────┐     ┌─────────┐
+│Server A │◄───►│ Redis   │◄───►│Server B │
+│(users)  │ pub │ Pub/Sub │ sub │(users)  │
+└─────────┘     └─────────┘     └─────────┘
+```
+
+Use pub/sub (Redis, Kafka) to broadcast across servers.
+
+---
+
+## Interview Tips
+
+- Explain full-duplex vs request-response
+- Describe the HTTP upgrade handshake
+- Discuss scaling challenges (sticky sessions, pub/sub)
+- Compare with SSE and long polling
+- Give use cases: chat, live updates, gaming

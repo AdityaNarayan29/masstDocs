@@ -1,0 +1,154 @@
+---
+title: Bulkhead
+description: Understanding the bulkhead pattern for fault isolation.
+---
+
+## What is Bulkhead?
+
+The **Bulkhead** pattern isolates components so that a failure in one doesn't bring down the entire system. Named after ship compartments that prevent a single breach from sinking the whole ship.
+
+---
+
+## The Problem
+
+Without isolation, one slow dependency affects everything:
+
+```
+┌────────────────────────────────────────┐
+│              Shared Pool (100 threads) │
+├────────────────────────────────────────┤
+│ Service A calls (fast)         ████    │
+│ Service B calls (SLOW!)  ██████████████│ ← Consumes all threads
+│ Service C calls (fast)         (none)  │ ← Starved!
+└────────────────────────────────────────┘
+```
+
+---
+
+## The Solution
+
+Isolate resources for each dependency:
+
+```
+┌──────────────────┐
+│ Pool A (30)      │ → Service A
+│ ████             │
+└──────────────────┘
+┌──────────────────┐
+│ Pool B (40)      │ → Service B (slow)
+│ ██████████████   │ ← Can only use 40
+└──────────────────┘
+┌──────────────────┐
+│ Pool C (30)      │ → Service C
+│ ████             │ ← Still works!
+└──────────────────┘
+```
+
+---
+
+## Bulkhead Types
+
+### Thread Pool Isolation
+
+Separate thread pools for each dependency:
+
+```java
+// Dedicated pool for Service A
+ExecutorService serviceAPool = Executors.newFixedThreadPool(20);
+
+// Dedicated pool for Service B
+ExecutorService serviceBPool = Executors.newFixedThreadPool(30);
+```
+
+### Semaphore Isolation
+
+Limit concurrent calls with semaphores:
+
+```java
+Semaphore serviceASemaphore = new Semaphore(20);
+
+void callServiceA() {
+    if (serviceASemaphore.tryAcquire()) {
+        try {
+            // Call service
+        } finally {
+            serviceASemaphore.release();
+        }
+    } else {
+        // Reject request
+    }
+}
+```
+
+---
+
+## Comparison
+
+| **Aspect** | **Thread Pool** | **Semaphore** |
+|-----------|----------------|---------------|
+| Isolation | Full (separate threads) | Partial (shared threads) |
+| Overhead | Higher | Lower |
+| Timeout | Easy to implement | Harder |
+| Best for | Untrusted dependencies | Trusted, fast calls |
+
+---
+
+## Architecture Example
+
+```
+┌─────────────────────────────────────────────┐
+│                 Application                  │
+├─────────────────────────────────────────────┤
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐     │
+│  │ Payment │  │ Inventory│  │ Shipping│     │
+│  │ Bulkhead│  │ Bulkhead │  │ Bulkhead│     │
+│  │ (20)    │  │ (30)     │  │ (15)    │     │
+│  └────┬────┘  └────┬─────┘  └────┬────┘     │
+└───────┼────────────┼─────────────┼──────────┘
+        │            │             │
+        ▼            ▼             ▼
+   Payment API  Inventory API  Shipping API
+```
+
+---
+
+## Real-World Example
+
+```javascript
+const Bottleneck = require('bottleneck');
+
+// Bulkhead for external API
+const externalApiLimiter = new Bottleneck({
+    maxConcurrent: 10,    // Max concurrent requests
+    minTime: 100          // Min time between requests
+});
+
+// Bulkhead for database
+const dbLimiter = new Bottleneck({
+    maxConcurrent: 50
+});
+
+// Usage
+const result = await externalApiLimiter.schedule(() =>
+    fetch('https://api.example.com')
+);
+```
+
+---
+
+## Best Practices
+
+1. **Size pools appropriately**: Based on dependency characteristics
+2. **Monitor pool usage**: Alert on saturation
+3. **Combine with circuit breaker**: Complementary patterns
+4. **Handle rejections gracefully**: Fallback or fast-fail
+
+---
+
+## Interview Tips
+
+- Explain the ship bulkhead analogy
+- Compare thread pool vs semaphore isolation
+- Discuss sizing strategies for pools
+- Mention combination with circuit breaker
+- Give examples: payment gateway, external APIs

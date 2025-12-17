@@ -91,6 +91,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Optional: Safari pinned tab */}
         <link rel='mask-icon' href='/icons/512.png' color='#0f172a' />
 
+        {/* TWA: Asset links for Android app verification */}
+        <link rel='alternate' href='android-app://com.masst.docs/https/docs.masst.dev/' />
+
         {/* Structured Data JSON-LD for SEO */}
         <script
           type='application/ld+json'

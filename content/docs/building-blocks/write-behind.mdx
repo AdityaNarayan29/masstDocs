@@ -1,0 +1,114 @@
+---
+title: Write-Behind
+description: Understanding the write-behind (write-back) caching pattern.
+---
+
+## What is Write-Behind?
+
+**Write-Behind** (also called Write-Back) is a caching pattern where writes are first stored in the cache and then asynchronously persisted to the database.
+
+---
+
+## How It Works
+
+```
+Application                Cache                Database
+     │                       │                     │
+     │─── Write(key, data) ─►│                     │
+     │                       │                     │
+     │◄── OK (immediate) ────│                     │
+     │                       │                     │
+     │                       │    (async later)    │
+     │                       │─── Write ──────────►│
+     │                       │◄── OK ─────────────│
+```
+
+---
+
+## Key Characteristics
+
+| **Aspect** | **Description** |
+|-----------|-----------------|
+| Write speed | Very fast (memory only) |
+| Consistency | Eventually consistent |
+| Batching | Can batch multiple writes |
+| Risk | Data loss if cache fails before DB write |
+
+---
+
+## Advantages
+
+| **Benefit** | **Description** |
+|------------|-----------------|
+| Lowest write latency | Returns immediately after cache write |
+| Write coalescing | Multiple updates to same key = one DB write |
+| Reduced DB load | Batched writes, fewer DB operations |
+| Better throughput | Not blocked by DB latency |
+
+---
+
+## Disadvantages
+
+| **Drawback** | **Description** |
+|-------------|-----------------|
+| Data loss risk | Cache failure before DB sync |
+| Complexity | Need queue/retry logic |
+| Eventual consistency | DB may lag behind cache |
+| Recovery complexity | Need to handle failed writes |
+
+---
+
+## Implementation Pattern
+
+```python
+class WriteBackCache:
+    def __init__(self):
+        self.cache = {}
+        self.dirty_keys = set()
+
+    def write(self, key, value):
+        self.cache[key] = value
+        self.dirty_keys.add(key)
+        return True  # Return immediately
+
+    # Background job
+    def flush_to_db(self):
+        for key in self.dirty_keys:
+            db.write(key, self.cache[key])
+        self.dirty_keys.clear()
+```
+
+---
+
+## Use Cases
+
+Good for:
+- Write-heavy workloads
+- Data that changes frequently (counters, metrics)
+- Acceptable data loss risk
+- Latency-sensitive applications
+
+Not ideal for:
+- Critical data (financial transactions)
+- Strong consistency requirements
+- Audit/compliance needs
+
+---
+
+## Comparison
+
+| **Pattern** | **Write Latency** | **Data Safety** | **Consistency** |
+|------------|------------------|-----------------|-----------------|
+| Write-Through | High | High | Strong |
+| Write-Behind | Low | Lower | Eventual |
+| Cache-Aside | Medium | High | Eventual |
+
+---
+
+## Interview Tips
+
+- Explain async write mechanism
+- Discuss data loss risk and mitigation
+- Mention write coalescing benefit
+- Compare with write-through pattern
+- Give use cases: counters, analytics, logs

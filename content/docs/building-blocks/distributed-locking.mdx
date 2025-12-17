@@ -1,0 +1,279 @@
+---
+title: Distributed Locking
+description: Understanding distributed locking for coordination.
+---
+
+## What is Distributed Locking?
+
+**Distributed Locking** ensures that only one process across multiple servers can access a shared resource or execute a critical section at a time.
+
+---
+
+## Why Distributed Locks?
+
+```
+Without Distributed Lock:
+Server 1: Read balance = $100
+Server 2: Read balance = $100
+Server 1: Deduct $80 → Write $20
+Server 2: Deduct $80 → Write $20
+Result: $160 deducted from $100! ❌
+
+With Distributed Lock:
+Server 1: Acquire lock ✓
+Server 2: Wait for lock...
+Server 1: Read $100, Deduct $80, Write $20
+Server 1: Release lock
+Server 2: Acquire lock ✓
+Server 2: Read $20, Deduct fails (insufficient)
+Result: Correct! ✓
+```
+
+---
+
+## Lock Requirements
+
+| **Property** | **Description** |
+|-------------|-----------------|
+| Mutual Exclusion | Only one client holds lock |
+| Deadlock Free | Lock eventually released |
+| Fault Tolerance | Lock works despite failures |
+
+---
+
+## Database-Based Lock
+
+```sql
+-- Lock table
+CREATE TABLE distributed_locks (
+    lock_name VARCHAR(255) PRIMARY KEY,
+    locked_by VARCHAR(255),
+    locked_at TIMESTAMP,
+    expires_at TIMESTAMP
+);
+
+-- Acquire lock
+INSERT INTO distributed_locks (lock_name, locked_by, locked_at, expires_at)
+VALUES ('resource_1', 'server_1', NOW(), NOW() + INTERVAL '30 seconds')
+ON CONFLICT (lock_name) DO NOTHING;
+
+-- Check if acquired
+SELECT * FROM distributed_locks
+WHERE lock_name = 'resource_1' AND locked_by = 'server_1';
+
+-- Release lock
+DELETE FROM distributed_locks
+WHERE lock_name = 'resource_1' AND locked_by = 'server_1';
+```
+
+**Pros**: Simple, uses existing DB
+**Cons**: Not designed for high-frequency locking
+
+---
+
+## Redis Lock (SETNX)
+
+### Basic Lock
+
+```
+ACQUIRE:
+SET lock:resource_1 "server_1" NX PX 30000
+
+NX = Only if Not eXists
+PX = Expire in 30000ms
+
+RELEASE:
+-- Only delete if we own it (Lua script for atomicity)
+if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+else
+    return 0
+end
+```
+
+### Lock Flow
+
+```
+┌──────────┐                    ┌──────────┐
+│ Client A │                    │  Redis   │
+└────┬─────┘                    └────┬─────┘
+     │                               │
+     │ SET lock:x "A" NX PX 30000    │
+     │──────────────────────────────>│
+     │              OK               │
+     │<──────────────────────────────│
+     │                               │
+     │        (Do work)              │
+     │                               │
+     │ DEL lock:x (if value="A")     │
+     │──────────────────────────────>│
+     │              1                │
+     │<──────────────────────────────│
+```
+
+---
+
+## Redlock Algorithm
+
+For distributed Redis (multiple independent instances):
+
+```
+5 Redis Masters (independent, not replicated):
+┌───────┐  ┌───────┐  ┌───────┐  ┌───────┐  ┌───────┐
+│Redis 1│  │Redis 2│  │Redis 3│  │Redis 4│  │Redis 5│
+└───────┘  └───────┘  └───────┘  └───────┘  └───────┘
+
+Acquire Lock:
+1. Get current time T1
+2. Try to acquire lock on all 5 instances
+   - Same key, same random value
+   - Small timeout per instance (5-50ms)
+3. Get current time T2
+4. Lock acquired if:
+   - Majority (3+) succeeded
+   - Total time (T2-T1) < lock TTL
+
+Lock Validity = TTL - (T2 - T1) - Clock Drift
+
+Release:
+- Send unlock to ALL instances
+```
+
+---
+
+## ZooKeeper Lock
+
+```
+Lock path: /locks/resource_1
+
+Process:
+1. Create ephemeral sequential node
+   /locks/resource_1/lock-0000000001
+
+2. Get children of /locks/resource_1
+   [lock-0000000001, lock-0000000002, lock-0000000003]
+
+3. If my node is lowest → I have lock
+   Else → Watch next lower node
+
+4. When notified → Repeat step 2
+
+┌────────────────────────────────────────────┐
+│ /locks/resource_1                          │
+├────────────────────────────────────────────┤
+│ lock-0000000001 (Client A) ← Has lock      │
+│ lock-0000000002 (Client B) watches 001     │
+│ lock-0000000003 (Client C) watches 002     │
+└────────────────────────────────────────────┘
+
+If Client A dies:
+- Ephemeral node 001 deleted
+- Client B notified
+- Client B now lowest → Has lock
+```
+
+---
+
+## Fencing Tokens
+
+Problem: Lock holder pauses (GC), lock expires, new holder gets lock, old holder wakes up thinking it has lock.
+
+```
+Solution: Fencing tokens
+
+┌────────────────────────────────────────────────────────┐
+│ Client A: Lock acquired (token: 33)                    │
+│ Client A: Long GC pause...                             │
+│ Lock expires                                           │
+│ Client B: Lock acquired (token: 34)                    │
+│ Client B: Write to storage (token: 34)                 │
+│ Storage: Last token = 34                               │
+│ Client A: Wakes up, tries write (token: 33)            │
+│ Storage: 33 < 34, REJECT! ✓                            │
+└────────────────────────────────────────────────────────┘
+
+Storage rejects operations with old tokens
+```
+
+---
+
+## Lock with Retry
+
+```javascript
+async function acquireLockWithRetry(key, ttl, maxRetries = 10) {
+  const lockValue = generateUniqueId();
+
+  for (let i = 0; i < maxRetries; i++) {
+    const acquired = await redis.set(
+      `lock:${key}`,
+      lockValue,
+      'NX',
+      'PX',
+      ttl
+    );
+
+    if (acquired === 'OK') {
+      return { acquired: true, value: lockValue };
+    }
+
+    // Exponential backoff with jitter
+    const delay = Math.min(100 * Math.pow(2, i), 10000);
+    const jitter = Math.random() * 100;
+    await sleep(delay + jitter);
+  }
+
+  return { acquired: false };
+}
+```
+
+---
+
+## Lock Comparison
+
+| **Method** | **Consistency** | **Performance** | **Fault Tolerance** |
+|-----------|-----------------|-----------------|---------------------|
+| Database | Strong | Low | Depends on DB |
+| Single Redis | Weak | High | Single point of failure |
+| Redlock | Medium | Medium | Tolerates minority failures |
+| ZooKeeper | Strong | Medium | High (consensus) |
+| etcd | Strong | Medium | High (Raft) |
+
+---
+
+## Best Practices
+
+| **Practice** | **Description** |
+|-------------|-----------------|
+| Set TTL | Always expire locks |
+| Unique value | Identify lock owner |
+| Atomic release | Only owner can release |
+| Fencing tokens | Prevent stale operations |
+| Retry with backoff | Don't spin on failure |
+
+---
+
+## Anti-Patterns
+
+```
+❌ Forgetting TTL
+lock = redis.setnx("lock:x", "1")  // Never expires!
+
+❌ Non-atomic check-and-delete
+if redis.get("lock:x") == my_id:   // Race condition!
+    redis.del("lock:x")
+
+❌ Assuming lock is still held
+acquire_lock()
+do_very_long_operation()  // Lock may have expired!
+release_lock()
+```
+
+---
+
+## Interview Tips
+
+- Explain mutual exclusion requirement
+- Know Redis SETNX pattern
+- Discuss Redlock for distributed Redis
+- Cover fencing tokens for safety
+- Mention ZooKeeper for strong consistency

@@ -1,0 +1,87 @@
+---
+title: What is System Design?
+description: An introduction to system design, why it matters, and how it's used in building scalable software systems.
+---
+
+## What is System Design?
+
+**System Design** is the process of defining the architecture, components, modules, interfaces, and data flow of a system to satisfy specified requirements. It's about making high-level choices about how different parts of a system work together.
+
+---
+
+## Why is System Design Important?
+
+1. **Scalability**: Design systems that handle growth—more users, more data, more requests.
+2. **Reliability**: Build systems that work correctly, even when things go wrong.
+3. **Maintainability**: Create systems that are easy to understand, modify, and extend.
+4. **Performance**: Ensure systems respond quickly and handle load efficiently.
+
+---
+
+## Types of System Design
+
+### High-Level Design (HLD)
+
+Focuses on the overall architecture:
+- System components and their interactions
+- Data flow between services
+- Technology choices (databases, caching, messaging)
+- Infrastructure decisions (cloud, load balancing, CDN)
+
+### Low-Level Design (LLD)
+
+Focuses on implementation details:
+- Class diagrams and object relationships
+- API contracts and method signatures
+- Database schemas
+- Design patterns within components
+
+---
+
+## Key Concepts to Master
+
+| **Concept** | **Description** |
+|-------------|-----------------|
+| Scalability | Ability to handle increased load |
+| Availability | System uptime and accessibility |
+| Consistency | Data accuracy across the system |
+| Latency | Response time for requests |
+| Throughput | Number of operations per unit time |
+| Fault Tolerance | Handling failures gracefully |
+
+---
+
+## System Design Interview Process
+
+A typical system design interview follows these steps:
+
+1. **Clarify Requirements**: Understand functional and non-functional requirements
+2. **Estimate Scale**: Calculate expected load, storage, and bandwidth
+3. **Define High-Level Design**: Sketch the main components
+4. **Deep Dive**: Explore specific components in detail
+5. **Identify Bottlenecks**: Discuss trade-offs and optimizations
+
+---
+
+## Real-World Example
+
+**Designing a URL Shortener:**
+
+- **Functional**: Shorten URLs, redirect to original
+- **Non-functional**: Low latency, high availability
+- **Components**: API servers, database, cache
+- **Scale**: Millions of URLs, billions of redirects
+
+---
+
+## Interview Tips
+
+- Always **clarify requirements** before designing
+- Think about **scale from the start**—millions of users, not hundreds
+- Discuss **trade-offs** explicitly (CAP theorem, cost vs performance)
+- Use **real-world examples** to support your design choices
+- Don't forget about **failure scenarios** and how to handle them
+
+---
+
+System design is both an art and a science. The more systems you study, the better your intuition becomes for making the right architectural decisions.

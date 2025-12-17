@@ -1,0 +1,176 @@
+---
+title: Weak Consistency
+description: Understanding weak consistency model in distributed systems.
+---
+
+## What is Weak Consistency?
+
+**Weak Consistency** is a consistency model where there's no guarantee that subsequent reads will reflect a previous write. The system makes a "best effort" to propagate updates, but data may be lost or out of order.
+
+---
+
+## Characteristics
+
+| **Property** | **Description** |
+|-------------|-----------------|
+| No ordering guarantee | Reads may return any value |
+| Best effort delivery | Updates may be lost |
+| Highest performance | Minimal coordination overhead |
+| Lowest latency | No waiting for replication |
+
+---
+
+## How It Works
+
+1. Client writes data to a node
+2. The system acknowledges the write immediately
+3. Data may or may not propagate to other nodes
+4. Subsequent reads may return old, new, or no data
+
+```
+Client                  Server A              Server B
+  │                        │                     │
+  │──── Write X=1 ────────►│                     │
+  │◄─── ACK ───────────────│                     │
+  │                        │─ ─ ─(may or may not)─►│
+  │                        │                     │
+  │──── Read X ───────────►│                     │
+  │◄─── X=1 ───────────────│                     │
+  │                        │                     │
+  │──── Read X ────────────────────────────────►│
+  │◄─── X=? (old value, null, or 1) ────────────│
+```
+
+---
+
+## When to Use Weak Consistency
+
+### Ideal Use Cases
+
+1. **Real-time Gaming**
+   - Player positions updated frequently
+   - Occasional glitches acceptable
+   - Low latency critical
+
+2. **Live Streaming**
+   - Video/audio data flows continuously
+   - Dropped frames acceptable
+   - Real-time delivery prioritized
+
+3. **VoIP (Voice over IP)**
+   - Audio packets sent continuously
+   - Some packet loss acceptable
+   - Low latency essential for conversation
+
+4. **Telemetry/Metrics**
+   - High volume of data points
+   - Individual data loss acceptable
+   - Overall trends matter more
+
+### Example: Online Game
+
+```
+Player position updates:
+- 60 updates per second per player
+- 1000 concurrent players
+- 60,000 updates/second
+
+With weak consistency:
+- Fire and forget updates
+- Some positions may be slightly off
+- Game remains playable and responsive
+```
+
+---
+
+## Weak vs Other Consistency Models
+
+| **Aspect** | **Weak** | **Eventual** | **Strong** |
+|------------|----------|--------------|------------|
+| Guarantee | None | Eventually same | Always same |
+| Latency | Lowest | Low | Highest |
+| Availability | Highest | High | Lower |
+| Data loss | Possible | No | No |
+| Use case | Real-time | Social media | Banking |
+
+---
+
+## Implementation Patterns
+
+### UDP-Based Systems
+
+Many weak consistency systems use UDP:
+- No connection overhead
+- No retransmission
+- No ordering guarantee
+- Perfect for real-time data
+
+### In-Memory Caches
+
+Caches often use weak consistency:
+- Cache invalidation is best-effort
+- Stale data acceptable for short periods
+- Performance prioritized
+
+---
+
+## Trade-offs
+
+### Advantages
+
+- **Lowest latency**: No waiting for confirmation
+- **Highest throughput**: No coordination overhead
+- **Simplest implementation**: No consensus needed
+- **Best availability**: Works even with partitions
+
+### Disadvantages
+
+- **Data may be lost**: No durability guarantee
+- **No ordering**: Events may arrive out of order
+- **Hard to debug**: Non-deterministic behavior
+- **Limited use cases**: Not suitable for critical data
+
+---
+
+## Real-World Examples
+
+### Video Conferencing (Zoom, Meet)
+
+- Audio/video frames sent with weak consistency
+- Dropped frames cause minor glitches
+- Unacceptable latency would break the experience
+
+### Gaming (Fortnite, PUBG)
+
+- Player movements use weak consistency
+- Prediction and interpolation smooth out issues
+- Hit registration may use stronger consistency
+
+### Sensor Networks (IoT)
+
+- Temperature readings sent frequently
+- Individual reading loss acceptable
+- Battery life prioritized over reliability
+
+---
+
+## Interview Tips
+
+- **Understand when it's appropriate**: Real-time, high-frequency, loss-tolerant data
+- **Compare with other models**: Know the spectrum from weak to strong
+- **Mention protocols**: UDP is commonly associated with weak consistency
+- **Discuss trade-offs**: Performance vs reliability
+- **Give examples**: Gaming, streaming, VoIP
+
+---
+
+## Summary
+
+Weak consistency sacrifices data guarantees for maximum performance. It's the right choice when:
+
+- Real-time delivery matters more than reliability
+- Data is frequently updated (making old data less valuable)
+- The application can tolerate occasional data loss
+- Latency requirements are extremely strict
+
+For most business applications, stronger consistency models are needed, but weak consistency powers much of the real-time infrastructure we use daily.

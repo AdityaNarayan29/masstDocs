@@ -1,0 +1,197 @@
+---
+title: Capacity Planning
+description: Understanding capacity planning for system design interviews.
+---
+
+## What is Capacity Planning?
+
+**Capacity Planning** is the process of determining the resources needed to meet current and future demands. It involves estimating storage, compute, and network requirements.
+
+---
+
+## Why It Matters
+
+- **Avoid over-provisioning**: Save costs
+- **Avoid under-provisioning**: Prevent outages
+- **Plan for growth**: Scale proactively
+- **Interview requirement**: Often asked in system design
+
+---
+
+## Key Metrics to Estimate
+
+| **Metric** | **Question** |
+|-----------|-------------|
+| DAU/MAU | How many users? |
+| QPS | How many requests per second? |
+| Storage | How much data to store? |
+| Bandwidth | How much data transferred? |
+| Memory | How much RAM needed? |
+
+---
+
+## Estimation Framework
+
+### 1. Define Requirements
+
+```
+- 100M daily active users (DAU)
+- Average user makes 10 requests/day
+- Average request size: 1 KB
+- Data retention: 5 years
+```
+
+### 2. Calculate Traffic
+
+```
+Total requests/day = DAU × requests/user
+                   = 100M × 10
+                   = 1 billion/day
+
+QPS = 1B / 86,400 seconds
+    ≈ 12,000 QPS (average)
+
+Peak QPS = 2-3x average
+         ≈ 30,000 QPS
+```
+
+### 3. Calculate Storage
+
+```
+Daily data = requests × size
+           = 1B × 1 KB
+           = 1 TB/day
+
+5-year storage = 1 TB × 365 × 5
+               = 1.8 PB
+```
+
+### 4. Calculate Bandwidth
+
+```
+Incoming = 1B requests × 1 KB
+         = 1 TB/day
+         = ~12 MB/s average
+
+Outgoing (if 10 KB response) = 10 TB/day
+                              = ~120 MB/s average
+```
+
+---
+
+## Useful Numbers to Know
+
+| **Metric** | **Value** |
+|-----------|----------|
+| Seconds in a day | 86,400 (~100K) |
+| Seconds in a month | ~2.5M |
+| 1 million requests/day | ~12 QPS |
+| 1 billion requests/day | ~12,000 QPS |
+
+---
+
+## Server Capacity
+
+### Typical Server Specs
+
+| **Resource** | **Typical Value** |
+|-------------|------------------|
+| CPU cores | 8-64 cores |
+| RAM | 32-256 GB |
+| Storage | 1-10 TB SSD |
+| Network | 1-10 Gbps |
+
+### Capacity per Server
+
+```
+Web server: 1,000-10,000 QPS
+Database:   1,000-5,000 QPS (reads)
+Cache:      100,000+ QPS (Redis)
+```
+
+### Server Count Estimation
+
+```
+Required QPS = 30,000 (peak)
+Server capacity = 5,000 QPS
+
+Servers needed = 30,000 / 5,000
+               = 6 servers
+
+Add redundancy (2x) = 12 servers
+```
+
+---
+
+## Storage Estimation
+
+### Data Types
+
+| **Type** | **Size (typical)** |
+|---------|-------------------|
+| User record | 1 KB |
+| Tweet/Post | 250 bytes |
+| Image (compressed) | 200 KB |
+| Video (1 min, compressed) | 50 MB |
+| Log entry | 100 bytes |
+
+### Replication Factor
+
+```
+Actual storage = Raw storage × Replication factor
+
+If replication factor = 3:
+1 PB raw → 3 PB actual
+```
+
+---
+
+## Cache Sizing
+
+### 80/20 Rule
+
+20% of data serves 80% of requests:
+
+```
+Total data = 1 PB
+Hot data = 1 PB × 20% = 200 TB
+
+If cache hit ratio target = 90%:
+Cache size ≈ 200 TB
+```
+
+---
+
+## Example: URL Shortener
+
+```
+Requirements:
+- 100M URLs created/month
+- 10:1 read/write ratio
+- URL stored for 5 years
+
+Writes:
+- 100M / month = 40 URLs/second
+
+Reads:
+- 400 URLs/second
+
+Storage:
+- URL + short code ≈ 500 bytes
+- 100M × 12 months × 5 years = 6B URLs
+- 6B × 500 bytes = 3 TB
+
+Cache:
+- 20% hot URLs = 1.2B × 500 bytes = 600 GB
+```
+
+---
+
+## Interview Tips
+
+- Round numbers for easy math (use powers of 10)
+- State assumptions clearly
+- Consider peak vs average traffic
+- Account for replication and redundancy
+- Mention growth projections
+- Know common capacity numbers

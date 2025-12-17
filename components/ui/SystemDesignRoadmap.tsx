@@ -28,6 +28,7 @@ const learningTree: TreeNode = {
         {
           id: "what-is-sd",
           label: "What is System Design?",
+          href: "/sd/fundamentals/what-is-system-design",
           designType: "HLD",
         },
         {
@@ -50,10 +51,11 @@ const learningTree: TreeNode = {
             {
               id: "latency-throughput",
               label: "Latency vs Throughput",
+              href: "/sd/fundamentals/latency-throughput",
               designType: "HLD",
             },
-            { id: "availability", label: "Availability", designType: "HLD" },
-            { id: "consistency", label: "Consistency", designType: "HLD" },
+            { id: "availability", label: "Availability", href: "/sd/fundamentals/availability", designType: "HLD" },
+            { id: "consistency", label: "Consistency", href: "/sd/fundamentals/consistency", designType: "HLD" },
           ],
         },
         {
@@ -83,16 +85,19 @@ const learningTree: TreeNode = {
             {
               id: "weak-consistency",
               label: "Weak Consistency",
+              href: "/sd/fundamentals/weak-consistency",
               designType: "HLD",
             },
             {
               id: "eventual-consistency",
               label: "Eventual Consistency",
+              href: "/sd/fundamentals/eventual-consistency",
               designType: "HLD",
             },
             {
               id: "strong-consistency",
               label: "Strong Consistency",
+              href: "/sd/fundamentals/strong-consistency",
               designType: "HLD",
             },
           ],
@@ -102,8 +107,8 @@ const learningTree: TreeNode = {
           label: "Availability Patterns",
           isSection: true,
           children: [
-            { id: "failover", label: "Fail-Over", designType: "HLD" },
-            { id: "replication", label: "Replication", designType: "HLD" },
+            { id: "failover", label: "Fail-Over", href: "/sd/fundamentals/failover", designType: "HLD" },
+            { id: "replication", label: "Replication", href: "/sd/fundamentals/replication", designType: "HLD" },
           ],
         },
       ],
@@ -118,10 +123,10 @@ const learningTree: TreeNode = {
           label: "Networking",
           isSection: true,
           children: [
-            { id: "dns", label: "DNS", designType: "HLD" },
-            { id: "cdn", label: "CDN", designType: "HLD" },
-            { id: "load-balancer", label: "Load Balancer", designType: "HLD" },
-            { id: "reverse-proxy", label: "Reverse Proxy", designType: "HLD" },
+            { id: "dns", label: "DNS", href: "/sd/building-blocks/dns", designType: "HLD" },
+            { id: "cdn", label: "CDN", href: "/sd/building-blocks/cdn", designType: "HLD" },
+            { id: "load-balancer", label: "Load Balancer", href: "/sd/building-blocks/load-balancer", designType: "HLD" },
+            { id: "reverse-proxy", label: "Reverse Proxy", href: "/sd/building-blocks/reverse-proxy", designType: "HLD" },
           ],
         },
         {
@@ -135,9 +140,9 @@ const learningTree: TreeNode = {
               href: "/sd/system-components/db",
               designType: "HLD",
             },
-            { id: "sharding", label: "Sharding", designType: "HLD" },
-            { id: "replication-db", label: "Replication", designType: "HLD" },
-            { id: "indexing", label: "Indexing", designType: "BOTH" },
+            { id: "sharding", label: "Sharding", href: "/sd/building-blocks/sharding", designType: "HLD" },
+            { id: "replication-db", label: "Replication", href: "/sd/fundamentals/replication", designType: "HLD" },
+            { id: "indexing", label: "Indexing", href: "/sd/building-blocks/indexing", designType: "BOTH" },
           ],
         },
         {
@@ -148,11 +153,12 @@ const learningTree: TreeNode = {
             {
               id: "cache-strategies",
               label: "Cache Strategies",
+              href: "/sd/building-blocks/cache-strategies",
               designType: "HLD",
             },
-            { id: "cache-aside", label: "Cache-Aside", designType: "HLD" },
-            { id: "write-through", label: "Write-Through", designType: "HLD" },
-            { id: "write-behind", label: "Write-Behind", designType: "HLD" },
+            { id: "cache-aside", label: "Cache-Aside", href: "/sd/building-blocks/cache-aside", designType: "HLD" },
+            { id: "write-through", label: "Write-Through", href: "/sd/building-blocks/write-through", designType: "HLD" },
+            { id: "write-behind", label: "Write-Behind", href: "/sd/building-blocks/write-behind", designType: "HLD" },
           ],
         },
         {
@@ -163,10 +169,11 @@ const learningTree: TreeNode = {
             {
               id: "message-queues",
               label: "Message Queues",
+              href: "/sd/building-blocks/message-queues",
               designType: "HLD",
             },
-            { id: "task-queues", label: "Task Queues", designType: "HLD" },
-            { id: "pub-sub", label: "Pub/Sub", designType: "HLD" },
+            { id: "task-queues", label: "Task Queues", href: "/sd/building-blocks/task-queues", designType: "HLD" },
+            { id: "pub-sub", label: "Pub/Sub", href: "/sd/building-blocks/pub-sub", designType: "HLD" },
           ],
         },
       ],
@@ -176,12 +183,12 @@ const learningTree: TreeNode = {
       label: "3. Communication",
       isSection: true,
       children: [
-        { id: "http", label: "HTTP", designType: "BOTH" },
-        { id: "rest", label: "REST", designType: "BOTH" },
-        { id: "grpc", label: "gRPC", designType: "BOTH" },
-        { id: "graphql", label: "GraphQL", designType: "BOTH" },
-        { id: "websockets", label: "WebSockets", designType: "HLD" },
-        { id: "sse", label: "Server-Sent Events", designType: "HLD" },
+        { id: "http", label: "HTTP", href: "/sd/communication/http", designType: "BOTH" },
+        { id: "rest", label: "REST", href: "/sd/communication/rest", designType: "BOTH" },
+        { id: "grpc", label: "gRPC", href: "/sd/communication/grpc", designType: "BOTH" },
+        { id: "graphql", label: "GraphQL", href: "/sd/communication/graphql", designType: "BOTH" },
+        { id: "websockets", label: "WebSockets", href: "/sd/communication/websockets", designType: "HLD" },
+        { id: "sse", label: "Server-Sent Events", href: "/sd/communication/sse", designType: "HLD" },
       ],
     },
     {
@@ -198,9 +205,10 @@ const learningTree: TreeNode = {
         {
           id: "service-discovery",
           label: "Service Discovery",
+          href: "/sd/architecture/service-discovery",
           designType: "HLD",
         },
-        { id: "api-gateway", label: "API Gateway", designType: "HLD" },
+        { id: "api-gateway", label: "API Gateway", href: "/sd/architecture/api-gateway", designType: "HLD" },
         {
           id: "micro-frontends",
           label: "Micro Frontends",
@@ -214,12 +222,12 @@ const learningTree: TreeNode = {
       label: "5. Design Patterns",
       isSection: true,
       children: [
-        { id: "circuit-breaker", label: "Circuit Breaker", designType: "HLD" },
-        { id: "bulkhead", label: "Bulkhead", designType: "HLD" },
-        { id: "cqrs", label: "CQRS", designType: "BOTH" },
-        { id: "event-sourcing", label: "Event Sourcing", designType: "BOTH" },
-        { id: "saga", label: "Saga Pattern", designType: "HLD" },
-        { id: "strangler-fig", label: "Strangler Fig", designType: "HLD" },
+        { id: "circuit-breaker", label: "Circuit Breaker", href: "/sd/design-patterns/circuit-breaker", designType: "HLD" },
+        { id: "bulkhead", label: "Bulkhead", href: "/sd/design-patterns/bulkhead", designType: "HLD" },
+        { id: "cqrs", label: "CQRS", href: "/sd/design-patterns/cqrs", designType: "BOTH" },
+        { id: "event-sourcing", label: "Event Sourcing", href: "/sd/design-patterns/event-sourcing", designType: "BOTH" },
+        { id: "saga", label: "Saga Pattern", href: "/sd/design-patterns/saga", designType: "HLD" },
+        { id: "strangler-fig", label: "Strangler Fig", href: "/sd/design-patterns/strangler-fig", designType: "HLD" },
       ],
     },
     {
@@ -236,6 +244,7 @@ const learningTree: TreeNode = {
         {
           id: "design-patterns-lld",
           label: "Design Patterns",
+          href: "/sd/fundamentals/design-patterns-lld",
           designType: "LLD",
         },
         {
@@ -260,6 +269,7 @@ const learningTree: TreeNode = {
         {
           id: "capacity-planning",
           label: "Capacity Planning",
+          href: "/sd/fundamentals/capacity-planning",
           designType: "HLD",
         },
       ],
@@ -413,11 +423,12 @@ const learningTree: TreeNode = {
               href: "/sd/case-studies/atm-system",
               designType: "LLD",
             },
-            { id: "url-shortener", label: "URL Shortener", designType: "HLD" },
-            { id: "rate-limiter", label: "Rate Limiter", designType: "HLD" },
+            { id: "url-shortener", label: "URL Shortener", href: "/sd/case-studies/url-shortener", designType: "HLD" },
+            { id: "rate-limiter", label: "Rate Limiter", href: "/sd/case-studies/rate-limiter", designType: "HLD" },
             {
               id: "notification",
               label: "Notification System",
+              href: "/sd/case-studies/notification-system",
               designType: "HLD",
             },
           ],

@@ -1,0 +1,216 @@
+---
+title: Consistency
+description: Understanding consistency models in distributed systems and their trade-offs.
+---
+
+## What is Consistency?
+
+**Consistency** in distributed systems refers to whether all nodes see the same data at the same time. It's one of the three properties in the CAP theorem and a critical consideration when designing distributed databases and services.
+
+---
+
+## Why Consistency Matters
+
+Consider a banking system:
+- You deposit $100 into your account
+- You immediately check your balance
+- What should you see?
+
+Without proper consistency, you might see your old balance, leading to confusion or incorrect decisions.
+
+---
+
+## Consistency Models
+
+### Strong Consistency
+
+Every read receives the most recent write or an error.
+
+**Characteristics**:
+- All nodes see the same data at the same time
+- Writes are synchronously replicated
+- Higher latency, lower availability during partitions
+
+**Use Cases**: Banking, financial transactions, inventory management
+
+### Eventual Consistency
+
+Given enough time, all reads will eventually return the same value.
+
+**Characteristics**:
+- Updates propagate asynchronously
+- Temporary inconsistencies allowed
+- Higher availability, lower latency
+
+**Use Cases**: Social media feeds, DNS, shopping carts
+
+### Weak Consistency
+
+No guarantee that subsequent reads will see a write.
+
+**Characteristics**:
+- Best effort delivery
+- Lost updates possible
+- Highest performance
+
+**Use Cases**: Real-time gaming, live video streaming
+
+---
+
+## Consistency Spectrum
+
+```
+Strongest ◄─────────────────────────────────────► Weakest
+
+Linearizable → Sequential → Causal → Eventual → Weak
+```
+
+| **Model** | **Guarantee** | **Performance** |
+|-----------|---------------|-----------------|
+| Linearizable | Real-time ordering | Slowest |
+| Sequential | Global ordering | Slow |
+| Causal | Cause-effect ordering | Medium |
+| Eventual | Eventually same | Fast |
+| Weak | No ordering | Fastest |
+
+---
+
+## Consistency Patterns
+
+### Read-Your-Writes
+
+Users always see their own updates immediately, even if others don't.
+
+**Implementation**:
+- Read from the replica that received the write
+- Use sticky sessions to route to the same replica
+- Include version numbers in requests
+
+### Monotonic Reads
+
+Once you've seen a value, you'll never see an older value.
+
+**Implementation**:
+- Track last-seen version per user
+- Route reads to replicas at or above that version
+
+### Monotonic Writes
+
+Writes are applied in the order they were submitted.
+
+**Implementation**:
+- Sequence numbers for writes
+- Queue writes and apply in order
+
+---
+
+## Consistency vs Availability (CAP)
+
+During a network partition, you must choose:
+
+| **Choice** | **Behavior** | **Example** |
+|------------|-------------|-------------|
+| Consistency (CP) | Reject requests if unsure of latest data | MongoDB, HBase |
+| Availability (AP) | Respond with potentially stale data | Cassandra, DynamoDB |
+
+---
+
+## Implementing Consistency
+
+### Consensus Protocols
+
+Algorithms that help distributed systems agree on values:
+
+- **Paxos**: Classic consensus algorithm
+- **Raft**: Easier to understand alternative
+- **ZAB**: Used by ZooKeeper
+
+### Quorum-Based Consistency
+
+Configure read (R) and write (W) quorum sizes with N replicas:
+
+| **Configuration** | **Consistency** | **Availability** |
+|-------------------|-----------------|------------------|
+| R + W > N | Strong | Lower |
+| R + W ≤ N | Eventual | Higher |
+
+**Example** with N=3:
+- W=3, R=1: Strong consistency, slow writes
+- W=2, R=2: Strong consistency, balanced
+- W=1, R=1: Eventual consistency, fast
+
+---
+
+## Real-World Examples
+
+### Strong Consistency
+
+**Google Spanner**:
+- Globally consistent database
+- Uses synchronized atomic clocks (TrueTime)
+- External consistency guarantee
+
+### Eventual Consistency
+
+**Amazon DynamoDB**:
+- Default: eventually consistent reads
+- Optional: strongly consistent reads (2x cost)
+
+### Configurable Consistency
+
+**Cassandra**:
+- Tunable consistency per operation
+- ONE, QUORUM, ALL consistency levels
+
+---
+
+## Handling Inconsistency
+
+### Conflict Resolution
+
+When replicas have different values:
+
+1. **Last-write-wins (LWW)**: Use timestamps
+2. **Version vectors**: Track causality
+3. **Merge functions**: Custom conflict resolution (CRDTs)
+
+### Compensation
+
+When inconsistency causes problems:
+- Eventual consistency + compensation transactions
+- Saga pattern for distributed transactions
+
+---
+
+## Consistency Trade-offs
+
+| **Strong Consistency** | **Eventual Consistency** |
+|----------------------|------------------------|
+| Simpler application logic | Complex conflict handling |
+| Higher latency | Lower latency |
+| Lower availability | Higher availability |
+| Higher cost | Lower cost |
+| Necessary for critical data | Acceptable for non-critical data |
+
+---
+
+## Interview Tips
+
+- **Know the models**: Explain strong, eventual, and weak consistency clearly
+- **Discuss trade-offs**: Consistency vs availability vs latency
+- **Use examples**: Banking needs strong, social media accepts eventual
+- **Mention quorums**: Understand R + W > N for strong consistency
+- **Reference CAP**: Consistency is the C in CAP theorem
+- **Discuss real systems**: DynamoDB, Cassandra, Spanner
+
+---
+
+## Summary
+
+Consistency is about how up-to-date the data you read is. The right consistency model depends on your use case:
+
+- **Choose strong consistency** when correctness is critical (financial systems)
+- **Choose eventual consistency** when availability and performance matter more (social feeds)
+- **Consider tunable consistency** for flexibility (Cassandra, DynamoDB)
+
+Understanding consistency trade-offs is essential for designing robust distributed systems.

@@ -1,0 +1,313 @@
+---
+title: Replication
+description: Understanding data replication strategies in distributed systems.
+---
+
+## What is Replication?
+
+**Replication** is the process of storing copies of data on multiple machines. It provides redundancy, improves availability, and can enhance read performance by distributing load.
+
+---
+
+## Why Replicate?
+
+| **Goal** | **How Replication Helps** |
+|----------|--------------------------|
+| High availability | Data survives machine failures |
+| Fault tolerance | System continues working with failed nodes |
+| Low latency | Serve data from geographically closer replicas |
+| Read scalability | Distribute read load across replicas |
+
+---
+
+## Replication Strategies
+
+### Single-Leader (Primary-Replica)
+
+One node accepts writes; others replicate from it.
+
+```
+           Writes
+              │
+              ▼
+         ┌────────┐
+         │ Leader │
+         └───┬────┘
+             │ Replication
+     ┌───────┼───────┐
+     ▼       ▼       ▼
+┌────────┐┌────────┐┌────────┐
+│Follower││Follower││Follower│
+└────────┘└────────┘└────────┘
+     ▲       ▲       ▲
+     │       │       │
+        Reads (distributed)
+```
+
+**Pros**:
+- Simple to understand
+- No write conflicts
+- Easy consistency guarantees
+
+**Cons**:
+- Leader is write bottleneck
+- Leader failure requires failover
+
+**Examples**: PostgreSQL, MySQL, MongoDB (default), Redis
+
+### Multi-Leader (Master-Master)
+
+Multiple nodes accept writes independently.
+
+```
+┌────────┐         ┌────────┐
+│Leader A│◄───────►│Leader B│
+│(writes)│ bidirectional │(writes)│
+└───┬────┘         └────┬───┘
+    │                   │
+    ▼                   ▼
+┌────────┐         ┌────────┐
+│Follower│         │Follower│
+└────────┘         └────────┘
+```
+
+**Pros**:
+- Better write throughput
+- Tolerates leader failures
+- Good for multi-datacenter
+
+**Cons**:
+- Write conflicts possible
+- Complex conflict resolution
+- Harder consistency guarantees
+
+**Examples**: CouchDB, Cassandra (configurable), MySQL Group Replication
+
+### Leaderless (Peer-to-Peer)
+
+All nodes are equal; any node can accept reads/writes.
+
+```
+     ┌────────┐
+     │ Node A │
+     └───┬────┘
+         │
+    ┌────┴────┐
+    │         │
+┌───┴───┐ ┌───┴───┐
+│Node B │ │Node C │
+└───────┘ └───────┘
+
+Client writes to multiple nodes
+Client reads from multiple nodes
+```
+
+**Pros**:
+- No single point of failure
+- High availability
+- Write to any node
+
+**Cons**:
+- Complex quorum logic
+- Eventual consistency challenges
+- More network traffic
+
+**Examples**: Cassandra, DynamoDB, Riak
+
+---
+
+## Synchronous vs Asynchronous
+
+### Synchronous Replication
+
+Leader waits for followers before acknowledging writes.
+
+```
+Client ──► Leader ──► Follower 1 ✓
+                  └──► Follower 2 ✓
+                      │
+Client ◄── ACK ◄──────┘
+```
+
+| **Aspect** | **Value** |
+|-----------|----------|
+| Consistency | Strong |
+| Latency | Higher |
+| Availability | Lower (blocked by slow replica) |
+| Data loss | Zero |
+
+### Asynchronous Replication
+
+Leader acknowledges immediately; replication happens in background.
+
+```
+Client ──► Leader ──► ACK to Client
+              │
+              └──► Follower 1 (async)
+              └──► Follower 2 (async)
+```
+
+| **Aspect** | **Value** |
+|-----------|----------|
+| Consistency | Eventual |
+| Latency | Lower |
+| Availability | Higher |
+| Data loss | Possible on failure |
+
+### Semi-Synchronous
+
+Wait for at least one follower, replicate to others async.
+
+```
+Client ──► Leader ──► Follower 1 ✓ (sync)
+              │       │
+              │       └──► ACK
+              │               │
+Client ◄──────┴───────────────┘
+              │
+              └──► Follower 2 (async)
+```
+
+---
+
+## Replication Lag
+
+The delay between a write on the leader and its appearance on followers.
+
+### Problems Caused by Lag
+
+**Reading Your Own Writes**:
+```
+User writes ──► Leader
+User reads  ──► Follower (hasn't received write yet)
+User sees old data!
+```
+
+**Solution**: Read-your-writes consistency
+- Read from leader after user's write
+- Track write timestamp, wait for follower to catch up
+
+**Monotonic Reads**:
+```
+User reads ──► Follower A (has data)
+User reads ──► Follower B (doesn't have data)
+Data appears to go backwards!
+```
+
+**Solution**: Stick to same replica or track timestamps
+
+---
+
+## Quorum Reads and Writes
+
+For leaderless systems, ensure consistency with quorums:
+
+```
+N = Total nodes
+W = Write quorum (must acknowledge)
+R = Read quorum (must respond)
+
+Rule: W + R > N ensures overlap
+```
+
+**Example** (N=3):
+```
+Write W=2: Write to at least 2 nodes
+Read R=2:  Read from at least 2 nodes
+One node guaranteed to have latest write
+```
+
+| **Configuration** | **Consistency** | **Availability** |
+|------------------|-----------------|------------------|
+| W=N, R=1 | Strong writes | Low write availability |
+| W=1, R=N | Strong reads | Low read availability |
+| W=2, R=2 (N=3) | Balanced | Good |
+
+---
+
+## Conflict Resolution
+
+When multiple writes happen concurrently:
+
+### Last-Write-Wins (LWW)
+
+```
+Node A: X=1 at T1
+Node B: X=2 at T2
+
+If T2 > T1: Final value X=2
+```
+
+**Problem**: Requires synchronized clocks; can lose data
+
+### Version Vectors
+
+Track causality:
+```
+Node A: X=1 with version [A:1]
+Node B: X=2 with version [B:1]
+
+Versions are concurrent (conflict!)
+→ Keep both, let application resolve
+```
+
+### CRDTs
+
+Data structures that merge automatically:
+- Counters, sets, maps with merge semantics
+- No conflicts by design
+
+---
+
+## Real-World Examples
+
+### PostgreSQL Streaming Replication
+
+- Single-leader, synchronous or async
+- WAL (Write-Ahead Log) shipped to replicas
+- Read replicas for scaling reads
+
+### Cassandra
+
+- Leaderless with tunable consistency
+- Configurable replication factor per keyspace
+- Hinted handoff for temporary failures
+
+### MongoDB Replica Sets
+
+- Single-leader with automatic failover
+- Election among replicas for new primary
+- Read preference: primary, secondary, nearest
+
+---
+
+## Best Practices
+
+1. **Match replication to requirements**: Strong consistency vs availability
+2. **Monitor replication lag**: Alert on excessive lag
+3. **Test failover**: Ensure replicas can take over
+4. **Consider geography**: Cross-region for disaster recovery
+5. **Balance read load**: Use replicas for read scaling
+
+---
+
+## Interview Tips
+
+- **Know the topologies**: Single-leader, multi-leader, leaderless
+- **Sync vs async**: Trade-offs for each
+- **Quorums**: W + R > N for consistency
+- **Replication lag**: Problems and solutions
+- **Conflict resolution**: LWW, version vectors, CRDTs
+
+---
+
+## Summary
+
+| **Strategy** | **Best For** | **Consistency** |
+|-------------|-------------|-----------------|
+| Single-leader sync | Critical data | Strong |
+| Single-leader async | Read scaling | Eventual |
+| Multi-leader | Multi-region writes | Eventual |
+| Leaderless | High availability | Tunable |
+
+Replication is fundamental to building reliable distributed systems. Choose your strategy based on consistency requirements, latency needs, and failure tolerance.

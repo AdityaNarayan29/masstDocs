@@ -1,0 +1,124 @@
+---
+title: GraphQL
+description: Understanding GraphQL for flexible API queries.
+---
+
+## What is GraphQL?
+
+**GraphQL** is a query language for APIs that allows clients to request exactly the data they need. Unlike REST, clients specify the structure of the response.
+
+---
+
+## GraphQL vs REST
+
+| **Aspect** | **GraphQL** | **REST** |
+|-----------|-----------|---------|
+| Endpoints | Single `/graphql` | Multiple per resource |
+| Data fetching | Client specifies | Server determines |
+| Over-fetching | No | Common |
+| Under-fetching | No | Common (N+1) |
+| Versioning | Evolve schema | Version URLs |
+
+---
+
+## Schema Definition
+
+```graphql
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post!]!
+}
+
+type Post {
+  id: ID!
+  title: String!
+  author: User!
+}
+
+type Query {
+  user(id: ID!): User
+  users: [User!]!
+}
+
+type Mutation {
+  createUser(name: String!, email: String!): User!
+}
+```
+
+---
+
+## Query Example
+
+### Request
+```graphql
+query {
+  user(id: "123") {
+    name
+    email
+    posts {
+      title
+    }
+  }
+}
+```
+
+### Response
+```json
+{
+  "data": {
+    "user": {
+      "name": "John",
+      "email": "john@example.com",
+      "posts": [
+        { "title": "First Post" },
+        { "title": "Second Post" }
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Operations
+
+| **Operation** | **Purpose** | **Example** |
+|--------------|------------|-------------|
+| Query | Read data | `query { users { name } }` |
+| Mutation | Write data | `mutation { createUser(...) }` |
+| Subscription | Real-time updates | `subscription { newPost { title } }` |
+
+---
+
+## Benefits
+
+| **Benefit** | **Description** |
+|------------|-----------------|
+| No over-fetching | Get only what you need |
+| No under-fetching | Get related data in one request |
+| Strong typing | Schema defines all types |
+| Introspection | Self-documenting API |
+| Versioning | Deprecate fields, not endpoints |
+
+---
+
+## Challenges
+
+| **Challenge** | **Mitigation** |
+|--------------|---------------|
+| N+1 queries | DataLoader pattern |
+| Complexity | Query cost analysis |
+| Caching | More complex than REST |
+| File uploads | Separate endpoint or multipart |
+
+---
+
+## Interview Tips
+
+- Explain over-fetching and under-fetching problems
+- Know schema, query, mutation, subscription
+- Discuss N+1 problem and DataLoader
+- Compare with REST for different use cases
+- Mention when GraphQL is overkill

@@ -1,0 +1,264 @@
+---
+title: Notification System
+description: System design for a scalable notification service.
+---
+
+## Problem Statement
+
+Design a notification system that:
+- Sends notifications via multiple channels (push, SMS, email)
+- Handles millions of notifications per day
+- Supports user preferences
+- Provides delivery tracking
+
+---
+
+## Requirements
+
+### Functional
+
+- Send notifications via push, SMS, email
+- User notification preferences
+- Rate limiting per user
+- Notification templates
+- Delivery status tracking
+
+### Non-Functional
+
+- High availability
+- Low latency for real-time notifications
+- Exactly-once delivery (or at-least-once)
+- Scalable to millions of users
+
+---
+
+## Capacity Estimation
+
+```
+Assumptions:
+- 100M users
+- 10 notifications per user per day
+- 1 billion notifications per day
+
+QPS:
+1B / 86,400 ≈ 12,000 notifications/second
+Peak: ~30,000/second
+```
+
+---
+
+## System Architecture
+
+```
+                    ┌─────────────────┐
+                    │   API Gateway   │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Notification   │
+                    │    Service      │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Message Queue  │
+                    │    (Kafka)      │
+                    └────────┬────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+    ┌────▼────┐        ┌────▼────┐        ┌────▼────┐
+    │  Push   │        │   SMS   │        │  Email  │
+    │ Worker  │        │ Worker  │        │ Worker  │
+    └────┬────┘        └────┬────┘        └────┬────┘
+         │                   │                   │
+         ▼                   ▼                   ▼
+    ┌─────────┐        ┌─────────┐        ┌─────────┐
+    │  APNs/  │        │ Twilio  │        │SendGrid │
+    │  FCM    │        │         │        │         │
+    └─────────┘        └─────────┘        └─────────┘
+```
+
+---
+
+## Component Design
+
+### Notification Service
+
+```
+1. Receive notification request
+2. Validate and enrich data
+3. Check user preferences
+4. Apply rate limiting
+5. Queue for delivery
+```
+
+### Message Queue Topics
+
+```
+notifications.push
+notifications.sms
+notifications.email
+
+Partitioned by user_id for ordering
+```
+
+### Workers
+
+```
+1. Consume from queue
+2. Build notification (templates)
+3. Call external provider
+4. Update delivery status
+5. Handle retries
+```
+
+---
+
+## Database Schema
+
+```sql
+-- User preferences
+CREATE TABLE notification_preferences (
+    user_id BIGINT PRIMARY KEY,
+    push_enabled BOOLEAN DEFAULT true,
+    sms_enabled BOOLEAN DEFAULT true,
+    email_enabled BOOLEAN DEFAULT true,
+    quiet_hours_start TIME,
+    quiet_hours_end TIME
+);
+
+-- Notification log
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    user_id BIGINT,
+    type VARCHAR(20),
+    channel VARCHAR(20),
+    content TEXT,
+    status VARCHAR(20),
+    created_at TIMESTAMP,
+    sent_at TIMESTAMP,
+    delivered_at TIMESTAMP
+);
+
+-- Templates
+CREATE TABLE notification_templates (
+    id VARCHAR(50) PRIMARY KEY,
+    channel VARCHAR(20),
+    subject TEXT,
+    body TEXT
+);
+```
+
+---
+
+## API Design
+
+### Send Notification
+
+```http
+POST /api/notifications
+{
+    "user_id": "123",
+    "type": "order_update",
+    "channels": ["push", "email"],
+    "data": {
+        "order_id": "456",
+        "status": "shipped"
+    }
+}
+```
+
+### Get Preferences
+
+```http
+GET /api/users/123/notification-preferences
+
+Response:
+{
+    "push_enabled": true,
+    "sms_enabled": false,
+    "email_enabled": true
+}
+```
+
+---
+
+## Delivery Guarantees
+
+### At-Least-Once
+
+```
+1. Queue message
+2. Worker processes
+3. On success: ACK message
+4. On failure: Retry (message redelivered)
+
+Risk: Duplicate notifications
+```
+
+### Deduplication
+
+```
+Store notification ID in cache
+Before sending: Check if already sent
+TTL: 24 hours
+```
+
+---
+
+## Rate Limiting
+
+```
+Per user limits:
+- Push: 50/hour
+- SMS: 5/day
+- Email: 10/day
+
+Implementation:
+- Redis counters per user per channel
+- Check before queueing
+```
+
+---
+
+## Handling Failures
+
+### Retry Strategy
+
+```
+Attempt 1: Immediate
+Attempt 2: After 1 minute
+Attempt 3: After 5 minutes
+Attempt 4: After 30 minutes
+Attempt 5: After 2 hours
+
+After max retries: Dead letter queue
+```
+
+### Circuit Breaker
+
+```
+If provider fails repeatedly:
+- Open circuit
+- Fail fast
+- Queue for later retry
+```
+
+---
+
+## Real-Time vs Batch
+
+| **Type** | **Use Case** | **Approach** |
+|---------|-------------|-------------|
+| Real-time | Order updates, security alerts | Direct queue processing |
+| Batch | Marketing, digests | Scheduled jobs |
+
+---
+
+## Interview Tips
+
+- Cover all notification channels
+- Discuss queuing for reliability
+- Mention user preferences and opt-outs
+- Explain retry and deduplication
+- Consider rate limiting and quiet hours

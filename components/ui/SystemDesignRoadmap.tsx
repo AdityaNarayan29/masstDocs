@@ -858,6 +858,33 @@ export default function SystemDesignRoadmap() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
+  // Reset loading state on page visibility change (handles browser back button)
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      // e.persisted is true when page is restored from bfcache (back/forward navigation)
+      if (e.persisted) {
+        setIsNavigating(false);
+        setNavigatingTo(null);
+      }
+    };
+
+    // Also reset on visibility change as a fallback
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setIsNavigating(false);
+        setNavigatingTo(null);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   // Load visited nodes from localStorage on mount
   useEffect(() => {
     try {

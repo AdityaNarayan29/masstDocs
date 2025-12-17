@@ -1,0 +1,213 @@
+---
+title: URL Shortener
+description: System design for a URL shortening service like bit.ly or TinyURL.
+---
+
+## Problem Statement
+
+Design a URL shortening service like bit.ly that:
+- Shortens long URLs to short aliases
+- Redirects short URLs to original URLs
+- Handles high read traffic
+- Provides analytics (optional)
+
+---
+
+## Requirements
+
+### Functional
+
+- Create short URL from long URL
+- Redirect short URL to original
+- Custom aliases (optional)
+- Link expiration (optional)
+
+### Non-Functional
+
+- High availability
+- Low latency redirects
+- Scalable to billions of URLs
+
+---
+
+## Capacity Estimation
+
+```
+Assumptions:
+- 100M URLs created per month
+- 100:1 read/write ratio
+- 10 billion redirects per month
+- URL stored for 5 years
+
+Write QPS:
+100M / (30 × 24 × 3600) ≈ 40 URLs/second
+
+Read QPS:
+40 × 100 = 4,000 redirects/second
+Peak: ~10,000 redirects/second
+
+Storage (5 years):
+100M × 12 × 5 = 6 billion URLs
+6B × 500 bytes = 3 TB
+```
+
+---
+
+## Short URL Generation
+
+### Approach 1: Hash + Truncate
+
+```
+MD5(long_url) = "d41d8cd98f00b204..."
+Short URL = first 7 chars = "d41d8cd"
+```
+
+**Problem**: Collisions possible
+
+### Approach 2: Base62 Encoding
+
+Use counter or random ID, encode in base62:
+
+```
+Characters: [a-z, A-Z, 0-9] = 62 chars
+7 characters = 62^7 = 3.5 trillion combinations
+
+ID: 123456789
+Base62: "8M0kX"
+```
+
+### Approach 3: Pre-generated Keys
+
+Generate keys offline, store in key database:
+
+```
+┌───────────────┐     ┌───────────────┐
+│ Key Generator │────►│  Key Database │
+│   (offline)   │     │  (unused keys)│
+└───────────────┘     └───────────────┘
+                             │
+                             ▼
+                      ┌───────────────┐
+                      │  App Server   │
+                      │ (takes a key) │
+                      └───────────────┘
+```
+
+---
+
+## System Architecture
+
+```
+                         ┌─────────────┐
+                         │     CDN     │
+                         └──────┬──────┘
+                                │
+                         ┌──────▼──────┐
+                         │    Load     │
+                         │  Balancer   │
+                         └──────┬──────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+       ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
+       │ App Server  │  │ App Server  │  │ App Server  │
+       └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+              │                 │                 │
+              └─────────────────┼─────────────────┘
+                                │
+                         ┌──────▼──────┐
+                         │    Cache    │
+                         │   (Redis)   │
+                         └──────┬──────┘
+                                │
+                         ┌──────▼──────┐
+                         │  Database   │
+                         │ (sharded)   │
+                         └─────────────┘
+```
+
+---
+
+## Database Schema
+
+```sql
+CREATE TABLE urls (
+    id BIGINT PRIMARY KEY,
+    short_code VARCHAR(7) UNIQUE,
+    original_url TEXT,
+    user_id BIGINT,
+    created_at TIMESTAMP,
+    expires_at TIMESTAMP,
+    click_count BIGINT DEFAULT 0
+);
+
+-- Index for lookups
+CREATE INDEX idx_short_code ON urls(short_code);
+```
+
+---
+
+## API Design
+
+### Create Short URL
+
+```http
+POST /api/shorten
+{
+    "url": "https://example.com/very/long/url",
+    "custom_alias": "mylink",  // optional
+    "expires_at": "2025-12-31" // optional
+}
+
+Response:
+{
+    "short_url": "https://short.ly/abc123",
+    "original_url": "https://example.com/very/long/url"
+}
+```
+
+### Redirect
+
+```http
+GET /abc123
+
+Response: 301 Redirect to original URL
+```
+
+---
+
+## Caching Strategy
+
+```
+Read path:
+1. Check cache (Redis)
+2. If miss, query database
+3. Store in cache
+4. Return and redirect
+
+Cache settings:
+- TTL: 24 hours (or based on popularity)
+- Hot URLs: Keep in cache longer
+```
+
+---
+
+## Key Design Decisions
+
+| **Decision** | **Choice** | **Reason** |
+|-------------|-----------|-----------|
+| URL length | 7 characters | 3.5T combinations |
+| Encoding | Base62 | URL-safe characters |
+| Database | NoSQL (DynamoDB) | Key-value access pattern |
+| Cache | Redis | Fast lookups |
+| Redirect code | 301 vs 302 | 301 for SEO, 302 for analytics |
+
+---
+
+## Interview Tips
+
+- Start with requirements and estimations
+- Discuss key generation approaches
+- Explain caching for read-heavy workload
+- Mention 301 vs 302 redirect implications
+- Discuss sharding strategy for database

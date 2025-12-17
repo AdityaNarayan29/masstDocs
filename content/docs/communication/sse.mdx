@@ -1,0 +1,141 @@
+---
+title: Server-Sent Events
+description: Understanding SSE for server-to-client streaming.
+---
+
+## What is SSE?
+
+**Server-Sent Events (SSE)** is a standard for pushing updates from server to client over HTTP. Unlike WebSocket, it's unidirectional (server to client only).
+
+---
+
+## SSE vs WebSocket
+
+| **Aspect** | **SSE** | **WebSocket** |
+|-----------|--------|---------------|
+| Direction | Server → Client only | Bidirectional |
+| Protocol | HTTP | WebSocket |
+| Reconnection | Automatic | Manual |
+| Browser support | Native EventSource | Native WebSocket |
+| Complexity | Simple | More complex |
+
+---
+
+## How SSE Works
+
+```
+Client                              Server
+   │                                   │
+   │─── GET /events ──────────────────►│
+   │    Accept: text/event-stream      │
+   │                                   │
+   │◄── HTTP 200 ─────────────────────│
+   │    Content-Type: text/event-stream│
+   │                                   │
+   │◄── data: message 1 ──────────────│
+   │◄── data: message 2 ──────────────│
+   │◄── data: message 3 ──────────────│
+   │    (connection stays open)        │
+```
+
+---
+
+## Event Format
+
+```
+event: update
+id: 123
+retry: 5000
+data: {"price": 150.25}
+
+event: notification
+data: New message received
+```
+
+| **Field** | **Description** |
+|----------|-----------------|
+| event | Event type (optional) |
+| id | Event ID for reconnection |
+| retry | Reconnection time in ms |
+| data | Event payload |
+
+---
+
+## Client Example (JavaScript)
+
+```javascript
+const source = new EventSource('/api/events');
+
+source.onmessage = (event) => {
+  console.log('Message:', event.data);
+};
+
+source.addEventListener('update', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Update:', data);
+});
+
+source.onerror = () => {
+  console.log('Connection error, will auto-reconnect');
+};
+```
+
+---
+
+## Server Example (Node.js)
+
+```javascript
+app.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const sendEvent = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Send updates
+  const interval = setInterval(() => {
+    sendEvent({ time: new Date() });
+  }, 1000);
+
+  req.on('close', () => {
+    clearInterval(interval);
+  });
+});
+```
+
+---
+
+## Use Cases
+
+| **Use Case** | **Why SSE** |
+|-------------|------------|
+| Live feeds | News, social media updates |
+| Notifications | Push alerts to users |
+| Progress updates | File upload, long tasks |
+| Stock tickers | Price updates |
+| Log streaming | Real-time logs |
+
+---
+
+## When to Use SSE vs WebSocket
+
+| **Requirement** | **Choose** |
+|----------------|-----------|
+| Server → Client only | SSE |
+| Bidirectional needed | WebSocket |
+| Simple implementation | SSE |
+| Binary data | WebSocket |
+| Auto-reconnection | SSE |
+| Low latency bidirectional | WebSocket |
+
+---
+
+## Interview Tips
+
+- Explain unidirectional nature
+- Compare with WebSocket and polling
+- Describe auto-reconnection with event IDs
+- Know the event format (event, id, data)
+- Give use cases: notifications, live updates

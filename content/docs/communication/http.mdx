@@ -1,0 +1,94 @@
+---
+title: HTTP
+description: Understanding HTTP protocol in system design.
+---
+
+## What is HTTP?
+
+**HTTP (Hypertext Transfer Protocol)** is the foundation of data communication on the web. It's a request-response protocol where clients send requests and servers return responses.
+
+---
+
+## HTTP Request Structure
+
+```
+GET /api/users/123 HTTP/1.1
+Host: api.example.com
+Authorization: Bearer token123
+Content-Type: application/json
+Accept: application/json
+```
+
+| **Component** | **Description** |
+|--------------|-----------------|
+| Method | GET, POST, PUT, DELETE, PATCH |
+| Path | Resource URL |
+| Headers | Metadata (auth, content type) |
+| Body | Data payload (POST, PUT, PATCH) |
+
+---
+
+## HTTP Methods
+
+| **Method** | **Purpose** | **Idempotent** | **Safe** |
+|-----------|------------|----------------|----------|
+| GET | Retrieve resource | Yes | Yes |
+| POST | Create resource | No | No |
+| PUT | Replace resource | Yes | No |
+| PATCH | Partial update | No | No |
+| DELETE | Remove resource | Yes | No |
+
+---
+
+## HTTP Status Codes
+
+| **Range** | **Category** | **Examples** |
+|----------|-------------|--------------|
+| 2xx | Success | 200 OK, 201 Created, 204 No Content |
+| 3xx | Redirection | 301 Moved, 304 Not Modified |
+| 4xx | Client Error | 400 Bad Request, 401 Unauthorized, 404 Not Found |
+| 5xx | Server Error | 500 Internal Error, 502 Bad Gateway, 503 Unavailable |
+
+---
+
+## HTTP/1.1 vs HTTP/2 vs HTTP/3
+
+| **Feature** | **HTTP/1.1** | **HTTP/2** | **HTTP/3** |
+|------------|-------------|-----------|-----------|
+| Multiplexing | No | Yes | Yes |
+| Header compression | No | HPACK | QPACK |
+| Server push | No | Yes | Yes |
+| Transport | TCP | TCP | QUIC (UDP) |
+| Head-of-line blocking | Yes | Partially | No |
+
+---
+
+## Connection Management
+
+### HTTP/1.1
+
+```
+Connection: keep-alive  # Reuse TCP connection
+Connection: close       # Close after response
+```
+
+### Connection Pooling
+
+```
+┌─────────┐     ┌─────────────┐     ┌─────────┐
+│ Client  │────►│ Conn Pool   │────►│ Server  │
+└─────────┘     │ [conn1]     │     └─────────┘
+                │ [conn2]     │
+                │ [conn3]     │
+                └─────────────┘
+```
+
+---
+
+## Interview Tips
+
+- Know HTTP methods and their semantics
+- Understand status code categories
+- Explain HTTP/2 improvements (multiplexing)
+- Discuss connection management and keep-alive
+- Mention idempotency for retry safety

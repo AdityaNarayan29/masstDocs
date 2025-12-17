@@ -1,0 +1,153 @@
+---
+title: Saga Pattern
+description: Understanding the saga pattern for distributed transactions.
+---
+
+## What is the Saga Pattern?
+
+The **Saga Pattern** manages distributed transactions across multiple services by breaking them into a sequence of local transactions. Each step has a compensating transaction to undo its work if a later step fails.
+
+---
+
+## The Problem
+
+Distributed transactions are hard:
+
+```
+Order Service ──► Payment Service ──► Inventory Service
+     │                  │                    │
+     │              Payment OK          Stock depleted
+     │                  │                    │
+     │              Payment fails?      Need to rollback!
+     │                  ▼                    │
+     │            Can't use 2PC easily      │
+```
+
+---
+
+## How Sagas Work
+
+```
+Happy Path:
+T1 ──► T2 ──► T3 ──► T4 ──► Success!
+
+Failure at T3:
+T1 ──► T2 ──► T3 (fails)
+              │
+              ▼
+        C2 ◄── C1 (compensate backwards)
+```
+
+| **Concept** | **Description** |
+|------------|-----------------|
+| Transaction (T) | Local transaction in a service |
+| Compensation (C) | Undo action for a transaction |
+| Saga | Sequence of T₁, T₂, ..., Tₙ with compensations C₁, C₂, ..., Cₙ |
+
+---
+
+## Saga Types
+
+### Choreography
+
+Services react to events, no central coordinator:
+
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐
+│ Order   │────►│ Payment │────►│Inventory│
+│ Service │     │ Service │     │ Service │
+└─────────┘     └─────────┘     └─────────┘
+     │               │               │
+     └──────◄────────┴──────◄────────┘
+              Events/Compensation
+```
+
+**Pros**: Decoupled, simple for few steps
+**Cons**: Hard to track, complex flows
+
+### Orchestration
+
+Central coordinator manages the flow:
+
+```
+              ┌─────────────┐
+              │ Orchestrator│
+              └──────┬──────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+        ▼            ▼            ▼
+   ┌─────────┐  ┌─────────┐  ┌─────────┐
+   │ Order   │  │ Payment │  │Inventory│
+   │ Service │  │ Service │  │ Service │
+   └─────────┘  └─────────┘  └─────────┘
+```
+
+**Pros**: Easy to understand, centralized logic
+**Cons**: Orchestrator can be bottleneck
+
+---
+
+## Example: Order Saga
+
+```
+Order Placement Saga:
+
+Step 1: Create Order (Pending)
+        Compensation: Cancel Order
+
+Step 2: Reserve Inventory
+        Compensation: Release Inventory
+
+Step 3: Process Payment
+        Compensation: Refund Payment
+
+Step 4: Confirm Order
+        (No compensation needed - final step)
+```
+
+### Failure Scenario
+
+```
+1. Create Order ✓
+2. Reserve Inventory ✓
+3. Process Payment ✗ (fails - insufficient funds)
+   │
+   └─► Trigger compensation:
+       - Refund Payment (no-op, payment failed)
+       - Release Inventory
+       - Cancel Order
+```
+
+---
+
+## Implementation Tips
+
+| **Consideration** | **Approach** |
+|------------------|-------------|
+| Idempotency | Make operations repeatable safely |
+| Correlation ID | Track saga instance across services |
+| Timeout | Handle stuck sagas |
+| Monitoring | Track saga state and failures |
+
+---
+
+## Saga vs 2PC
+
+| **Aspect** | **Saga** | **2PC** |
+|-----------|---------|---------|
+| Consistency | Eventual | Strong |
+| Availability | Higher | Lower |
+| Complexity | Business logic | Protocol |
+| Scalability | Better | Worse |
+| Recovery | Compensation | Rollback |
+
+---
+
+## Interview Tips
+
+- Explain choreography vs orchestration
+- Describe compensation transactions
+- Discuss idempotency requirement
+- Know trade-offs vs 2PC
+- Give examples: e-commerce order flow

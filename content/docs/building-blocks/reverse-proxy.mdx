@@ -1,0 +1,109 @@
+---
+title: Reverse Proxy
+description: Understanding reverse proxies and their role in system architecture.
+---
+
+## What is a Reverse Proxy?
+
+A **Reverse Proxy** sits in front of backend servers and forwards client requests to them. Unlike a forward proxy (which acts on behalf of clients), a reverse proxy acts on behalf of servers.
+
+---
+
+## Forward vs Reverse Proxy
+
+```
+Forward Proxy (client-side):
+Client ──► [Proxy] ──► Internet ──► Server
+           hides client
+
+Reverse Proxy (server-side):
+Client ──► Internet ──► [Reverse Proxy] ──► Server
+                        hides server
+```
+
+---
+
+## Reverse Proxy Functions
+
+### 1. Load Balancing
+
+Distribute requests across multiple backend servers.
+
+### 2. SSL Termination
+
+Handle HTTPS encryption/decryption at the proxy:
+
+```
+Client ──HTTPS──► Reverse Proxy ──HTTP──► Backend
+                 (SSL terminates here)
+```
+
+### 3. Caching
+
+Cache responses to reduce backend load:
+
+```
+Request 1: Client → Proxy → Backend → Response (cached)
+Request 2: Client → Proxy → Cached Response (backend not hit)
+```
+
+### 4. Compression
+
+Compress responses before sending to clients.
+
+### 5. Security
+
+- Hide backend server details
+- Filter malicious requests
+- Rate limiting
+- Web Application Firewall (WAF)
+
+---
+
+## Common Use Cases
+
+| **Use Case** | **How Reverse Proxy Helps** |
+|-------------|---------------------------|
+| API Gateway | Route to different microservices |
+| Static content | Serve cached files |
+| SSL offloading | Centralized certificate management |
+| A/B testing | Route traffic to different versions |
+
+---
+
+## Popular Reverse Proxies
+
+| **Software** | **Strengths** |
+|-------------|--------------|
+| NGINX | High performance, widely used |
+| HAProxy | Load balancing focus |
+| Traefik | Container-native, auto-discovery |
+| Envoy | Service mesh, observability |
+
+---
+
+## NGINX Example
+
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+
+    location /api/ {
+        proxy_pass http://backend-servers;
+    }
+
+    location /static/ {
+        root /var/www/static;
+    }
+}
+```
+
+---
+
+## Interview Tips
+
+- Differentiate forward vs reverse proxy
+- Know common functions: SSL termination, caching, load balancing
+- Mention security benefits
+- Give examples: NGINX, HAProxy, cloud load balancers

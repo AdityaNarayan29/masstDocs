@@ -1,0 +1,108 @@
+---
+title: Load Balancer
+description: Understanding load balancing strategies and implementations.
+---
+
+## What is a Load Balancer?
+
+A **Load Balancer** distributes incoming network traffic across multiple servers to ensure no single server bears too much load, improving reliability and performance.
+
+---
+
+## Load Balancer Architecture
+
+```
+                    ┌─────────────┐
+                    │   Clients   │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │    Load     │
+                    │   Balancer  │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+      ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
+      │Server 1 │    │Server 2 │    │Server 3 │
+      └─────────┘    └─────────┘    └─────────┘
+```
+
+---
+
+## Load Balancing Algorithms
+
+| **Algorithm** | **How It Works** | **Best For** |
+|--------------|------------------|--------------|
+| Round Robin | Rotate through servers sequentially | Equal server capacity |
+| Weighted Round Robin | More traffic to higher-weight servers | Varying server capacity |
+| Least Connections | Route to server with fewest connections | Long-lived connections |
+| IP Hash | Same client IP → same server | Session persistence |
+| Least Response Time | Route to fastest responding server | Performance optimization |
+
+---
+
+## Types of Load Balancers
+
+### Layer 4 (Transport)
+
+- Operates on TCP/UDP
+- Fast, simple routing
+- No content inspection
+
+### Layer 7 (Application)
+
+- Operates on HTTP/HTTPS
+- Content-based routing
+- Can inspect headers, cookies, URLs
+
+```
+Layer 7 routing example:
+/api/*     → API servers
+/images/*  → Static servers
+/admin/*   → Admin servers
+```
+
+---
+
+## Health Checks
+
+```
+Load Balancer
+      │
+      ├──► Server 1: GET /health → 200 OK ✓
+      ├──► Server 2: GET /health → 200 OK ✓
+      └──► Server 3: GET /health → 503 ✗ (removed from pool)
+```
+
+---
+
+## High Availability
+
+```
+┌─────────────┐    ┌─────────────┐
+│     LB      │◄──►│     LB      │
+│  (Active)   │    │  (Standby)  │
+└──────┬──────┘    └─────────────┘
+       │
+   Virtual IP
+```
+
+---
+
+## Popular Load Balancers
+
+| **Type** | **Examples** |
+|----------|-------------|
+| Hardware | F5, Citrix ADC |
+| Software | HAProxy, NGINX |
+| Cloud | AWS ALB/NLB, GCP Load Balancer |
+
+---
+
+## Interview Tips
+
+- Know L4 vs L7 differences
+- Explain common algorithms and when to use each
+- Discuss health checks and failover
+- Mention sticky sessions for stateful applications

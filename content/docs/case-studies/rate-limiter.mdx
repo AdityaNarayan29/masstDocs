@@ -1,0 +1,234 @@
+---
+title: Rate Limiter
+description: System design for a rate limiting service.
+---
+
+## Problem Statement
+
+Design a rate limiter that:
+- Limits API requests per user/IP
+- Protects services from abuse
+- Handles high throughput
+- Provides configurable limits
+
+---
+
+## Why Rate Limiting?
+
+| **Reason** | **Description** |
+|-----------|-----------------|
+| Prevent abuse | Stop malicious users |
+| Cost control | Limit expensive operations |
+| Fair usage | Ensure resources for all users |
+| Security | Prevent brute force attacks |
+| Stability | Protect from traffic spikes |
+
+---
+
+## Rate Limiting Algorithms
+
+### 1. Token Bucket
+
+Tokens added at fixed rate, consumed per request:
+
+```
+Bucket capacity: 10 tokens
+Refill rate: 1 token/second
+
+Request arrives:
+- If tokens > 0: Allow, tokens--
+- If tokens = 0: Reject
+
+Allows bursts up to bucket size
+```
+
+### 2. Leaky Bucket
+
+Requests processed at constant rate:
+
+```
+Bucket (queue) capacity: 10
+Processing rate: 1 request/second
+
+Request arrives:
+- If queue not full: Add to queue
+- If queue full: Reject
+
+Smooths out traffic
+```
+
+### 3. Fixed Window
+
+Count requests in fixed time windows:
+
+```
+Window: 1 minute
+Limit: 100 requests
+
+Time 10:00-10:01: Count requests
+Reset at 10:01
+
+Problem: Burst at window boundary
+```
+
+### 4. Sliding Window Log
+
+Track timestamps of all requests:
+
+```
+Keep timestamps of last N seconds
+Count timestamps in window
+Allow if count < limit
+
+Accurate but memory-intensive
+```
+
+### 5. Sliding Window Counter
+
+Hybrid of fixed window and sliding log:
+
+```
+Previous window count: 80
+Current window count: 20
+Current position: 30% into window
+
+Weighted count = 80 × 70% + 20 = 76
+Limit: 100 → Allow
+```
+
+---
+
+## Algorithm Comparison
+
+| **Algorithm** | **Memory** | **Accuracy** | **Burst** |
+|--------------|-----------|-------------|----------|
+| Token Bucket | Low | Good | Allows |
+| Leaky Bucket | Low | Good | Smooths |
+| Fixed Window | Low | Poor | Issue at edges |
+| Sliding Log | High | Best | Configurable |
+| Sliding Counter | Medium | Good | Partial |
+
+---
+
+## System Architecture
+
+```
+                    ┌─────────────────┐
+                    │   API Gateway   │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Rate Limiter   │
+                    │    Service      │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Redis Cluster  │
+                    │  (counters)     │
+                    └─────────────────┘
+```
+
+---
+
+## Redis Implementation
+
+### Token Bucket with Redis
+
+```lua
+-- Lua script for atomicity
+local tokens = redis.call('GET', KEYS[1])
+local last_refill = redis.call('GET', KEYS[2])
+local now = tonumber(ARGV[1])
+local capacity = tonumber(ARGV[2])
+local refill_rate = tonumber(ARGV[3])
+
+-- Calculate tokens to add
+local elapsed = now - tonumber(last_refill or now)
+local new_tokens = math.min(capacity, (tokens or capacity) + elapsed * refill_rate)
+
+if new_tokens >= 1 then
+    redis.call('SET', KEYS[1], new_tokens - 1)
+    redis.call('SET', KEYS[2], now)
+    return 1  -- Allowed
+else
+    return 0  -- Rejected
+end
+```
+
+### Fixed Window with Redis
+
+```
+Key: rate_limit:{user_id}:{window}
+Example: rate_limit:123:202401151030
+
+INCR rate_limit:123:202401151030
+EXPIRE rate_limit:123:202401151030 60
+
+if count > limit: reject
+```
+
+---
+
+## Rate Limit Headers
+
+```http
+HTTP/1.1 200 OK
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1704067200
+
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+```
+
+---
+
+## Rate Limiting Strategies
+
+| **Strategy** | **Key** | **Use Case** |
+|-------------|--------|-------------|
+| Per User | user_id | Logged-in users |
+| Per IP | IP address | Anonymous users |
+| Per API Key | api_key | API consumers |
+| Per Endpoint | user + endpoint | Different limits per API |
+
+---
+
+## Distributed Rate Limiting
+
+### Challenge
+
+Multiple servers need consistent counts.
+
+### Solutions
+
+1. **Centralized store (Redis)**: Single source of truth
+2. **Sticky sessions**: Same user → same server
+3. **Loose synchronization**: Accept some over-limit
+
+```
+Server 1 ──┐
+Server 2 ──┼──► Redis (shared counter)
+Server 3 ──┘
+```
+
+---
+
+## Design Considerations
+
+| **Consideration** | **Approach** |
+|------------------|-------------|
+| Latency | Use Redis with low latency |
+| Consistency | Lua scripts for atomicity |
+| Failure handling | Fail open or fail closed |
+| Client notification | Return headers with limits |
+
+---
+
+## Interview Tips
+
+- Know multiple algorithms and trade-offs
+- Explain token bucket or sliding window in detail
+- Discuss distributed challenges
+- Mention rate limit headers
+- Consider graceful degradation

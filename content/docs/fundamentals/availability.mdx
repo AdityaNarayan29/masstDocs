@@ -1,0 +1,182 @@
+---
+title: Availability
+description: Understanding availability in distributed systems and how to design highly available systems.
+---
+
+## What is Availability?
+
+**Availability** measures the proportion of time a system is operational and accessible. It's typically expressed as a percentage, often called "nines" of availability.
+
+---
+
+## The "Nines" of Availability
+
+| **Availability** | **Downtime/Year** | **Downtime/Month** | **Downtime/Week** |
+|------------------|-------------------|--------------------|--------------------|
+| 99% (two nines) | 3.65 days | 7.31 hours | 1.68 hours |
+| 99.9% (three nines) | 8.77 hours | 43.83 minutes | 10.08 minutes |
+| 99.99% (four nines) | 52.60 minutes | 4.38 minutes | 1.01 minutes |
+| 99.999% (five nines) | 5.26 minutes | 26.30 seconds | 6.05 seconds |
+
+> **Note**: Five nines (99.999%) is considered "high availability" and is the target for critical systems like banking, healthcare, and emergency services.
+
+---
+
+## Calculating Availability
+
+### Single Component
+
+```
+Availability = MTBF / (MTBF + MTTR)
+```
+
+Where:
+- **MTBF**: Mean Time Between Failures
+- **MTTR**: Mean Time To Recovery
+
+### Systems in Sequence
+
+When components are in series (all must work):
+
+```
+Total Availability = A₁ × A₂ × A₃ × ... × Aₙ
+```
+
+**Example**: Three services at 99.9% each:
+```
+0.999 × 0.999 × 0.999 = 99.7%
+```
+
+### Systems in Parallel (Redundancy)
+
+When components are redundant (any one can work):
+
+```
+Total Availability = 1 - (1 - A)ⁿ
+```
+
+**Example**: Two servers at 99% each:
+```
+1 - (1 - 0.99)² = 1 - 0.0001 = 99.99%
+```
+
+---
+
+## Strategies for High Availability
+
+### 1. Redundancy
+
+- **Active-Passive**: Standby takes over on failure
+- **Active-Active**: Multiple instances handle requests simultaneously
+- **N+1 Redundancy**: One extra component beyond minimum required
+
+### 2. Replication
+
+- **Database replication**: Multiple copies of data
+- **Multi-region deployment**: Survive regional outages
+- **Cross-zone redundancy**: Survive datacenter failures
+
+### 3. Load Balancing
+
+- Distribute traffic across healthy instances
+- Automatic health checks and failover
+- Geographic load balancing for global availability
+
+### 4. Fault Isolation
+
+- **Bulkhead pattern**: Isolate failures to prevent cascade
+- **Circuit breaker**: Stop calling failing services
+- **Graceful degradation**: Provide reduced functionality instead of complete failure
+
+---
+
+## Availability Patterns
+
+### Failover
+
+**Active-Passive (Cold Standby)**:
+- Primary handles all traffic
+- Secondary activated on primary failure
+- Simple but causes brief downtime during switch
+
+**Active-Active (Hot Standby)**:
+- Multiple instances handle traffic
+- No downtime on single failure
+- More complex to implement
+
+### Health Checks
+
+Systems should continuously monitor component health:
+- **Liveness probes**: Is the service running?
+- **Readiness probes**: Can it handle requests?
+- **Deep health checks**: Are dependencies healthy?
+
+---
+
+## Availability vs Other Properties
+
+| **Trade-off** | **Higher Availability** | **Lower Availability** |
+|---------------|------------------------|------------------------|
+| Consistency | Eventually consistent | Strongly consistent |
+| Cost | Higher (more redundancy) | Lower |
+| Complexity | Higher (more components) | Lower |
+| Latency | Sometimes higher | Sometimes lower |
+
+---
+
+## Real-World Examples
+
+### High Availability Systems
+
+| **System** | **Target** | **Approach** |
+|------------|-----------|--------------|
+| AWS S3 | 99.999999999% (11 nines) durability | Massive replication |
+| Google Search | 99.99%+ | Global distribution |
+| Banking Systems | 99.99% | Active-active with failover |
+
+### Downtime Incidents
+
+- **2017 AWS S3 outage**: Took down thousands of websites for 4 hours
+- **2021 Facebook outage**: 6-hour global outage due to BGP misconfiguration
+- **2020 Google outage**: 45-minute outage affecting Gmail, YouTube, etc.
+
+---
+
+## Designing for Availability
+
+### Questions to Ask
+
+1. What's the acceptable downtime for this system?
+2. What's the cost of downtime (revenue, reputation)?
+3. What failure scenarios must we handle?
+4. What's the budget for redundancy?
+
+### Best Practices
+
+- **Define SLAs/SLOs**: Set clear availability targets
+- **Plan for failure**: Assume components will fail
+- **Test failover**: Regularly test backup systems
+- **Monitor everything**: Detect issues before users do
+- **Automate recovery**: Reduce MTTR with automation
+
+---
+
+## Interview Tips
+
+- **Know the nines**: Memorize the availability percentages and their downtime
+- **Calculate compound availability**: Understand how components in series/parallel affect total availability
+- **Discuss trade-offs**: Availability often trades off with consistency (CAP theorem)
+- **Mention real examples**: Reference AWS, Google, etc. availability strategies
+- **Consider cost**: Higher availability = higher cost
+
+---
+
+## Summary
+
+Availability is crucial for user trust and business continuity. Achieving high availability requires:
+
+1. **Redundancy** at every layer
+2. **Automated failover** mechanisms
+3. **Continuous monitoring** and alerting
+4. **Regular testing** of failure scenarios
+5. **Clear SLAs** and recovery procedures

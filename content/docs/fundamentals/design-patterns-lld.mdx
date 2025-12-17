@@ -1,0 +1,220 @@
+---
+title: Design Patterns (LLD)
+description: Object-oriented design patterns for low-level design interviews.
+---
+
+## What are Design Patterns?
+
+**Design Patterns** are reusable solutions to common software design problems. They provide templates for solving issues that occur repeatedly in software development.
+
+---
+
+## Pattern Categories
+
+| **Category** | **Purpose** | **Examples** |
+|-------------|------------|--------------|
+| Creational | Object creation | Singleton, Factory, Builder |
+| Structural | Class composition | Adapter, Decorator, Facade |
+| Behavioral | Object interaction | Strategy, Observer, Command |
+
+---
+
+## Creational Patterns
+
+### Singleton
+
+Ensure only one instance exists:
+
+```java
+public class Database {
+    private static Database instance;
+
+    private Database() {}
+
+    public static synchronized Database getInstance() {
+        if (instance == null) {
+            instance = new Database();
+        }
+        return instance;
+    }
+}
+```
+
+**Use case**: Database connections, logging, configuration
+
+### Factory
+
+Create objects without exposing creation logic:
+
+```java
+public class VehicleFactory {
+    public Vehicle create(String type) {
+        switch (type) {
+            case "car": return new Car();
+            case "bike": return new Bike();
+            default: throw new IllegalArgumentException();
+        }
+    }
+}
+```
+
+**Use case**: Creating objects based on input, decoupling
+
+### Builder
+
+Construct complex objects step by step:
+
+```java
+User user = new User.Builder()
+    .setName("John")
+    .setEmail("john@example.com")
+    .setAge(25)
+    .build();
+```
+
+**Use case**: Objects with many optional parameters
+
+---
+
+## Structural Patterns
+
+### Adapter
+
+Convert interface of one class to another:
+
+```java
+// Old interface
+class OldPaymentSystem {
+    void makePayment(double amount) { }
+}
+
+// New interface expected
+interface PaymentProcessor {
+    void process(Payment payment);
+}
+
+// Adapter
+class PaymentAdapter implements PaymentProcessor {
+    private OldPaymentSystem oldSystem;
+
+    void process(Payment payment) {
+        oldSystem.makePayment(payment.getAmount());
+    }
+}
+```
+
+**Use case**: Integrating legacy systems
+
+### Decorator
+
+Add behavior dynamically without modifying class:
+
+```java
+interface Coffee {
+    double cost();
+}
+
+class SimpleCoffee implements Coffee {
+    public double cost() { return 5.0; }
+}
+
+class MilkDecorator implements Coffee {
+    private Coffee coffee;
+    public double cost() { return coffee.cost() + 1.5; }
+}
+```
+
+**Use case**: Adding features flexibly (streams, UI components)
+
+### Facade
+
+Simplified interface to complex subsystem:
+
+```java
+class OrderFacade {
+    public void placeOrder(Order order) {
+        inventoryService.reserve(order);
+        paymentService.charge(order);
+        shippingService.ship(order);
+        notificationService.notify(order);
+    }
+}
+```
+
+**Use case**: Simplifying complex APIs
+
+---
+
+## Behavioral Patterns
+
+### Strategy
+
+Define family of algorithms, make them interchangeable:
+
+```java
+interface PaymentStrategy {
+    void pay(double amount);
+}
+
+class CreditCardPayment implements PaymentStrategy { }
+class PayPalPayment implements PaymentStrategy { }
+
+class ShoppingCart {
+    private PaymentStrategy strategy;
+
+    void checkout() {
+        strategy.pay(calculateTotal());
+    }
+}
+```
+
+**Use case**: Multiple algorithms for same task
+
+### Observer
+
+Notify dependents of state changes:
+
+```java
+interface Observer {
+    void update(Event event);
+}
+
+class EventPublisher {
+    private List<Observer> observers;
+
+    void subscribe(Observer o) { observers.add(o); }
+    void notify(Event event) {
+        observers.forEach(o -> o.update(event));
+    }
+}
+```
+
+**Use case**: Event systems, UI updates
+
+### Command
+
+Encapsulate request as an object:
+
+```java
+interface Command {
+    void execute();
+    void undo();
+}
+
+class AddTextCommand implements Command {
+    void execute() { editor.addText(text); }
+    void undo() { editor.removeText(text); }
+}
+```
+
+**Use case**: Undo/redo, queuing operations
+
+---
+
+## Interview Tips
+
+- Know 3-4 patterns from each category
+- Explain when to use each pattern
+- Draw class diagrams if asked
+- Discuss trade-offs (complexity vs flexibility)
+- Give real-world examples

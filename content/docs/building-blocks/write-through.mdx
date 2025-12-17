@@ -1,0 +1,98 @@
+---
+title: Write-Through
+description: Understanding the write-through caching pattern.
+---
+
+## What is Write-Through?
+
+**Write-Through** is a caching pattern where writes go to both the cache and the database synchronously. The cache acts as the main interface for both reads and writes.
+
+---
+
+## How It Works
+
+```
+Application                Cache                Database
+     │                       │                     │
+     │─── Write(key, data) ─►│                     │
+     │                       │                     │
+     │                       │─── Write ──────────►│
+     │                       │                     │
+     │                       │◄── OK ─────────────│
+     │                       │                     │
+     │◄── OK ────────────────│                     │
+```
+
+Both cache and database are updated before returning success.
+
+---
+
+## Read Flow
+
+```
+Application                Cache                Database
+     │                       │                     │
+     │─── Read(key) ────────►│                     │
+     │                       │                     │
+     │◄── Data (if cached) ──│                     │
+     │                       │                     │
+     │        OR if miss:    │                     │
+     │                       │─── Query ──────────►│
+     │                       │◄── Data ───────────│
+     │◄── Data ──────────────│                     │
+```
+
+---
+
+## Advantages
+
+| **Benefit** | **Description** |
+|------------|-----------------|
+| Cache always consistent | Writes update cache immediately |
+| No stale data | Cache reflects DB state |
+| Simple reads | Always read from cache |
+| Data durability | DB always has latest |
+
+---
+
+## Disadvantages
+
+| **Drawback** | **Description** |
+|-------------|-----------------|
+| Higher write latency | Must write to both |
+| Cache may have unused data | Writes cached even if never read |
+| Write amplification | Every write hits DB and cache |
+
+---
+
+## Use Cases
+
+Good for:
+- Data that's frequently read after write
+- Strong consistency requirements
+- Applications where write latency is acceptable
+
+Not ideal for:
+- Write-heavy workloads
+- Data rarely read after write
+- Latency-sensitive writes
+
+---
+
+## Comparison
+
+| **Aspect** | **Write-Through** | **Cache-Aside** |
+|-----------|------------------|-----------------|
+| Write latency | Higher | Lower |
+| Cache consistency | Always consistent | May be stale briefly |
+| Cache population | On every write | On read (lazy) |
+| Complexity | Cache handles writes | App manages both |
+
+---
+
+## Interview Tips
+
+- Explain synchronous write to both cache and DB
+- Discuss latency trade-off vs consistency benefit
+- Compare with write-behind (async) pattern
+- Mention when write-through is appropriate

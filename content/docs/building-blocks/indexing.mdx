@@ -1,0 +1,131 @@
+---
+title: Indexing
+description: Understanding database indexing for query optimization.
+---
+
+## What is an Index?
+
+A database **index** is a data structure that improves query speed by providing quick lookups, similar to an index in a book. Without indexes, the database must scan every row (full table scan).
+
+---
+
+## How Indexes Work
+
+```
+Without Index:
+Query: WHERE user_id = 123
+┌─────────────────────────┐
+│ Scan all 1M rows        │ → O(n) - slow
+└─────────────────────────┘
+
+With Index:
+Query: WHERE user_id = 123
+┌─────────────────────────┐
+│ B-tree lookup           │ → O(log n) - fast
+└─────────────────────────┘
+```
+
+---
+
+## Index Types
+
+### B-Tree Index (Most Common)
+
+Balanced tree structure, good for:
+- Equality: `WHERE id = 5`
+- Range: `WHERE id > 5 AND id < 10`
+- Sorting: `ORDER BY id`
+
+### Hash Index
+
+Direct hash lookup, good for:
+- Equality only: `WHERE id = 5`
+- Not for ranges or sorting
+
+### Composite Index
+
+Index on multiple columns:
+
+```sql
+CREATE INDEX idx_user_date ON orders(user_id, order_date);
+```
+
+**Important**: Column order matters!
+- ✅ `WHERE user_id = 1`
+- ✅ `WHERE user_id = 1 AND order_date > '2024-01-01'`
+- ❌ `WHERE order_date > '2024-01-01'` (can't use index)
+
+### Full-Text Index
+
+For text search:
+
+```sql
+CREATE FULLTEXT INDEX idx_content ON articles(content);
+SELECT * FROM articles WHERE MATCH(content) AGAINST('search terms');
+```
+
+---
+
+## Index Trade-offs
+
+| **Benefit** | **Cost** |
+|------------|---------|
+| Faster reads | Slower writes (index must update) |
+| Efficient queries | Storage space |
+| Sorted access | Memory usage |
+
+---
+
+## When to Index
+
+### Good Candidates
+
+- Primary keys (usually automatic)
+- Foreign keys (JOIN performance)
+- Frequently filtered columns (WHERE)
+- Columns in ORDER BY
+- High cardinality columns (many unique values)
+
+### Poor Candidates
+
+- Frequently updated columns
+- Low cardinality (boolean, status with few values)
+- Small tables
+- Columns rarely used in queries
+
+---
+
+## Covering Index
+
+Index contains all columns needed for query:
+
+```sql
+-- Index: (user_id, email, name)
+SELECT email, name FROM users WHERE user_id = 123;
+-- No table lookup needed! Data from index only.
+```
+
+---
+
+## Index Analysis
+
+### EXPLAIN Query
+
+```sql
+EXPLAIN SELECT * FROM users WHERE email = 'test@example.com';
+
+-- Look for:
+-- type: index (good) vs ALL (full scan - bad)
+-- rows: estimated rows examined
+-- Extra: Using index (covering index)
+```
+
+---
+
+## Interview Tips
+
+- Know B-tree vs hash index use cases
+- Understand composite index column ordering
+- Explain trade-offs: read vs write performance
+- Mention covering indexes for optimization
+- Discuss when NOT to add indexes

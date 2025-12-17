@@ -854,6 +854,10 @@ export default function SystemDesignRoadmap() {
   const [undoCountdown, setUndoCountdown] = useState(0);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Loading state for navigation
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
   // Load visited nodes from localStorage on mount
   useEffect(() => {
     try {
@@ -1057,10 +1061,15 @@ export default function SystemDesignRoadmap() {
 
   const onNavigate = useCallback(
     (href: string, nodeId: string) => {
+      // Show loading state
+      setIsNavigating(true);
+      setNavigatingTo(href);
+      // Update visited state
       toggleVisited(nodeId);
-      router.push(href);
+      // Use window.location for immediate, reliable navigation
+      window.location.href = href;
     },
-    [router, toggleVisited]
+    [toggleVisited]
   );
 
   // Uncheck a visited node
@@ -1112,7 +1121,49 @@ export default function SystemDesignRoadmap() {
   const rootExpanded = expandedNodes.has("start");
 
   return (
-    <div className='w-full'>
+    <div className='w-full relative'>
+      {/* Loading Overlay */}
+      {isNavigating && (
+        <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm'>
+          <div className='flex flex-col items-center gap-4 p-8 rounded-2xl bg-fd-card border border-fd-border shadow-2xl'>
+            {/* Charging animation */}
+            <div className='relative w-16 h-16'>
+              <svg className='w-16 h-16 animate-spin' viewBox='0 0 64 64'>
+                <circle
+                  cx='32'
+                  cy='32'
+                  r='28'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                  fill='none'
+                  className='text-slate-300 dark:text-slate-600'
+                />
+                <circle
+                  cx='32'
+                  cy='32'
+                  r='28'
+                  stroke='currentColor'
+                  strokeWidth='4'
+                  fill='none'
+                  strokeDasharray='88 88'
+                  strokeLinecap='round'
+                  className='text-emerald-500'
+                />
+              </svg>
+              <div className='absolute inset-0 flex items-center justify-center'>
+                <span className='text-lg'>→</span>
+              </div>
+            </div>
+            <div className='text-center'>
+              <p className='font-medium text-fd-foreground'>Loading...</p>
+              <p className='text-xs text-fd-muted-foreground mt-1 max-w-48 truncate'>
+                {navigatingTo}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       <div className='relative max-w-md mx-auto mb-4'>
         <input

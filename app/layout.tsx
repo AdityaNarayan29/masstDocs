@@ -1,9 +1,6 @@
-"use client";
-
 import "@/app/global.css";
 import { RootProvider } from "fumadocs-ui/provider";
 import { Inter } from "next/font/google";
-import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 const inter = Inter({
@@ -11,18 +8,6 @@ const inter = Inter({
 });
 
 export default function Layout({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((registration) => {
-          console.log("Service Worker registered:", registration);
-        })
-        .catch((err) => {
-          console.error("Service Worker registration failed:", err);
-        });
-    }
-  }, []);
 
   return (
     <html lang='en' className={inter.className} suppressHydrationWarning>

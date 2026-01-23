@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "pre-render-mermaid": "node scripts/pre-render-mermaid.mjs",
+    "pre-render-mermaid:seo": "node scripts/pre-render-mermaid-seo.mjs",
+    "pre-render-mermaid:seo:skip-upload": "node scripts/pre-render-mermaid-seo.mjs --skip-upload",
+    "generate-sitemap": "node scripts/pre-render-mermaid-seo.mjs --sitemap-only",
     "build": "npm run pre-render-mermaid && next build",
+    "build:seo": "npm run pre-render-mermaid:seo && next build",
     "dev": "npm run pre-render-mermaid && next dev --turbo",
     "dev:fast": "next dev --turbo",
     "dev:watch": "node scripts/watch-mermaid.mjs",

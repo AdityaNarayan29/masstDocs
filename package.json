@@ -13,18 +13,25 @@
     "dev:fast": "next dev --turbo",
     "dev:watch": "node scripts/watch-mermaid.mjs",
     "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "generate-embeddings": "tsx scripts/generate-embeddings.ts"
   },
   "dependencies": {
+    "@huggingface/inference": "^4.13.10",
+    "@pinecone-database/pinecone": "^6.1.4",
+    "ai": "^6.0.49",
+    "dotenv": "^17.2.3",
     "fumadocs-core": "15.7.10",
     "fumadocs-mdx": "11.9.0",
     "fumadocs-ui": "15.7.10",
+    "groq-sdk": "^0.37.0",
     "mermaid": "^11.11.0",
     "next": "15.4.10",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
@@ -38,6 +45,7 @@
     "eslint-config-next": "15.4.10",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   },
   "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"

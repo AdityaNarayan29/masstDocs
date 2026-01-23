@@ -2815,14 +2815,10 @@
   },
   "00001a1a3960": {
     "light": "/mermaid-cache/00001a1a3960-light.svg",
-    "dark": "/mermaid-cache/00001a1a3960-dark.svg",
-    "lightPng": "/mermaid-cache/00001a1a3960-light.png",
-    "darkPng": "/mermaid-cache/00001a1a3960-dark.png"
+    "dark": "/mermaid-cache/00001a1a3960-dark.svg"
   },
   "000058d4c59e": {
     "light": "/mermaid-cache/000058d4c59e-light.svg",
-    "dark": "/mermaid-cache/000058d4c59e-dark.svg",
-    "lightPng": "/mermaid-cache/000058d4c59e-light.png",
-    "darkPng": "/mermaid-cache/000058d4c59e-dark.png"
+    "dark": "/mermaid-cache/000058d4c59e-dark.svg"
   }
 }

@@ -63,9 +63,6 @@ export const ChatInput = memo(function ChatInput({
           </svg>
         </button>
       </div>
-      <p className="mt-1 text-xs text-fd-muted-foreground">
-        Press Enter to send, Shift+Enter for new line
-      </p>
     </div>
   );
 });

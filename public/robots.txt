@@ -1,0 +1,7 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://docs.masst.dev/sitemap.xml
+Sitemap: https://docs.masst.dev/image-sitemap.xml

@@ -28,10 +28,10 @@ export const ChatPanel = memo(function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Dynamic classes based on expanded state
+  // Dynamic classes based on expanded state - mobile-first responsive design
   const panelClasses = isExpanded
-    ? "fixed inset-4 z-50 flex flex-col rounded-lg border border-fd-border bg-fd-card shadow-2xl md:inset-8 lg:inset-16"
-    : "fixed bottom-20 right-4 z-50 flex h-[500px] w-[380px] flex-col rounded-lg border border-fd-border bg-fd-card shadow-xl sm:w-[420px]";
+    ? "fixed inset-2 z-50 flex flex-col rounded-lg border border-fd-border bg-fd-card shadow-2xl sm:inset-4 md:inset-8 lg:inset-16"
+    : "fixed inset-2 z-50 flex flex-col rounded-lg border border-fd-border bg-fd-card shadow-xl sm:inset-auto sm:bottom-20 sm:right-4 sm:h-[500px] sm:w-[380px] md:w-[420px]";
 
   return (
     <div className={panelClasses}>
@@ -46,10 +46,10 @@ export const ChatPanel = memo(function ChatPanel({
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {/* Expand/Collapse button */}
+          {/* Expand/Collapse button - hidden on mobile since chat is already fullscreen */}
           <button
             onClick={onToggleExpand}
-            className="rounded p-1.5 hover:bg-fd-muted transition-colors"
+            className="hidden sm:block rounded p-1.5 hover:bg-fd-muted transition-colors"
             aria-label={isExpanded ? "Collapse chat" : "Expand chat"}
             title={isExpanded ? "Collapse" : "Expand"}
           >
@@ -126,7 +126,13 @@ export const ChatPanel = memo(function ChatPanel({
           <ChatMessage key={message.id} message={message} />
         ))}
         {isLoading && (
-          <div className="mb-3 flex justify-start">
+          <div className="mb-3 flex items-start gap-2">
+            {/* Assistant avatar */}
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-fd-primary text-fd-primary-foreground">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
             <div className="rounded-lg bg-fd-muted px-3 py-2">
               <div className="flex gap-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-fd-muted-foreground" />

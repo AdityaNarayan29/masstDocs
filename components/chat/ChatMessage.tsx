@@ -48,7 +48,7 @@ export const ChatMessage = memo(function ChatMessage({
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
       <div
-        className={`max-w-[85%] rounded-lg px-3 py-2 ${
+        className={`max-w-[85%] rounded-lg px-3 py-0.5 ${
           isUser
             ? "bg-fd-primary text-fd-primary-foreground"
             : "bg-fd-muted text-fd-foreground"

@@ -17,5 +17,16 @@ export const baseOptions: BaseLayoutProps = {
     ),
   },
   // see https://fumadocs.dev/docs/ui/navigation/links
-  links: [],
+  links: [
+    {
+      text: 'Twitter',
+      url: 'https://x.com/Adityanaraynn29',
+      external: true,
+    },
+    {
+      text: 'GitHub',
+      url: 'https://github.com/adityanarayan29',
+      external: true,
+    },
+  ],
 };

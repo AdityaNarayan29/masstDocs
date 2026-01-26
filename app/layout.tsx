@@ -17,14 +17,13 @@ export default function Layout({ children }: { children: ReactNode }) {
         <title>Masst Docs | System Design Tutorial, HLD & LLD Guide</title>
         <meta
           name='description'
-          content='Free System Design tutorial with HLD, LLD examples. Learn Netflix, Uber, WhatsApp architecture. Best system design roadmap for interviews.'
+          content='Free System Design tutorial with HLD & LLD. Learn Netflix, Uber, WhatsApp architecture for interviews.'
         />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
         <meta
           name='keywords'
           content='system design, system design tutorial, HLD, LLD, high level design, low level design, system design interview, Netflix system design, Uber system design, WhatsApp architecture, mast docs, masst docs, system design roadmap, scalable systems, distributed systems, software architecture'
         />
-        <link rel='canonical' href='https://docs.masst.dev/' />
 
         {/* Open Graph / Social Sharing */}
         <meta

@@ -37,7 +37,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         />
         <meta property='og:type' content='website' />
         <meta property='og:url' content='https://docs.masst.dev/' />
-        <meta property='og:image' content='https://x.com/masstdev/photo/' />
+        <meta property='og:image' content='https://docs.masst.dev/og-image.png' />
+        <meta property='og:image:width' content='1200' />
+        <meta property='og:image:height' content='630' />
+        <meta property='og:image:type' content='image/png' />
+        <meta property='og:image:alt' content='Masst Docs - System Design Tutorial Platform' />
         <meta property='og:site_name' content='Masst Docs' />
         <meta property='og:updated_time' content={new Date().toISOString()} />
 
@@ -52,7 +56,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           name='twitter:description'
           content='Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams. Best roadmap for system design interviews.'
         />
-        <meta name='twitter:image' content='https://x.com/masstdev/photo' />
+        <meta name='twitter:image' content='https://docs.masst.dev/og-image.png' />
+        <meta name='twitter:image:alt' content='Masst Docs - System Design Tutorial Platform' />
 
         {/* Favicon */}
         <link rel='icon' href='/logo.png' sizes='any' />

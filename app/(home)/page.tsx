@@ -25,9 +25,15 @@ export default function HomePage() {
             System Design Roadmap
           </h1>
         </Link>
-        <p className="text-fd-muted-foreground text-lg max-w-2xl mx-auto">
+        <p className="text-fd-muted-foreground text-lg max-w-2xl mx-auto mb-4">
           Free system design course with HLD and LLD tutorials. Learn how Netflix, Uber, and WhatsApp
           are designed. Perfect for system design interviews.
+        </p>
+        <p className="text-fd-muted-foreground text-base max-w-3xl mx-auto">
+          Master the art of designing scalable distributed systems with our comprehensive documentation.
+          Whether you are preparing for technical interviews at top tech companies or building production-grade
+          applications, our guides cover everything from fundamental concepts like CAP theorem and database
+          sharding to real-world architecture patterns used by industry leaders.
         </p>
       </div>
 
@@ -58,6 +64,10 @@ export default function HomePage() {
       <h2 className="text-2xl md:text-3xl font-bold mt-8 mb-4 text-center">
         Explore Learning Paths
       </h2>
+      <p className="text-fd-muted-foreground text-center mb-6 max-w-2xl mx-auto">
+        Our structured curriculum takes you from basic concepts to advanced system architecture.
+        Each section builds upon the previous, ensuring a solid foundation for designing complex systems.
+      </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link
           href="/sd/fundamentals"
@@ -67,7 +77,7 @@ export default function HomePage() {
             Start with Fundamentals
           </h3>
           <p className="text-sm text-fd-muted-foreground">
-            Learn CAP theorem, scalability, and core concepts
+            Learn CAP theorem, consistency models, scalability patterns, and essential distributed systems concepts that form the foundation of system design.
           </p>
         </Link>
         <Link
@@ -78,7 +88,7 @@ export default function HomePage() {
             System Components
           </h3>
           <p className="text-sm text-fd-muted-foreground">
-            Databases, caching, load balancers, and more
+            Deep dive into databases, caching strategies, load balancers, message queues, and other building blocks used in modern architectures.
           </p>
         </Link>
         <Link
@@ -89,7 +99,7 @@ export default function HomePage() {
             Case Studies
           </h3>
           <p className="text-sm text-fd-muted-foreground">
-            Netflix, Uber, WhatsApp, and 15+ real systems
+            Explore real-world system designs of Netflix, Uber, WhatsApp, Instagram, and 15+ other popular applications used by millions.
           </p>
         </Link>
       </div>
@@ -160,6 +170,25 @@ export default function HomePage() {
         <Link href="/hld" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-sm">
           HLD Guide
         </Link>
+      </div>
+
+      {/* Why Learn System Design */}
+      <div className="mt-12 p-6 rounded-xl border border-fd-border bg-fd-card/50">
+        <h2 className="text-xl md:text-2xl font-bold mb-4">Why Learn System Design?</h2>
+        <p className="text-fd-muted-foreground mb-4">
+          System design is a critical skill for software engineers at all levels. Understanding how to architect
+          scalable, reliable, and maintainable systems is essential for building successful applications that
+          can handle millions of users.
+        </p>
+        <p className="text-fd-muted-foreground mb-4">
+          Whether you are interviewing at companies like Google, Amazon, Meta, or Microsoft, or leading
+          architecture decisions at your current company, system design knowledge helps you make better
+          technical decisions and communicate effectively with stakeholders.
+        </p>
+        <p className="text-fd-muted-foreground">
+          Our documentation covers both High-Level Design (HLD) for understanding overall system architecture
+          and Low-Level Design (LLD) for implementing specific components with clean, maintainable code.
+        </p>
       </div>
 
       {/* Footer note */}

@@ -9,63 +9,58 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+export const metadata = {
+  title: {
+    default: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
+    template: '%s | Masst Docs',
+  },
+  description: 'Free System Design tutorial with HLD & LLD. Learn Netflix, Uber, WhatsApp architecture for interviews.',
+  metadataBase: new URL('https://docs.masst.dev'),
+  openGraph: {
+    title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
+    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams.',
+    url: 'https://docs.masst.dev/',
+    siteName: 'Masst Docs',
+    type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Masst Docs - System Design Tutorial Platform',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@masstdev',
+    title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
+    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams.',
+    images: ['/og-image.png'],
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000',
+};
+
 export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <html lang='en' className={inter.className} suppressHydrationWarning>
       <head>
-        <title>Masst Docs | System Design Tutorial, HLD & LLD Guide</title>
-        <meta
-          name='description'
-          content='Free System Design tutorial with HLD & LLD. Learn Netflix, Uber, WhatsApp architecture for interviews.'
-        />
-        <meta name='viewport' content='width=device-width, initial-scale=1' />
         <meta
           name='keywords'
           content='system design, system design tutorial, HLD, LLD, high level design, low level design, system design interview, Netflix system design, Uber system design, WhatsApp architecture, mast docs, masst docs, system design roadmap, scalable systems, distributed systems, software architecture'
         />
-
-        {/* Open Graph / Social Sharing */}
-        <meta
-          property='og:title'
-          content='Masst Docs | System Design Tutorial, HLD & LLD Guide'
-        />
-        <meta
-          property='og:description'
-          content='Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams. Best roadmap for system design interviews.'
-        />
-        <meta property='og:type' content='website' />
-        <meta property='og:url' content='https://docs.masst.dev/' />
-        <meta property='og:image' content='https://docs.masst.dev/og-image.png' />
-        <meta property='og:image:width' content='1200' />
-        <meta property='og:image:height' content='630' />
-        <meta property='og:image:type' content='image/png' />
-        <meta property='og:image:alt' content='Masst Docs - System Design Tutorial Platform' />
-        <meta property='og:site_name' content='Masst Docs' />
-        <meta property='og:updated_time' content={new Date().toISOString()} />
-
-        {/* Twitter Card */}
-        <meta name='twitter:card' content='summary_large_image' />
-        <meta name='twitter:site' content='@masstdev' />
-        <meta
-          name='twitter:title'
-          content='Masst Docs | System Design Tutorial, HLD & LLD Guide'
-        />
-        <meta
-          name='twitter:description'
-          content='Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams. Best roadmap for system design interviews.'
-        />
-        <meta name='twitter:image' content='https://docs.masst.dev/og-image.png' />
-        <meta name='twitter:image:alt' content='Masst Docs - System Design Tutorial Platform' />
 
         {/* Favicon */}
         <link rel='icon' href='/logo.png' sizes='any' />
 
         {/* PWA Manifest */}
         <link rel='manifest' href='/manifest.json' />
-
-        {/* Theme color for browser UI */}
-        <meta name='theme-color' content='#000000' />
 
         {/* Apple Touch Icons for iOS */}
         <link rel='apple-touch-icon' sizes='150x150' href='/app-icons/150.png' />

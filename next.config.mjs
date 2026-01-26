@@ -154,6 +154,22 @@ const pwaConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      // WWW to non-WWW redirect for SEO canonicalization
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.docs.masst.dev',
+          },
+        ],
+        destination: 'https://docs.masst.dev/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default pwaConfig(withMDX(config));

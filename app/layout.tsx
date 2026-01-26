@@ -14,38 +14,43 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang='en' className={inter.className} suppressHydrationWarning>
       <head>
-        <title>Masst Docs | System Design Documentation</title>
+        <title>Masst Docs | System Design Tutorial, HLD & LLD Guide</title>
         <meta
           name='description'
-          content='Masst Docs is a complete System Design documentation platform. Learn HLD, LLD, system components, case studies, and best practices for building scalable systems.'
+          content='Free System Design tutorial with HLD, LLD examples. Learn Netflix, Uber, WhatsApp architecture. Best system design roadmap for interviews.'
         />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
+        <meta
+          name='keywords'
+          content='system design, system design tutorial, HLD, LLD, high level design, low level design, system design interview, Netflix system design, Uber system design, WhatsApp architecture, mast docs, masst docs, system design roadmap, scalable systems, distributed systems, software architecture'
+        />
         <link rel='canonical' href='https://docs.masst.dev/' />
 
         {/* Open Graph / Social Sharing */}
         <meta
           property='og:title'
-          content='Masst Docs | System Design Documentation'
+          content='Masst Docs | System Design Tutorial, HLD & LLD Guide'
         />
         <meta
           property='og:description'
-          content='Explore HLD, LLD, system components, case studies, and best practices with Masst Docs.'
+          content='Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams. Best roadmap for system design interviews.'
         />
         <meta property='og:type' content='website' />
         <meta property='og:url' content='https://docs.masst.dev/' />
         <meta property='og:image' content='https://x.com/masstdev/photo/' />
         <meta property='og:site_name' content='Masst Docs' />
+        <meta property='og:updated_time' content={new Date().toISOString()} />
 
         {/* Twitter Card */}
         <meta name='twitter:card' content='summary_large_image' />
         <meta name='twitter:site' content='@masstdev' />
         <meta
           name='twitter:title'
-          content='Masst Docs | System Design Documentation'
+          content='Masst Docs | System Design Tutorial, HLD & LLD Guide'
         />
         <meta
           name='twitter:description'
-          content='Explore HLD, LLD, system components, case studies, and best practices with Masst Docs.'
+          content='Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams. Best roadmap for system design interviews.'
         />
         <meta name='twitter:image' content='https://x.com/masstdev/photo' />
 
@@ -89,9 +94,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               "@context": "https://schema.org",
               "@type": "WebSite",
               name: "Masst Docs",
+              alternateName: ["Mast Docs", "MasstDocs", "Masst Documentation", "System Design Docs"],
               url: "https://docs.masst.dev/",
               description:
-                "Masst Docs is a complete System Design documentation platform, including HLD, LLD, system components, and case studies.",
+                "Free System Design tutorial platform. Learn HLD, LLD, and real-world architecture of Netflix, Uber, WhatsApp, and more.",
               publisher: {
                 "@type": "Organization",
                 name: "Masst",
@@ -100,6 +106,72 @@ export default function Layout({ children }: { children: ReactNode }) {
                   url: "https://docs.masst.dev/icons/512.png",
                 },
               },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: "https://docs.masst.dev/sd?q={search_term_string}",
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
+        {/* Course structured data for better search visibility */}
+        <script
+          type='application/ld+json'
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Course",
+              name: "System Design Tutorial",
+              description: "Complete system design course covering HLD, LLD, distributed systems, and real-world case studies like Netflix, Uber, and WhatsApp.",
+              provider: {
+                "@type": "Organization",
+                name: "Masst Docs",
+                sameAs: "https://docs.masst.dev/",
+              },
+              hasCourseInstance: {
+                "@type": "CourseInstance",
+                courseMode: "online",
+                courseWorkload: "PT20H",
+              },
+              about: [
+                "System Design",
+                "High Level Design",
+                "Low Level Design",
+                "Software Architecture",
+                "Distributed Systems",
+                "System Design Interview",
+              ],
+              teaches: [
+                "Design scalable distributed systems",
+                "Create high-level architecture diagrams",
+                "Implement low-level design patterns",
+                "Understand Netflix, Uber, WhatsApp architecture",
+              ],
+              isAccessibleForFree: true,
+            }),
+          }}
+        />
+        {/* BreadcrumbList for better navigation in search results */}
+        <script
+          type='application/ld+json'
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                {
+                  "@type": "ListItem",
+                  position: 1,
+                  name: "System Design",
+                  item: "https://docs.masst.dev/sd",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: "HLD Case Studies",
+                  item: "https://docs.masst.dev/hld",
+                },
+              ],
             }),
           }}
         />

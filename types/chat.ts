@@ -28,3 +28,11 @@ export interface RetrievedContext {
   url: string;
   score: number;
 }
+
+export interface ResearchState {
+  isActive: boolean;
+  step: string;
+  message: string;
+  subQueries?: string[];
+  sources?: { query: string; count: number }[];
+}

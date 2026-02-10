@@ -14,7 +14,10 @@
     "dev:watch": "node scripts/watch-mermaid.mjs",
     "start": "next start",
     "postinstall": "fumadocs-mdx",
-    "generate-embeddings": "tsx scripts/generate-embeddings.ts"
+    "generate-embeddings": "tsx scripts/generate-embeddings.ts",
+    "evaluate-rag": "tsx scripts/evaluate-rag.ts",
+    "evaluate-rag:verbose": "tsx scripts/evaluate-rag.ts --verbose",
+    "evaluate-rag:report": "tsx scripts/evaluate-rag.ts --output eval-report.json"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.10",

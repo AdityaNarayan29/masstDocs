@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server';
 import { getGroqClient, GROQ_MODEL, SYSTEM_PROMPT } from '@/lib/chat/groq';
 import { retrieveContext, formatContextForPrompt } from '@/lib/chat/context';
+import {
+  validateInput,
+  sanitizeInput,
+  getBlockedMessage,
+  checkRateLimit,
+} from '@/lib/chat/guardrails';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +19,26 @@ interface ChatRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting (using IP as identifier)
+    const clientIP = request.headers.get('x-forwarded-for') || 'anonymous';
+    const rateLimit = checkRateLimit(clientIP, 30, 60000); // 30 requests per minute
+
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          retryAfter: Math.ceil(rateLimit.resetIn / 1000),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.ceil(rateLimit.resetIn / 1000)),
+          },
+        }
+      );
+    }
+
     const body: ChatRequestBody = await request.json();
     const { messages } = body;
 
@@ -24,6 +50,41 @@ export async function POST(request: NextRequest) {
     if (!lastMessage || lastMessage.role !== 'user') {
       return new Response('Last message must be from user', { status: 400 });
     }
+
+    // Guardrails: Validate and sanitize input
+    const sanitizedContent = sanitizeInput(lastMessage.content);
+    const validationResult = validateInput(sanitizedContent);
+
+    if (!validationResult.safe) {
+      // Return a friendly message instead of processing the unsafe input
+      const blockedMessage = getBlockedMessage(validationResult);
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        start(controller) {
+          const data = JSON.stringify({ text: blockedMessage });
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        },
+      });
+
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'X-Guardrail-Blocked': 'true',
+          'X-Guardrail-Category': validationResult.category || 'unknown',
+        },
+      });
+    }
+
+    // Use sanitized content for processing
+    const processedMessages = messages.map((m, i) =>
+      i === messages.length - 1
+        ? { ...m, content: sanitizedContent }
+        : m
+    );
 
     // Retrieve relevant context from Pinecone
     let contextText = '';
@@ -53,7 +114,7 @@ Use this context to provide accurate, relevant answers. Cite sources when direct
       stream: true,
       messages: [
         { role: 'system', content: systemWithContext },
-        ...messages.map(m => ({
+        ...processedMessages.map(m => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),

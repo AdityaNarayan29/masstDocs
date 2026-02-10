@@ -25,11 +25,12 @@ export default function HomePage() {
             System Design Roadmap
           </h1>
         </Link>
-        <p className="text-fd-muted-foreground text-lg max-w-2xl mx-auto mb-4">
+        <p className="text-fd-muted-foreground text-lg max-w-2xl mx-auto">
           Free system design course with HLD and LLD tutorials. Learn how Netflix, Uber, and WhatsApp
           are designed. Perfect for system design interviews.
         </p>
-        <p className="text-fd-muted-foreground text-base max-w-3xl mx-auto">
+        {/* SEO content - visually hidden but accessible to search engines */}
+        <p className="sr-only">
           Master the art of designing scalable distributed systems with our comprehensive documentation.
           Whether you are preparing for technical interviews at top tech companies or building production-grade
           applications, our guides cover everything from fundamental concepts like CAP theorem and database
@@ -39,10 +40,6 @@ export default function HomePage() {
 
       {/* Legend */}
       <div className="flex flex-wrap justify-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600" />
-          <span className="text-sm text-fd-muted-foreground">Section</span>
-        </div>
         <div className="flex items-center gap-2">
           <span className="px-2 py-1 rounded text-xs font-bold bg-emerald-500 text-white">HLD</span>
           <span className="text-sm text-fd-muted-foreground">High-Level Design</span>

@@ -14,6 +14,10 @@ export const maxDuration = 60; // Allow longer execution for research
 
 interface ResearchRequestBody {
   question: string;
+  conversationHistory?: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -39,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ResearchRequestBody = await request.json();
-    const { question } = body;
+    const { question, conversationHistory = [] } = body;
 
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
       return new Response('Invalid question', { status: 400 });
@@ -175,12 +179,21 @@ export async function POST(request: NextRequest) {
 
           const queryResults = await searchMultipleQueries(subQueries, 3);
 
-          // Count sources
+          // Count sources and collect all unique sources for citation
           let totalSources = 0;
           const sourceSummary: { query: string; count: number }[] = [];
+          const allSources: Array<{ title: string; url: string; score: number }> = [];
+          const seenUrls = new Set<string>();
+
           for (const [query, contexts] of queryResults) {
             totalSources += contexts.length;
             sourceSummary.push({ query, count: contexts.length });
+            for (const ctx of contexts) {
+              if (!seenUrls.has(ctx.url)) {
+                seenUrls.add(ctx.url);
+                allSources.push({ title: ctx.title, url: ctx.url, score: ctx.score });
+              }
+            }
           }
 
           safeEnqueue(
@@ -189,6 +202,14 @@ export async function POST(request: NextRequest) {
               step: 'search_complete',
               message: `Found ${totalSources} relevant sources across ${subQueries.length} topics`,
               sources: sourceSummary
+            })}\n\n`)
+          );
+
+          // Send detailed sources for citation
+          safeEnqueue(
+            encoder.encode(`data: ${JSON.stringify({
+              type: 'sources',
+              sources: allSources.slice(0, 10) // Top 10 unique sources
             })}\n\n`)
           );
 
@@ -204,7 +225,7 @@ export async function POST(request: NextRequest) {
             })}\n\n`)
           );
 
-          const stream = await synthesizeResearch(sanitizedQuestion, researchContext);
+          const stream = await synthesizeResearch(sanitizedQuestion, researchContext, conversationHistory);
 
           // Stream the response
           for await (const chunk of stream) {

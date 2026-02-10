@@ -254,7 +254,7 @@ export function checkQueryRelevance(query: string): RelevanceCheckResult {
       isRelevant: false,
       confidence: 0.95,
       reason: 'Query is too short to be a meaningful system design question',
-      suggestedTopic: 'Try asking something like "How would you design a URL shortener?" or "What is database sharding?"',
+      suggestedTopic: '- "How would you design a URL shortener?"\n- "What is database sharding?"',
     };
   }
 
@@ -266,7 +266,7 @@ export function checkQueryRelevance(query: string): RelevanceCheckResult {
       isRelevant: false,
       confidence: 0.85,
       reason: 'Query appears to be gibberish',
-      suggestedTopic: 'Try asking a question about system design, like "How does a load balancer work?"',
+      suggestedTopic: '- "How does a load balancer work?"\n- "Explain CAP theorem"',
     };
   }
 
@@ -317,7 +317,7 @@ export function checkQueryRelevance(query: string): RelevanceCheckResult {
       isRelevant: false,
       confidence: 0.7,
       reason: 'Query is too short and lacks system design context',
-      suggestedTopic: 'Try asking about: "How to design a notification system" or "What is database sharding?"',
+      suggestedTopic: '- "How to design a notification system"\n- "What is database sharding?"',
     };
   }
 
@@ -333,16 +333,17 @@ export function checkQueryRelevance(query: string): RelevanceCheckResult {
  * Get a friendly message for off-topic queries
  */
 export function getOffTopicMessage(result: RelevanceCheckResult): string {
-  let message = "That doesn't seem to be a system design question. I'm specialized in helping with software architecture and distributed systems.\n\n";
+  let message = "Hey there! Deep Research mode works best with detailed system design questions. ";
+  message += "I'd love to help you explore a topic in depth!\n\n";
 
   if (result.suggestedTopic) {
-    message += `💡 **Try asking:** ${result.suggestedTopic}`;
+    message += `**Here are some ideas:**\n${result.suggestedTopic}`;
   } else {
-    message += "💡 **Try asking about:**\n";
-    message += "- How to design a URL shortener\n";
-    message += "- What is database sharding?\n";
-    message += "- How does a CDN work?\n";
-    message += "- Design a notification system";
+    message += "**Here are some ideas to get started:**\n";
+    message += "- \"How would you design a URL shortener?\"\n";
+    message += "- \"Explain database sharding strategies\"\n";
+    message += "- \"How does Netflix handle video streaming at scale?\"\n";
+    message += "- \"Design a real-time notification system\"";
   }
 
   return message;

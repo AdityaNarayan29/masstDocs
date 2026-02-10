@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChatMermaid } from "./ChatMermaid";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  onFeedback?: (messageId: string, feedback: 'up' | 'down') => void;
 }
 
 type ContentPart = { type: "text" | "mermaid"; content: string };
@@ -38,7 +39,10 @@ function parseContent(content: string): ContentPart[] {
 
 export const ChatMessage = memo(function ChatMessage({
   message,
+  onFeedback,
 }: ChatMessageProps) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
+
   // Check if this is a Deep Research message
   const isDeepResearch = message.content.startsWith("[Deep Research]");
   const displayContent = isDeepResearch
@@ -165,6 +169,71 @@ export const ChatMessage = memo(function ChatMessage({
               </ReactMarkdown>
             </div>
           )
+        )}
+
+        {/* Sources section for assistant messages */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-fd-border/50">
+            <button
+              onClick={() => setSourcesExpanded(!sourcesExpanded)}
+              className="flex items-center gap-1 text-xs text-fd-muted-foreground hover:text-fd-foreground transition-colors"
+            >
+              <svg
+                className={`w-3 h-3 transition-transform ${sourcesExpanded ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span>{message.sources.length} source{message.sources.length > 1 ? 's' : ''}</span>
+            </button>
+            {sourcesExpanded && (
+              <div className="mt-2 space-y-1">
+                {message.sources.map((source, idx) => (
+                  <a
+                    key={idx}
+                    href={source.url}
+                    className="block text-xs text-fd-primary hover:underline truncate"
+                    title={source.title}
+                  >
+                    {source.title}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Feedback buttons for assistant messages */}
+        {!isUser && onFeedback && (
+          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-fd-border/50">
+            <span className="text-xs text-fd-muted-foreground mr-2">Helpful?</span>
+            <button
+              onClick={() => onFeedback(message.id, 'up')}
+              className={`p-1 rounded hover:bg-fd-background/50 transition-colors ${
+                message.feedback === 'up' ? 'text-green-500' : 'text-fd-muted-foreground hover:text-green-500'
+              }`}
+              aria-label="Thumbs up"
+              title="Helpful"
+            >
+              <svg className="w-4 h-4" fill={message.feedback === 'up' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+            </button>
+            <button
+              onClick={() => onFeedback(message.id, 'down')}
+              className={`p-1 rounded hover:bg-fd-background/50 transition-colors ${
+                message.feedback === 'down' ? 'text-red-500' : 'text-fd-muted-foreground hover:text-red-500'
+              }`}
+              aria-label="Thumbs down"
+              title="Not helpful"
+            >
+              <svg className="w-4 h-4" fill={message.feedback === 'down' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v2a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
     </div>

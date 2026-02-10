@@ -3,6 +3,17 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  feedback?: 'up' | 'down' | null;
+  sources?: RetrievedContext[];
+}
+
+export interface FeedbackRecord {
+  messageId: string;
+  feedback: 'up' | 'down';
+  query: string;
+  response: string;
+  timestamp: Date;
+  isResearch: boolean;
 }
 
 export interface DocumentChunk {

@@ -16,6 +16,7 @@ interface ChatPanelProps {
   isResearchMode: boolean;
   onToggleResearchMode: () => void;
   researchState: ResearchState | null;
+  onFeedback: (messageId: string, feedback: 'up' | 'down') => void;
 }
 
 export const ChatPanel = memo(function ChatPanel({
@@ -28,6 +29,7 @@ export const ChatPanel = memo(function ChatPanel({
   isResearchMode,
   onToggleResearchMode,
   researchState,
+  onFeedback,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -140,7 +142,11 @@ export const ChatPanel = memo(function ChatPanel({
           </div>
         )}
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            onFeedback={message.role === 'assistant' ? onFeedback : undefined}
+          />
         ))}
 
         {/* Research Progress Indicator */}

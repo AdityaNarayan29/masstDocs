@@ -3,7 +3,31 @@
 import { useState, useCallback } from "react";
 import { ChatButton } from "./ChatButton";
 import { ChatPanel } from "./ChatPanel";
-import type { ChatMessage, ResearchState } from "@/types/chat";
+import type { ChatMessage, ResearchState, RetrievedContext, FeedbackRecord } from "@/types/chat";
+
+// Feedback storage helpers
+const FEEDBACK_STORAGE_KEY = 'masst-docs-feedback';
+
+function saveFeedback(record: FeedbackRecord) {
+  try {
+    const existing = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    const records: FeedbackRecord[] = existing ? JSON.parse(existing) : [];
+    records.push(record);
+    // Keep last 100 feedback records
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(records.slice(-100)));
+  } catch (e) {
+    console.error('Failed to save feedback:', e);
+  }
+}
+
+export function getFeedbackRecords(): FeedbackRecord[] {
+  try {
+    const existing = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    return existing ? JSON.parse(existing) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -136,7 +160,7 @@ export function ChatWidget() {
     [messages]
   );
 
-  const handleResearchChat = useCallback(async (content: string) => {
+  const handleResearchChat = useCallback(async (content: string, currentMessages: ChatMessage[]) => {
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -153,12 +177,22 @@ export function ChatWidget() {
     });
 
     const assistantMessageId = `assistant-${Date.now()}`;
+    let collectedSources: RetrievedContext[] = [];
 
     try {
+      // Build conversation history from previous messages
+      const conversationHistory = currentMessages.map((m) => ({
+        role: m.role,
+        content: m.content.replace("[Deep Research] ", ""),
+      }));
+
       const response = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: content }),
+        body: JSON.stringify({
+          question: content,
+          conversationHistory: conversationHistory.slice(-6), // Last 3 exchanges
+        }),
       });
 
       if (!response.ok) {
@@ -197,6 +231,14 @@ export function ChatWidget() {
                   subQueries: parsed.subQueries,
                   sources: parsed.sources,
                 });
+              } else if (parsed.type === "sources") {
+                // Store sources for citation
+                collectedSources = parsed.sources.map((s: { title: string; url: string; score: number }) => ({
+                  title: s.title,
+                  url: s.url,
+                  score: s.score,
+                  content: "", // Content not needed for display
+                }));
               } else if (parsed.type === "token" && parsed.text) {
                 // First token - create the assistant message
                 if (!hasStartedResponse) {
@@ -210,6 +252,7 @@ export function ChatWidget() {
                     role: "assistant",
                     content: "",
                     timestamp: new Date(),
+                    sources: collectedSources,
                   };
                   setMessages((prev) => [...prev, assistantMessage]);
                 }
@@ -218,7 +261,7 @@ export function ChatWidget() {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMessageId
-                      ? { ...m, content: assistantContent }
+                      ? { ...m, content: assistantContent, sources: collectedSources }
                       : m
                   )
                 );
@@ -252,15 +295,41 @@ export function ChatWidget() {
     }
   }, []);
 
+  const handleFeedback = useCallback((messageId: string, feedback: 'up' | 'down') => {
+    setMessages((prev) => {
+      const messageIndex = prev.findIndex((m) => m.id === messageId);
+      if (messageIndex === -1) return prev;
+
+      const message = prev[messageIndex];
+      const previousMessage = messageIndex > 0 ? prev[messageIndex - 1] : null;
+
+      // Save feedback to localStorage
+      if (previousMessage && previousMessage.role === 'user') {
+        saveFeedback({
+          messageId,
+          feedback,
+          query: previousMessage.content,
+          response: message.content.slice(0, 500),
+          timestamp: new Date(),
+          isResearch: previousMessage.content.startsWith('[Deep Research]'),
+        });
+      }
+
+      return prev.map((m) =>
+        m.id === messageId ? { ...m, feedback } : m
+      );
+    });
+  }, []);
+
   const handleSend = useCallback(
     async (content: string, isResearch: boolean) => {
       if (isResearch) {
-        await handleResearchChat(content);
+        await handleResearchChat(content, messages);
       } else {
         await handleRegularChat(content);
       }
     },
-    [handleRegularChat, handleResearchChat]
+    [handleRegularChat, handleResearchChat, messages]
   );
 
   return (
@@ -284,6 +353,7 @@ export function ChatWidget() {
           isResearchMode={isResearchMode}
           onToggleResearchMode={handleToggleResearchMode}
           researchState={researchState}
+          onFeedback={handleFeedback}
         />
       )}
       <ChatButton isOpen={isOpen} onClick={handleToggle} />

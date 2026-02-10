@@ -40,6 +40,7 @@ You have gathered research from multiple sources on different aspects of the que
 3. Cite sources using markdown links like [Source Title](/path)
 4. Cover: requirements, high-level design, key components, data flow, scaling considerations
 5. Be thorough but concise - aim for a complete system design response
+6. If there's conversation history, consider previous context when answering follow-up questions
 
 When generating Mermaid diagrams:
 - Use flowchart (graph TD) for architecture/components
@@ -48,6 +49,11 @@ When generating Mermaid diagrams:
 
 Research Findings:
 `;
+
+export type ConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 export async function decomposeQuery(question: string): Promise<string[]> {
   const groq = getGroqClient();
@@ -129,9 +135,18 @@ export function formatResearchContext(
 
 export async function synthesizeResearch(
   originalQuestion: string,
-  researchContext: string
+  researchContext: string,
+  conversationHistory: ConversationMessage[] = []
 ): Promise<AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>> {
   const groq = getGroqClient();
+
+  // Build conversation context if there's history
+  let conversationContext = '';
+  if (conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6); // Last 3 exchanges
+    conversationContext = '\n\nPrevious conversation:\n' +
+      recentHistory.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 500)}${m.content.length > 500 ? '...' : ''}`).join('\n');
+  }
 
   const stream = await groq.chat.completions.create({
     model: GROQ_MODEL,
@@ -141,7 +156,7 @@ export async function synthesizeResearch(
     messages: [
       {
         role: 'system',
-        content: SYNTHESIZE_PROMPT + researchContext
+        content: SYNTHESIZE_PROMPT + researchContext + conversationContext
       },
       {
         role: 'user',

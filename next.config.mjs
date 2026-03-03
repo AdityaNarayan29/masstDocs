@@ -154,6 +154,34 @@ const pwaConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        // Cache all doc pages aggressively at CDN level
+        source: '/(sd|hld)/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=86400, stale-while-revalidate=604800',
+          },
+          {
+            key: 'X-Robots-Tag',
+            value: 'noai, noimageai',
+          },
+        ],
+      },
+      {
+        // Prevent bots from hitting sitemaps too frequently
+        source: '/:path(sitemap\\.xml|image-sitemap\\.xml)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // WWW to non-WWW redirect for SEO canonicalization

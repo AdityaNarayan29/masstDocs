@@ -11,30 +11,22 @@ description: Understanding the Domain Name System and its role in distributed sy
 
 ## How DNS Works
 
-```
-User types: www.example.com
-                │
-                ▼
-        ┌───────────────┐
-        │ DNS Resolver  │ (ISP or public like 8.8.8.8)
-        └───────┬───────┘
-                │ Cache miss
-                ▼
-        ┌───────────────┐
-        │  Root Server  │ Returns: .com nameserver
-        └───────┬───────┘
-                │
-                ▼
-        ┌───────────────┐
-        │ TLD Server    │ Returns: example.com nameserver
-        │    (.com)     │
-        └───────┬───────┘
-                │
-                ▼
-        ┌───────────────┐
-        │ Authoritative │ Returns: 93.184.216.34
-        │    Server     │
-        └───────────────┘
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant R as DNS Resolver (ISP / 8.8.8.8)
+    participant Root as Root Server
+    participant TLD as TLD Server (.com)
+    participant Auth as Authoritative Server
+
+    U->>R: www.example.com
+    R->>Root: Query
+    Root-->>R: .com nameserver
+    R->>TLD: Query
+    TLD-->>R: example.com nameserver
+    R->>Auth: Query
+    Auth-->>R: 93.184.216.34
+    R-->>U: 93.184.216.34
 ```
 
 ---
@@ -58,11 +50,11 @@ User types: www.example.com
 
 DNS can distribute traffic across multiple servers using Round-Robin:
 
-```
-example.com
-    ├──► 192.168.1.1 (Server A)
-    ├──► 192.168.1.2 (Server B)
-    └──► 192.168.1.3 (Server C)
+```mermaid
+flowchart TD
+    DNS["example.com"] --> A["192.168.1.1 (Server A)"]
+    DNS --> B["192.168.1.2 (Server B)"]
+    DNS --> C["192.168.1.3 (Server C)"]
 ```
 
 ### Geographic Routing

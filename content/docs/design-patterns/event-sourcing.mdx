@@ -11,23 +11,17 @@ description: Understanding event sourcing for storing application state.
 
 ## Traditional vs Event Sourcing
 
-```
-Traditional (State-based):
-┌──────────────────────────────────────┐
-│ Account: #123                        │
-│ Balance: $500                        │
-│ LastUpdated: 2024-01-15              │
-└──────────────────────────────────────┘
-
-Event Sourcing:
-┌──────────────────────────────────────┐
-│ Event 1: AccountCreated (#123)       │
-│ Event 2: Deposited ($1000)           │
-│ Event 3: Withdrawn ($300)            │
-│ Event 4: Withdrawn ($200)            │
-│ ─────────────────────────────        │
-│ Current Balance: $500                │
-└──────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph "Traditional (State-based)"
+        DB["Account #123\nBalance: $500\nLastUpdated: 2024-01-15"]
+    end
+    subgraph "Event Sourcing"
+        E1["AccountCreated (#123)"] --> E2["Deposited ($1000)"]
+        E2 --> E3["Withdrawn ($300)"]
+        E3 --> E4["Withdrawn ($200)"]
+        E4 --> BAL["Current Balance: $500"]
+    end
 ```
 
 ---
@@ -46,25 +40,17 @@ Event Sourcing:
 
 ## How It Works
 
-```
-Command                Event Store              Projections
-   │                       │                        │
-   │─── PlaceOrder ───────►│                        │
-   │                       │                        │
-   │                  ┌────▼────┐                   │
-   │                  │ Validate│                   │
-   │                  │ & Store │                   │
-   │                  │ Event   │                   │
-   │                  └────┬────┘                   │
-   │                       │                        │
-   │◄── OrderPlaced ───────│───────────────────────►│
-   │                       │         Publish        │
-   │                       │                        │
-   │                       │                   ┌────▼────┐
-   │                       │                   │ Update  │
-   │                       │                   │ Read    │
-   │                       │                   │ Models  │
-   │                       │                   └─────────┘
+```mermaid
+sequenceDiagram
+    participant Cmd as Command
+    participant ES as Event Store
+    participant Proj as Projections
+
+    Cmd->>ES: PlaceOrder
+    ES->>ES: Validate & Store Event
+    ES-->>Cmd: OrderPlaced
+    ES->>Proj: Publish Event
+    Proj->>Proj: Update Read Models
 ```
 
 ---
@@ -119,13 +105,10 @@ Command                Event Store              Projections
 
 Avoid replaying all events by periodically saving state:
 
-```
-Events: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, ...]
-                      │
-              Snapshot at event 10
-                      │
-                      ▼
-Rebuild: [Snapshot] + [11, 12, ...]
+```mermaid
+flowchart LR
+    E["Events: 1, 2, ... 10"] --> S["Snapshot at event 10"]
+    S --> R["Rebuild: Snapshot + events 11, 12, ..."]
 ```
 
 ---
@@ -134,8 +117,9 @@ Rebuild: [Snapshot] + [11, 12, ...]
 
 Often used together:
 
-```
-Command ──► Event Store ──► Events ──► Projections ──► Query
+```mermaid
+flowchart LR
+    C["Command"] --> ES["Event Store"] --> EV["Events"] --> P["Projections"] --> Q["Query"]
 ```
 
 - Events are the source of truth

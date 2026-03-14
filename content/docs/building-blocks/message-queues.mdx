@@ -11,20 +11,18 @@ A **Message Queue** is a form of asynchronous service-to-service communication. 
 
 ## How It Works
 
-```
-Producer                  Queue                  Consumer
-    │                       │                       │
-    │─── Send Message ─────►│                       │
-    │                       │                       │
-    │◄── ACK ───────────────│                       │
-    │                       │                       │
-    │                       │◄── Poll/Pull ─────────│
-    │                       │                       │
-    │                       │─── Deliver Message ──►│
-    │                       │                       │
-    │                       │◄── ACK (processed) ───│
-    │                       │                       │
-    │                       │    (Delete message)   │
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant Q as Queue
+    participant C as Consumer
+
+    P->>Q: Send Message
+    Q-->>P: ACK
+    C->>Q: Poll/Pull
+    Q->>C: Deliver Message
+    C-->>Q: ACK (processed)
+    Note over Q: Delete message
 ```
 
 ---
@@ -69,19 +67,23 @@ Producer                  Queue                  Consumer
 
 One message → one consumer:
 
-```
-Producer ──► Queue ──► Consumer
-                  └──► Consumer (competing)
+```mermaid
+flowchart LR
+    P["Producer"] --> Q["Queue"]
+    Q --> C1["Consumer"]
+    Q --> C2["Consumer (competing)"]
 ```
 
 ### Work Queue
 
 Distribute tasks among workers:
 
-```
-Producer ──► Queue ──► Worker 1
-                  ├──► Worker 2
-                  └──► Worker 3
+```mermaid
+flowchart LR
+    P["Producer"] --> Q["Queue"]
+    Q --> W1["Worker 1"]
+    Q --> W2["Worker 2"]
+    Q --> W3["Worker 3"]
 ```
 
 ---

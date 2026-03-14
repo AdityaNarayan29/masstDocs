@@ -22,33 +22,28 @@ description: Understanding WebSockets for real-time bidirectional communication.
 
 ## WebSocket Handshake
 
-```
-Client                                  Server
-   │                                      │
-   │─── HTTP Upgrade Request ────────────►│
-   │    Upgrade: websocket                │
-   │    Connection: Upgrade               │
-   │                                      │
-   │◄── HTTP 101 Switching Protocols ─────│
-   │                                      │
-   │◄─────── WebSocket Messages ─────────►│
-   │         (bidirectional)              │
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    C->>S: HTTP Upgrade Request (Upgrade: websocket)
+    S-->>C: HTTP 101 Switching Protocols
+    C<<->>S: WebSocket Messages (bidirectional)
 ```
 
 ---
 
 ## Connection Lifecycle
 
-```
-┌─────────┐    ┌───────────────┐    ┌─────────┐
-│ Opening │───►│   Connected   │───►│ Closing │
-└─────────┘    └───────────────┘    └─────────┘
-                      │
-                      ▼
-              ┌───────────────┐
-              │  Messages     │
-              │  (send/recv)  │
-              └───────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Opening
+    Opening --> Connected
+    Connected --> Messages: send/recv
+    Messages --> Connected
+    Connected --> Closing
+    Closing --> [*]
 ```
 
 ---
@@ -94,11 +89,10 @@ Each server maintains connections; users on different servers can't communicate.
 
 ### Solutions
 
-```
-┌─────────┐     ┌─────────┐
-│Server A │◄───►│ Redis   │◄───►│Server B │
-│(users)  │ pub │ Pub/Sub │ sub │(users)  │
-└─────────┘     └─────────┘     └─────────┘
+```mermaid
+flowchart LR
+    SA["Server A (users)"] <-->|"pub"| R["Redis Pub/Sub"]
+    R <-->|"sub"| SB["Server B (users)"]
 ```
 
 Use pub/sub (Redis, Kafka) to broadcast across servers.

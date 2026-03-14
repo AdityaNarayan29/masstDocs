@@ -11,27 +11,12 @@ description: Understanding caching patterns and strategies in system design.
 
 ## Cache Layers
 
-```
-User Request
-     │
-     ▼
-┌─────────────┐
-│ Browser     │ ← Client-side cache
-│ Cache       │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│    CDN      │ ← Edge cache
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│ Application │ ← In-memory cache
-│ Cache       │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│  Database   │ ← Query cache
-└─────────────┘
+```mermaid
+flowchart TD
+    A["User Request"] --> B["Browser Cache\n(Client-side)"]
+    B --> C["CDN\n(Edge cache)"]
+    C --> D["Application Cache\n(In-memory)"]
+    D --> E["Database\n(Query cache)"]
 ```
 
 ---
@@ -42,16 +27,15 @@ User Request
 
 Application manages cache explicitly:
 
-```
-Read:
-1. Check cache
-2. If miss, read from DB
-3. Store in cache
-4. Return data
-
-Write:
-1. Write to DB
-2. Invalidate cache
+```mermaid
+flowchart LR
+    subgraph Read
+        R1["Check Cache"] --> R2{Hit?}
+        R2 -->|Miss| R3["Read from DB"]
+        R3 --> R4["Store in Cache"]
+        R4 --> R5["Return Data"]
+        R2 -->|Hit| R5
+    end
 ```
 
 **Pros**: Only requested data cached, resilient to cache failures
@@ -61,11 +45,12 @@ Write:
 
 Cache sits between app and DB:
 
-```
-Read:
-1. Request to cache
-2. Cache fetches from DB on miss
-3. Cache returns data
+```mermaid
+flowchart LR
+    A["App"] --> B["Cache"]
+    B -->|Miss| C["DB"]
+    C --> B
+    B --> A
 ```
 
 **Pros**: Simpler application code
@@ -75,11 +60,12 @@ Read:
 
 Writes go through cache to DB:
 
-```
-Write:
-1. Write to cache
-2. Cache writes to DB (sync)
-3. Return success
+```mermaid
+flowchart LR
+    A["App"] --> B["Cache"]
+    B -->|"Sync write"| C["DB"]
+    C --> B
+    B --> D["Return Success"]
 ```
 
 **Pros**: Cache always consistent, data not lost
@@ -89,11 +75,11 @@ Write:
 
 Writes to cache, async to DB:
 
-```
-Write:
-1. Write to cache
-2. Return success immediately
-3. Cache writes to DB later (async)
+```mermaid
+flowchart LR
+    A["App"] --> B["Cache"]
+    B --> C["Return Success"]
+    B -.->|"Async later"| D["DB"]
 ```
 
 **Pros**: Low write latency

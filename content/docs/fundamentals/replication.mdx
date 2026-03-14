@@ -26,22 +26,15 @@ description: Understanding data replication strategies in distributed systems.
 
 One node accepts writes; others replicate from it.
 
-```
-           Writes
-              │
-              ▼
-         ┌────────┐
-         │ Leader │
-         └───┬────┘
-             │ Replication
-     ┌───────┼───────┐
-     ▼       ▼       ▼
-┌────────┐┌────────┐┌────────┐
-│Follower││Follower││Follower│
-└────────┘└────────┘└────────┘
-     ▲       ▲       ▲
-     │       │       │
-        Reads (distributed)
+```mermaid
+flowchart TD
+    W["Writes"] --> L["Leader"]
+    L -->|"Replication"| F1["Follower 1"]
+    L -->|"Replication"| F2["Follower 2"]
+    L -->|"Replication"| F3["Follower 3"]
+    F1 --> R["Reads (distributed)"]
+    F2 --> R
+    F3 --> R
 ```
 
 **Pros**:
@@ -59,16 +52,11 @@ One node accepts writes; others replicate from it.
 
 Multiple nodes accept writes independently.
 
-```
-┌────────┐         ┌────────┐
-│Leader A│◄───────►│Leader B│
-│(writes)│ bidirectional │(writes)│
-└───┬────┘         └────┬───┘
-    │                   │
-    ▼                   ▼
-┌────────┐         ┌────────┐
-│Follower│         │Follower│
-└────────┘         └────────┘
+```mermaid
+flowchart LR
+    LA["Leader A (writes)"] <-->|"bidirectional"| LB["Leader B (writes)"]
+    LA --> FA["Follower"]
+    LB --> FB["Follower"]
 ```
 
 **Pros**:
@@ -87,19 +75,14 @@ Multiple nodes accept writes independently.
 
 All nodes are equal; any node can accept reads/writes.
 
-```
-     ┌────────┐
-     │ Node A │
-     └───┬────┘
-         │
-    ┌────┴────┐
-    │         │
-┌───┴───┐ ┌───┴───┐
-│Node B │ │Node C │
-└───────┘ └───────┘
-
-Client writes to multiple nodes
-Client reads from multiple nodes
+```mermaid
+flowchart TD
+    A["Node A"] <--> B["Node B"]
+    A <--> C["Node C"]
+    B <--> C
+    CL["Client"] -->|"writes/reads"| A
+    CL -->|"writes/reads"| B
+    CL -->|"writes/reads"| C
 ```
 
 **Pros**:
@@ -122,11 +105,19 @@ Client reads from multiple nodes
 
 Leader waits for followers before acknowledging writes.
 
-```
-Client ──► Leader ──► Follower 1 ✓
-                  └──► Follower 2 ✓
-                      │
-Client ◄── ACK ◄──────┘
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as Leader
+    participant F1 as Follower 1
+    participant F2 as Follower 2
+
+    C->>L: Write
+    L->>F1: Replicate
+    L->>F2: Replicate
+    F1-->>L: ACK ✓
+    F2-->>L: ACK ✓
+    L-->>C: ACK (all confirmed)
 ```
 
 | **Aspect** | **Value** |
@@ -140,11 +131,17 @@ Client ◄── ACK ◄──────┘
 
 Leader acknowledges immediately; replication happens in background.
 
-```
-Client ──► Leader ──► ACK to Client
-              │
-              └──► Follower 1 (async)
-              └──► Follower 2 (async)
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as Leader
+    participant F1 as Follower 1
+    participant F2 as Follower 2
+
+    C->>L: Write
+    L-->>C: ACK (immediate)
+    L-)F1: Replicate (async)
+    L-)F2: Replicate (async)
 ```
 
 | **Aspect** | **Value** |
@@ -158,14 +155,18 @@ Client ──► Leader ──► ACK to Client
 
 Wait for at least one follower, replicate to others async.
 
-```
-Client ──► Leader ──► Follower 1 ✓ (sync)
-              │       │
-              │       └──► ACK
-              │               │
-Client ◄──────┴───────────────┘
-              │
-              └──► Follower 2 (async)
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as Leader
+    participant F1 as Follower 1
+    participant F2 as Follower 2
+
+    C->>L: Write
+    L->>F1: Replicate (sync)
+    F1-->>L: ACK ✓
+    L-->>C: ACK (confirmed)
+    L-)F2: Replicate (async)
 ```
 
 ---
@@ -177,10 +178,15 @@ The delay between a write on the leader and its appearance on followers.
 ### Problems Caused by Lag
 
 **Reading Your Own Writes**:
-```
-User writes ──► Leader
-User reads  ──► Follower (hasn't received write yet)
-User sees old data!
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant L as Leader
+    participant F as Follower
+
+    U->>L: Write data
+    U->>F: Read data
+    F-->>U: Old data! (hasn't received write yet)
 ```
 
 **Solution**: Read-your-writes consistency
@@ -188,10 +194,16 @@ User sees old data!
 - Track write timestamp, wait for follower to catch up
 
 **Monotonic Reads**:
-```
-User reads ──► Follower A (has data)
-User reads ──► Follower B (doesn't have data)
-Data appears to go backwards!
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FA as Follower A
+    participant FB as Follower B
+
+    U->>FA: Read (has data ✓)
+    FA-->>U: Latest data
+    U->>FB: Read (missing data ✗)
+    FB-->>U: Old data — appears to go backwards!
 ```
 
 **Solution**: Stick to same replica or track timestamps

@@ -80,50 +80,26 @@ Base62: "8M0kX"
 
 Generate keys offline, store in key database:
 
-```
-┌───────────────┐     ┌───────────────┐
-│ Key Generator │────►│  Key Database │
-│   (offline)   │     │  (unused keys)│
-└───────────────┘     └───────────────┘
-                             │
-                             ▼
-                      ┌───────────────┐
-                      │  App Server   │
-                      │ (takes a key) │
-                      └───────────────┘
+```mermaid
+flowchart LR
+    KG["Key Generator (offline)"] --> KDB["Key Database (unused keys)"]
+    KDB --> AS["App Server (takes a key)"]
 ```
 
 ---
 
 ## System Architecture
 
-```
-                         ┌─────────────┐
-                         │     CDN     │
-                         └──────┬──────┘
-                                │
-                         ┌──────▼──────┐
-                         │    Load     │
-                         │  Balancer   │
-                         └──────┬──────┘
-                                │
-              ┌─────────────────┼─────────────────┐
-              │                 │                 │
-       ┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-       │ App Server  │  │ App Server  │  │ App Server  │
-       └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-              │                 │                 │
-              └─────────────────┼─────────────────┘
-                                │
-                         ┌──────▼──────┐
-                         │    Cache    │
-                         │   (Redis)   │
-                         └──────┬──────┘
-                                │
-                         ┌──────▼──────┐
-                         │  Database   │
-                         │ (sharded)   │
-                         └─────────────┘
+```mermaid
+flowchart TD
+    CDN["CDN"] --> LB["Load Balancer"]
+    LB --> AS1["App Server"]
+    LB --> AS2["App Server"]
+    LB --> AS3["App Server"]
+    AS1 --> Cache["Cache (Redis)"]
+    AS2 --> Cache
+    AS3 --> Cache
+    Cache --> DB["Database (sharded)"]
 ```
 
 ---

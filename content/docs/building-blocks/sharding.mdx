@@ -26,10 +26,11 @@ description: Understanding database sharding strategies for horizontal scaling.
 
 Partition by ranges of a key:
 
-```
-Shard 1: user_id 1-1,000,000
-Shard 2: user_id 1,000,001-2,000,000
-Shard 3: user_id 2,000,001-3,000,000
+```mermaid
+flowchart LR
+    S1["Shard 1\nuser_id 1 - 1,000,000"]
+    S2["Shard 2\nuser_id 1,000,001 - 2,000,000"]
+    S3["Shard 3\nuser_id 2,000,001 - 3,000,000"]
 ```
 
 **Pros**: Simple, range queries efficient
@@ -50,13 +51,10 @@ shard = hash(user_id) % num_shards
 
 Lookup table maps keys to shards:
 
-```
-┌──────────┬─────────┐
-│   Key    │  Shard  │
-├──────────┼─────────┤
-│ user_123 │ Shard 1 │
-│ user_456 │ Shard 2 │
-└──────────┴─────────┘
+```mermaid
+flowchart LR
+    L["Lookup Table"] -->|"user_123"| S1["Shard 1"]
+    L -->|"user_456"| S2["Shard 2"]
 ```
 
 **Pros**: Flexible, easy rebalancing
@@ -76,17 +74,11 @@ Asia users → Asia shard
 
 ## Sharding Architecture
 
-```
-        ┌─────────────┐
-        │   Router/   │
-        │   Proxy     │
-        └──────┬──────┘
-               │
-    ┌──────────┼──────────┐
-    │          │          │
-┌───▼───┐  ┌───▼───┐  ┌───▼───┐
-│Shard 1│  │Shard 2│  │Shard 3│
-└───────┘  └───────┘  └───────┘
+```mermaid
+flowchart TD
+    R["Router / Proxy"] --> S1["Shard 1"]
+    R --> S2["Shard 2"]
+    R --> S3["Shard 3"]
 ```
 
 ---
@@ -124,20 +116,15 @@ ACID transactions across shards are complex:
 
 Minimizes data movement when shards change:
 
-```
-        0°
-        ●
-      /   \
-   Shard A  Shard B
-    /         \
-  ●─────────────●
- 270°          90°
-    \         /
-     Shard C
-        ●
-       180°
-
-Key hash → position on ring → nearest shard clockwise
+```mermaid
+flowchart TD
+    subgraph "Hash Ring"
+        A["0° — Shard A"] --- B["90° — Shard B"]
+        B --- C["180° — Shard C"]
+        C --- D["270°"]
+        D --- A
+    end
+    Note["Key hash → position on ring → nearest shard clockwise"]
 ```
 
 ---

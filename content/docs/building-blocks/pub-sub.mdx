@@ -11,16 +11,13 @@ description: Understanding the publish-subscribe messaging pattern.
 
 ## How It Works
 
-```
-Publishers                Topics              Subscribers
-     │                      │                      │
-Publisher A ─── orders ────►│                      │
-     │          topic       │──► orders ──────────► Subscriber 1
-     │                      │                      │
-Publisher B ─── payments ──►│                      │
-     │          topic       │──► orders ──────────► Subscriber 2
-     │                      │                      │
-     │                      │──► payments ────────► Subscriber 3
+```mermaid
+flowchart LR
+    PA["Publisher A"] -->|"orders"| T["Topics"]
+    PB["Publisher B"] -->|"payments"| T
+    T -->|"orders"| S1["Subscriber 1"]
+    T -->|"orders"| S2["Subscriber 2"]
+    T -->|"payments"| S3["Subscriber 3"]
 ```
 
 ---
@@ -53,15 +50,17 @@ Publisher B ─── payments ──►│                      │
 ### Push
 
 Messages pushed to subscribers:
-```
-Topic ──push──► Subscriber (webhook, streaming)
+```mermaid
+flowchart LR
+    T["Topic"] -->|"push"| S["Subscriber (webhook, streaming)"]
 ```
 
 ### Pull
 
 Subscribers poll for messages:
-```
-Subscriber ──pull──► Topic
+```mermaid
+flowchart LR
+    S["Subscriber"] -->|"pull"| T["Topic"]
 ```
 
 ---
@@ -105,13 +104,12 @@ Subscriber ──pull──► Topic
 
 One event triggers multiple actions:
 
-```
-Order Placed
-     │
-     ├──► Inventory Service (reduce stock)
-     ├──► Email Service (send confirmation)
-     ├──► Analytics Service (track order)
-     └──► Shipping Service (prepare shipment)
+```mermaid
+flowchart TD
+    O["Order Placed"] --> I["Inventory Service (reduce stock)"]
+    O --> E["Email Service (send confirmation)"]
+    O --> A["Analytics Service (track order)"]
+    O --> S["Shipping Service (prepare shipment)"]
 ```
 
 ---

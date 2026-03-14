@@ -13,29 +13,25 @@ The **Saga Pattern** manages distributed transactions across multiple services b
 
 Distributed transactions are hard:
 
-```
-Order Service ──► Payment Service ──► Inventory Service
-     │                  │                    │
-     │              Payment OK          Stock depleted
-     │                  │                    │
-     │              Payment fails?      Need to rollback!
-     │                  ▼                    │
-     │            Can't use 2PC easily      │
+```mermaid
+flowchart LR
+    O["Order Service"] --> P["Payment Service"] --> I["Inventory Service"]
+    P -->|"Payment fails?"| X["Can't use 2PC easily\nNeed to rollback!"]
 ```
 
 ---
 
 ## How Sagas Work
 
-```
-Happy Path:
-T1 ──► T2 ──► T3 ──► T4 ──► Success!
-
-Failure at T3:
-T1 ──► T2 ──► T3 (fails)
-              │
-              ▼
-        C2 ◄── C1 (compensate backwards)
+```mermaid
+flowchart LR
+    subgraph "Happy Path"
+        T1["T1"] --> T2["T2"] --> T3["T3"] --> T4["T4"] --> S["Success!"]
+    end
+    subgraph "Failure at T3"
+        T1b["T1"] --> T2b["T2"] --> T3b["T3 (fails)"]
+        T3b --> C2["C2"] --> C1["C1 (compensate backwards)"]
+    end
 ```
 
 | **Concept** | **Description** |
@@ -52,14 +48,10 @@ T1 ──► T2 ──► T3 (fails)
 
 Services react to events, no central coordinator:
 
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│ Order   │────►│ Payment │────►│Inventory│
-│ Service │     │ Service │     │ Service │
-└─────────┘     └─────────┘     └─────────┘
-     │               │               │
-     └──────◄────────┴──────◄────────┘
-              Events/Compensation
+```mermaid
+flowchart LR
+    OS["Order\nService"] -->|"event"| PS["Payment\nService"] -->|"event"| IS["Inventory\nService"]
+    IS -.->|"compensation"| PS -.->|"compensation"| OS
 ```
 
 **Pros**: Decoupled, simple for few steps
@@ -69,18 +61,11 @@ Services react to events, no central coordinator:
 
 Central coordinator manages the flow:
 
-```
-              ┌─────────────┐
-              │ Orchestrator│
-              └──────┬──────┘
-                     │
-        ┌────────────┼────────────┐
-        │            │            │
-        ▼            ▼            ▼
-   ┌─────────┐  ┌─────────┐  ┌─────────┐
-   │ Order   │  │ Payment │  │Inventory│
-   │ Service │  │ Service │  │ Service │
-   └─────────┘  └─────────┘  └─────────┘
+```mermaid
+flowchart TD
+    ORC["Orchestrator"] --> OS["Order Service"]
+    ORC --> PS["Payment Service"]
+    ORC --> IS["Inventory Service"]
 ```
 
 **Pros**: Easy to understand, centralized logic
@@ -90,33 +75,21 @@ Central coordinator manages the flow:
 
 ## Example: Order Saga
 
-```
-Order Placement Saga:
-
-Step 1: Create Order (Pending)
-        Compensation: Cancel Order
-
-Step 2: Reserve Inventory
-        Compensation: Release Inventory
-
-Step 3: Process Payment
-        Compensation: Refund Payment
-
-Step 4: Confirm Order
-        (No compensation needed - final step)
+```mermaid
+flowchart TD
+    S1["1. Create Order (Pending)\nCompensation: Cancel Order"] --> S2["2. Reserve Inventory\nCompensation: Release Inventory"]
+    S2 --> S3["3. Process Payment\nCompensation: Refund Payment"]
+    S3 --> S4["4. Confirm Order\n(final step)"]
 ```
 
 ### Failure Scenario
 
-```
-1. Create Order ✓
-2. Reserve Inventory ✓
-3. Process Payment ✗ (fails - insufficient funds)
-   │
-   └─► Trigger compensation:
-       - Refund Payment (no-op, payment failed)
-       - Release Inventory
-       - Cancel Order
+```mermaid
+flowchart TD
+    A["1. Create Order ✓"] --> B["2. Reserve Inventory ✓"]
+    B --> C["3. Process Payment ✗"]
+    C -->|"Compensate"| D["Release Inventory"]
+    D --> E["Cancel Order"]
 ```
 
 ---

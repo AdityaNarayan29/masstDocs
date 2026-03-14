@@ -13,40 +13,29 @@ The **Circuit Breaker** pattern prevents an application from repeatedly trying t
 
 Without circuit breaker, cascading failures occur:
 
-```
-Service A ──► Service B (down)
-          ──► Service B (down)
-          ──► Service B (down)
-          ... (keeps trying, wasting resources)
-
-Meanwhile:
-- Threads blocked waiting
-- Resources exhausted
-- Service A becomes slow/unavailable
+```mermaid
+flowchart LR
+    A["Service A"] -->|"retry"| B["Service B (down)"]
+    A -->|"retry"| B
+    A -->|"retry"| B
+    B --> X["Threads blocked\nResources exhausted\nService A unavailable"]
 ```
 
 ---
 
 ## Circuit Breaker States
 
-```
-         ┌─────────────────────────────────────┐
-         │                                     │
-         ▼                                     │
-    ┌─────────┐    failures    ┌─────────┐    │
-    │ CLOSED  │───────────────►│  OPEN   │    │
-    │(normal) │  > threshold   │ (fail   │    │
-    └─────────┘                │  fast)  │    │
-         ▲                     └────┬────┘    │
-         │                          │         │
-         │                     timeout        │
-         │                          │         │
-         │                     ┌────▼────┐    │
-         │      success        │HALF-OPEN│    │
-         └─────────────────────│ (test)  │────┘
-                               └─────────┘
-                                    │ failure
-                                    └──────────►OPEN
+```mermaid
+stateDiagram-v2
+    [*] --> Closed
+    Closed --> Open: failures > threshold
+    Open --> HalfOpen: timeout expires
+    HalfOpen --> Closed: success
+    HalfOpen --> Open: failure
+
+    Closed: Normal operation
+    Open: Fail fast
+    HalfOpen: Test with limited requests
 ```
 
 | **State** | **Behavior** |
@@ -59,21 +48,26 @@ Meanwhile:
 
 ## How It Works
 
-```
-Request                Circuit Breaker              Service
-   │                        │                          │
-   │─── Request ───────────►│                          │
-   │                        │                          │
-   │  [If CLOSED]           │─── Forward ─────────────►│
-   │                        │◄── Response/Error ───────│
-   │                        │    (track result)        │
-   │                        │                          │
-   │  [If OPEN]             │                          │
-   │◄── Fail Fast ──────────│    (don't call service)  │
-   │                        │                          │
-   │  [If HALF-OPEN]        │                          │
-   │                        │─── Test Request ────────►│
-   │                        │    (decide state)        │
+```mermaid
+sequenceDiagram
+    participant R as Request
+    participant CB as Circuit Breaker
+    participant S as Service
+
+    Note over CB: If CLOSED
+    R->>CB: Request
+    CB->>S: Forward
+    S-->>CB: Response/Error
+    Note over CB: Track result
+
+    Note over CB: If OPEN
+    R->>CB: Request
+    CB-->>R: Fail Fast
+
+    Note over CB: If HALF-OPEN
+    R->>CB: Request
+    CB->>S: Test Request
+    Note over CB: Decide state
 ```
 
 ---

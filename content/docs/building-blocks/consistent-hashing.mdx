@@ -28,22 +28,15 @@ Result: Most keys remapped, cache invalidation storm
 
 ### The Hash Ring
 
-```
-                    0°
-                    │
-            ┌───────┼───────┐
-           /        │        \
-         S1         │         S2
-        /           │           \
-      90°───────────┼───────────270°
-        \           │           /
-         S3         │         S4
-           \        │        /
-            └───────┼───────┘
-                   180°
-
-Keys and servers both mapped to ring positions
-Key assigned to first server clockwise from its position
+```mermaid
+flowchart TD
+    subgraph "Hash Ring"
+        S1["S1 (0°)"] --- S2["S2 (90°)"]
+        S2 --- S3["S3 (180°)"]
+        S3 --- S4["S4 (270°)"]
+        S4 --- S1
+    end
+    Note["Keys and servers mapped to ring positions\nKey assigned to first server clockwise"]
 ```
 
 ### Key Assignment
@@ -64,22 +57,13 @@ Example:
 
 To ensure even distribution, each physical server has multiple virtual nodes:
 
-```
-Physical Server A → Virtual: A1, A2, A3, A4
-Physical Server B → Virtual: B1, B2, B3, B4
-
-                    A1
-                   /   \
-                 B3     A2
-                /         \
-              B1           B2
-                \         /
-                 A4     A3
-                   \   /
-                    B4
-
-More virtual nodes = Better distribution
-Typical: 100-200 virtual nodes per server
+```mermaid
+flowchart TD
+    subgraph "Physical → Virtual Nodes"
+        PA["Server A"] --> A1["A1"] & A2["A2"] & A3["A3"] & A4["A4"]
+        PB["Server B"] --> B1["B1"] & B2["B2"] & B3["B3"] & B4["B4"]
+    end
+    Note["More virtual nodes = Better distribution\nTypical: 100-200 per server"]
 ```
 
 ---
@@ -88,31 +72,22 @@ Typical: 100-200 virtual nodes per server
 
 ### Adding a Node
 
-```
-Before: Keys K1, K2, K3 on Server A
-
-             K1  K2  K3
-              ↓   ↓   ↓
-        ──────────────────
-              Server A
-
-After adding Server B between K1 and K2:
-
-             K1      K2  K3
-              ↓       ↓   ↓
-        ────────────────────
-           B  │     A
-              │
-Only K1 moves to B (not K2, K3)
+```mermaid
+flowchart TD
+    subgraph "Adding Server B"
+        direction LR
+        K1["K1"] -->|"moves to B"| SB["Server B (new)"]
+        K2["K2"] -->|"stays"| SA["Server A"]
+        K3["K3"] -->|"stays"| SA
+    end
 ```
 
 ### Removing a Node
 
-```
-When Server B fails:
-- Only keys on B need remapping
-- They move to next server clockwise
-- Other keys unaffected
+```mermaid
+flowchart LR
+    B["Server B (fails)"] -->|"Keys move to next\nserver clockwise"| A["Server A"]
+    Note["Only keys on B remapped — other keys unaffected"]
 ```
 
 ---

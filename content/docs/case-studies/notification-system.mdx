@@ -49,33 +49,16 @@ Peak: ~30,000/second
 
 ## System Architecture
 
-```
-                    ┌─────────────────┐
-                    │   API Gateway   │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Notification   │
-                    │    Service      │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Message Queue  │
-                    │    (Kafka)      │
-                    └────────┬────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
-    ┌────▼────┐        ┌────▼────┐        ┌────▼────┐
-    │  Push   │        │   SMS   │        │  Email  │
-    │ Worker  │        │ Worker  │        │ Worker  │
-    └────┬────┘        └────┬────┘        └────┬────┘
-         │                   │                   │
-         ▼                   ▼                   ▼
-    ┌─────────┐        ┌─────────┐        ┌─────────┐
-    │  APNs/  │        │ Twilio  │        │SendGrid │
-    │  FCM    │        │         │        │         │
-    └─────────┘        └─────────┘        └─────────┘
+```mermaid
+flowchart TD
+    GW["API Gateway"] --> NS["Notification Service"]
+    NS --> MQ["Message Queue (Kafka)"]
+    MQ --> PW["Push Worker"]
+    MQ --> SW["SMS Worker"]
+    MQ --> EW["Email Worker"]
+    PW --> APNs["APNs / FCM"]
+    SW --> Twilio["Twilio"]
+    EW --> SG["SendGrid"]
 ```
 
 ---
@@ -84,12 +67,12 @@ Peak: ~30,000/second
 
 ### Notification Service
 
-```
-1. Receive notification request
-2. Validate and enrich data
-3. Check user preferences
-4. Apply rate limiting
-5. Queue for delivery
+```mermaid
+flowchart TD
+    A["1. Receive notification request"] --> B["2. Validate and enrich data"]
+    B --> C["3. Check user preferences"]
+    C --> D["4. Apply rate limiting"]
+    D --> E["5. Queue for delivery"]
 ```
 
 ### Message Queue Topics
@@ -104,12 +87,12 @@ Partitioned by user_id for ordering
 
 ### Workers
 
-```
-1. Consume from queue
-2. Build notification (templates)
-3. Call external provider
-4. Update delivery status
-5. Handle retries
+```mermaid
+flowchart TD
+    A["1. Consume from queue"] --> B["2. Build notification (templates)"]
+    B --> C["3. Call external provider"]
+    C --> D["4. Update delivery status"]
+    D --> E["5. Handle retries"]
 ```
 
 ---

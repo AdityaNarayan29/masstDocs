@@ -11,14 +11,14 @@ A **Reverse Proxy** sits in front of backend servers and forwards client request
 
 ## Forward vs Reverse Proxy
 
-```
-Forward Proxy (client-side):
-Client ──► [Proxy] ──► Internet ──► Server
-           hides client
-
-Reverse Proxy (server-side):
-Client ──► Internet ──► [Reverse Proxy] ──► Server
-                        hides server
+```mermaid
+flowchart LR
+    subgraph "Forward Proxy (client-side)"
+        C1["Client"] --> P1["Proxy\n(hides client)"] --> I1["Internet"] --> S1["Server"]
+    end
+    subgraph "Reverse Proxy (server-side)"
+        C2["Client"] --> I2["Internet"] --> P2["Reverse Proxy\n(hides server)"] --> S2["Server"]
+    end
 ```
 
 ---
@@ -33,18 +33,24 @@ Distribute requests across multiple backend servers.
 
 Handle HTTPS encryption/decryption at the proxy:
 
-```
-Client ──HTTPS──► Reverse Proxy ──HTTP──► Backend
-                 (SSL terminates here)
+```mermaid
+flowchart LR
+    C["Client"] -->|"HTTPS"| RP["Reverse Proxy\n(SSL terminates here)"]
+    RP -->|"HTTP"| B["Backend"]
 ```
 
 ### 3. Caching
 
 Cache responses to reduce backend load:
 
-```
-Request 1: Client → Proxy → Backend → Response (cached)
-Request 2: Client → Proxy → Cached Response (backend not hit)
+```mermaid
+flowchart LR
+    subgraph "Request 1"
+        C1["Client"] --> P1["Proxy"] --> B1["Backend → Response (cached)"]
+    end
+    subgraph "Request 2"
+        C2["Client"] --> P2["Proxy → Cached Response"]
+    end
 ```
 
 ### 4. Compression

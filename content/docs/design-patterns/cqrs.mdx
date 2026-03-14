@@ -11,23 +11,16 @@ description: Understanding Command Query Responsibility Segregation pattern.
 
 ## Traditional vs CQRS
 
-```
-Traditional:
-┌────────┐     ┌─────────────┐     ┌──────────┐
-│ Client │────►│   Service   │────►│ Database │
-└────────┘     │ (CRUD model)│     │ (single) │
-               └─────────────┘     └──────────┘
-
-CQRS:
-┌────────┐     ┌─────────────┐     ┌──────────┐
-│ Client │────►│   Command   │────►│  Write   │
-│ (write)│     │   Service   │     │   DB     │
-└────────┘     └─────────────┘     └────┬─────┘
-                                        │ sync
-┌────────┐     ┌─────────────┐     ┌────▼─────┐
-│ Client │────►│   Query     │────►│  Read    │
-│ (read) │     │   Service   │     │   DB     │
-└────────┘     └─────────────┘     └──────────┘
+```mermaid
+flowchart TD
+    subgraph "Traditional"
+        C1["Client"] --> S1["Service (CRUD)"] --> DB1["Database (single)"]
+    end
+    subgraph "CQRS"
+        CW["Client (write)"] --> CS["Command Service"] --> WDB["Write DB"]
+        WDB -->|"sync"| RDB["Read DB"]
+        CR["Client (read)"] --> QS["Query Service"] --> RDB
+    end
 ```
 
 ---
@@ -61,21 +54,22 @@ CQRS:
 
 Same database, different models:
 
-```
-Write ──► Normalized tables
-Read  ──► Views/materialized views
+```mermaid
+flowchart LR
+    W["Write"] --> NT["Normalized Tables"]
+    R["Read"] --> MV["Views / Materialized Views"]
 ```
 
 ### Separate Databases
 
 Different databases for read/write:
 
-```
-Write ──► PostgreSQL (normalized)
-         │
-         └── Event/CDC ──► Read Model sync
-                           │
-Read  ◄────────────────────┘ Elasticsearch (denormalized)
+```mermaid
+flowchart LR
+    W["Write"] --> PG["PostgreSQL (normalized)"]
+    PG -->|"Event/CDC"| SYNC["Read Model Sync"]
+    SYNC --> ES["Elasticsearch (denormalized)"]
+    R["Read"] --> ES
 ```
 
 ---

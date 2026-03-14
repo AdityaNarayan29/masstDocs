@@ -11,21 +11,12 @@ A **Load Balancer** distributes incoming network traffic across multiple servers
 
 ## Load Balancer Architecture
 
-```
-                    ┌─────────────┐
-                    │   Clients   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │    Load     │
-                    │   Balancer  │
-                    └──────┬──────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-      ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
-      │Server 1 │    │Server 2 │    │Server 3 │
-      └─────────┘    └─────────┘    └─────────┘
+```mermaid
+flowchart TD
+    C["Clients"] --> LB["Load Balancer"]
+    LB --> S1["Server 1"]
+    LB --> S2["Server 2"]
+    LB --> S3["Server 3"]
 ```
 
 ---
@@ -56,36 +47,32 @@ A **Load Balancer** distributes incoming network traffic across multiple servers
 - Content-based routing
 - Can inspect headers, cookies, URLs
 
-```
-Layer 7 routing example:
-/api/*     → API servers
-/images/*  → Static servers
-/admin/*   → Admin servers
+```mermaid
+flowchart LR
+    LB["Layer 7 LB"] -->|"/api/*"| API["API Servers"]
+    LB -->|"/images/*"| Static["Static Servers"]
+    LB -->|"/admin/*"| Admin["Admin Servers"]
 ```
 
 ---
 
 ## Health Checks
 
-```
-Load Balancer
-      │
-      ├──► Server 1: GET /health → 200 OK ✓
-      ├──► Server 2: GET /health → 200 OK ✓
-      └──► Server 3: GET /health → 503 ✗ (removed from pool)
+```mermaid
+flowchart LR
+    LB["Load Balancer"] -->|"GET /health → 200 ✓"| S1["Server 1"]
+    LB -->|"GET /health → 200 ✓"| S2["Server 2"]
+    LB -->|"GET /health → 503 ✗"| S3["Server 3 (removed)"]
 ```
 
 ---
 
 ## High Availability
 
-```
-┌─────────────┐    ┌─────────────┐
-│     LB      │◄──►│     LB      │
-│  (Active)   │    │  (Standby)  │
-└──────┬──────┘    └─────────────┘
-       │
-   Virtual IP
+```mermaid
+flowchart LR
+    A["LB (Active)"] <-->|"Heartbeat"| S["LB (Standby)"]
+    A --> VIP["Virtual IP"]
 ```
 
 ---

@@ -74,13 +74,10 @@ Connection: close       # Close after response
 
 ### Connection Pooling
 
-```
-┌─────────┐     ┌─────────────┐     ┌─────────┐
-│ Client  │────►│ Conn Pool   │────►│ Server  │
-└─────────┘     │ [conn1]     │     └─────────┘
-                │ [conn2]     │
-                │ [conn3]     │
-                └─────────────┘
+```mermaid
+flowchart LR
+    C["Client"] --> Pool["Connection Pool\n[conn1] [conn2] [conn3]"]
+    Pool --> S["Server"]
 ```
 
 ---

@@ -11,37 +11,30 @@ A **Content Delivery Network (CDN)** is a geographically distributed network of 
 
 ## How CDN Works
 
-```
-Without CDN:
-User (Tokyo) ──────────────────────► Origin (New York)
-              ~200ms round trip
-
-With CDN:
-User (Tokyo) ────► Edge (Tokyo) ────► Origin (New York)
-              ~20ms     │
-                        │ Cache hit? Return immediately
-                        ▼
-                   User gets content
+```mermaid
+flowchart LR
+    subgraph "Without CDN"
+        UA["User (Tokyo)"] -->|"~200ms round trip"| OA["Origin (New York)"]
+    end
+    subgraph "With CDN"
+        UB["User (Tokyo)"] -->|"~20ms"| E["Edge (Tokyo)"]
+        E -->|"Cache miss?"| OB["Origin (New York)"]
+        E -->|"Cache hit"| R["Return immediately"]
+    end
 ```
 
 ---
 
 ## CDN Architecture
 
-```
-                    ┌─────────────┐
-                    │   Origin    │
-                    │   Server    │
-                    └──────┬──────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-      ┌────▼────┐    ┌────▼────┐    ┌────▼────┐
-      │  Edge   │    │  Edge   │    │  Edge   │
-      │  (US)   │    │  (EU)   │    │ (Asia)  │
-      └────┬────┘    └────┬────┘    └────┬────┘
-           │               │               │
-        Users           Users           Users
+```mermaid
+flowchart TD
+    O["Origin Server"] --> US["Edge (US)"]
+    O --> EU["Edge (EU)"]
+    O --> AS["Edge (Asia)"]
+    US --> U1["Users"]
+    EU --> U2["Users"]
+    AS --> U3["Users"]
 ```
 
 ---

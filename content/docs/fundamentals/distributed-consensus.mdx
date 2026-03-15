@@ -1,0 +1,178 @@
+---
+title: Distributed Consensus
+description: Understanding consensus algorithms like Raft and Paxos.
+---
+
+## What is Distributed Consensus?
+
+**Distributed Consensus** is the process of getting multiple nodes to agree on a single value or decision, even in the presence of failures. It's the foundation of reliable distributed systems.
+
+---
+
+## Why Consensus is Hard
+
+```mermaid
+flowchart TD
+    L["Leader proposes value"] --> N1["Node 1: YES ✓"]
+    L --> N2["Node 2: YES ✓"]
+    L --> N3["Node 3: crashed ✗"]
+    L --> N4["Node 4: partitioned ✗"]
+    L --> N5["Node 5: YES ✓"]
+    N1 & N2 & N5 --> Q["3/5 agree — is that enough?"]
+```
+
+Challenges:
+- Nodes can crash at any time
+- Messages can be lost, delayed, or reordered
+- Network partitions split the cluster
+
+---
+
+## Key Properties
+
+| **Property** | **Meaning** |
+|-------------|------------|
+| Agreement | All correct nodes decide the same value |
+| Validity | Decided value was proposed by some node |
+| Termination | All correct nodes eventually decide |
+| Integrity | Each node decides at most once |
+
+---
+
+## Raft Consensus
+
+Raft is designed to be **understandable**. It breaks consensus into three sub-problems.
+
+### Leader Election
+
+```mermaid
+stateDiagram-v2
+    [*] --> Follower
+    Follower --> Candidate: election timeout
+    Candidate --> Leader: wins majority
+    Candidate --> Follower: discovers leader
+    Candidate --> Candidate: split vote, new term
+    Leader --> Follower: discovers higher term
+```
+
+### Normal Operation
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as Leader
+    participant F1 as Follower 1
+    participant F2 as Follower 2
+
+    C->>L: Write request
+    L->>F1: AppendEntries (log entry)
+    L->>F2: AppendEntries (log entry)
+    F1-->>L: ACK
+    F2-->>L: ACK
+    Note over L: Majority confirmed
+    L->>L: Commit entry
+    L-->>C: Success
+    L->>F1: Commit notification
+    L->>F2: Commit notification
+```
+
+### Log Replication
+
+```
+Leader Log:   [1:SET x=1] [2:SET y=2] [3:SET x=3]
+Follower 1:   [1:SET x=1] [2:SET y=2] [3:SET x=3] ✓
+Follower 2:   [1:SET x=1] [2:SET y=2]              (catching up)
+```
+
+Followers replicate the leader's log in order. Committed entries are never lost.
+
+---
+
+## Paxos
+
+The original consensus algorithm. More general but harder to understand.
+
+### Roles
+
+| **Role** | **Function** |
+|---------|-------------|
+| Proposer | Proposes values |
+| Acceptor | Votes on proposals |
+| Learner | Learns decided values |
+
+### Two Phases
+
+```mermaid
+sequenceDiagram
+    participant P as Proposer
+    participant A1 as Acceptor 1
+    participant A2 as Acceptor 2
+    participant A3 as Acceptor 3
+
+    Note over P: Phase 1: Prepare
+    P->>A1: Prepare(n)
+    P->>A2: Prepare(n)
+    P->>A3: Prepare(n)
+    A1-->>P: Promise(n)
+    A2-->>P: Promise(n)
+
+    Note over P: Phase 2: Accept
+    P->>A1: Accept(n, value)
+    P->>A2: Accept(n, value)
+    A1-->>P: Accepted
+    A2-->>P: Accepted
+    Note over P: Consensus reached (majority)
+```
+
+---
+
+## Raft vs Paxos
+
+| **Aspect** | **Raft** | **Paxos** |
+|-----------|---------|----------|
+| Understandability | Designed to be simple | Notoriously complex |
+| Leader | Strong leader required | Optional |
+| Log ordering | Strict sequential | Flexible |
+| Implementation | Many production systems | Fewer implementations |
+| Performance | Good for most cases | Better in some edge cases |
+
+---
+
+## Real-World Usage
+
+| **System** | **Algorithm** | **Used For** |
+|-----------|--------------|-------------|
+| etcd | Raft | Kubernetes state, config |
+| CockroachDB | Raft | Distributed SQL |
+| Consul | Raft | Service discovery |
+| Google Spanner | Paxos | Global SQL database |
+| Apache ZooKeeper | ZAB (Paxos-like) | Coordination |
+
+---
+
+## Quorum Requirements
+
+```
+Cluster size: 2f + 1 nodes
+Tolerates: f failures
+
+3 nodes → tolerates 1 failure
+5 nodes → tolerates 2 failures
+7 nodes → tolerates 3 failures
+```
+
+| **Cluster Size** | **Majority** | **Failures Tolerated** |
+|-----------------|-------------|----------------------|
+| 3 | 2 | 1 |
+| 5 | 3 | 2 |
+| 7 | 4 | 3 |
+
+---
+
+## Interview Tips
+
+- Explain why consensus is hard (FLP impossibility)
+- Know Raft's three sub-problems: leader election, log replication, safety
+- Understand quorum: majority of 2f+1 nodes
+- Compare Raft vs Paxos (Raft is simpler)
+- Give examples: etcd, CockroachDB, ZooKeeper

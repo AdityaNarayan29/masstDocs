@@ -96,7 +96,11 @@ export function ChatWidget() {
         });
 
         if (!response.ok) {
-          throw new Error(`Chat request failed: ${response.status}`);
+          const errorBody = await response.json().catch(() => null);
+          if (response.status === 503 && errorBody?.detail) {
+            throw new Error(`Chat service not configured: ${errorBody.detail}`);
+          }
+          throw new Error(errorBody?.error || `Chat request failed: ${response.status}`);
         }
 
         const reader = response.body?.getReader();

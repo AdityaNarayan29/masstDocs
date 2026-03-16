@@ -22,6 +22,25 @@ interface ResearchRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check required environment variables
+    const missingEnvVars = [];
+    if (!process.env.GROQ_API_KEY) missingEnvVars.push('GROQ_API_KEY');
+    if (!process.env.PINECONE_API_KEY) missingEnvVars.push('PINECONE_API_KEY');
+    if (!process.env.HUGGINGFACE_API_KEY) missingEnvVars.push('HUGGINGFACE_API_KEY');
+
+    if (missingEnvVars.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'Research service is not configured',
+          detail: `Missing environment variables: ${missingEnvVars.join(', ')}`,
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Rate limiting (stricter for research as it uses more resources)
     const clientIP = request.headers.get('x-forwarded-for') || 'anonymous';
     const rateLimit = checkRateLimit(`research:${clientIP}`, 10, 60000); // 10 requests per minute

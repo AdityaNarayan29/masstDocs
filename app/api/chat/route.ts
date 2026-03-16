@@ -19,6 +19,25 @@ interface ChatRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check required environment variables
+    const missingEnvVars = [];
+    if (!process.env.GROQ_API_KEY) missingEnvVars.push('GROQ_API_KEY');
+    if (!process.env.PINECONE_API_KEY) missingEnvVars.push('PINECONE_API_KEY');
+    if (!process.env.HUGGINGFACE_API_KEY) missingEnvVars.push('HUGGINGFACE_API_KEY');
+
+    if (missingEnvVars.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'Chat service is not configured',
+          detail: `Missing environment variables: ${missingEnvVars.join(', ')}`,
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Rate limiting (using IP as identifier)
     const clientIP = request.headers.get('x-forwarded-for') || 'anonymous';
     const rateLimit = checkRateLimit(clientIP, 30, 60000); // 30 requests per minute
@@ -153,8 +172,12 @@ Use this context to provide accurate, relevant answers. Cite sources when direct
     });
   } catch (error) {
     console.error('Chat API error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({
+        error: 'Internal server error',
+        detail: process.env.NODE_ENV === 'development' ? message : undefined,
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import { ChatWidget } from "@/components/chat";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -180,6 +181,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {children}
           <PWAInstallPrompt />
           <ChatWidget />
+          <Analytics />
         </RootProvider>
       </body>
     </html>

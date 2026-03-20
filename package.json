@@ -22,6 +22,7 @@
   "dependencies": {
     "@huggingface/inference": "^4.13.10",
     "@pinecone-database/pinecone": "^6.1.4",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.49",
     "dotenv": "^17.2.3",
     "fumadocs-core": "15.7.10",

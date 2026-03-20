@@ -9,7 +9,9 @@ type SitemapEntry = {
 
 export default function sitemap(): SitemapEntry[] {
   const baseUrl = 'https://docs.masst.dev';
-  const now = new Date();
+  // Use a fixed build-time date so CDN can cache the sitemap
+  // instead of regenerating on every request
+  const now = new Date('2026-03-20');
 
   // Static pages
   const staticPages: SitemapEntry[] = [

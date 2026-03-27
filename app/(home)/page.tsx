@@ -193,8 +193,18 @@ export default function HomePage() {
         Click sections to expand/collapse. Click colored topic cards to navigate.
       </p>
 
-      {/* Social Links */}
+      {/* Footer Links */}
       <div className="flex justify-center gap-6 mt-8 pt-8 border-t border-fd-border">
+        <Link
+          href="/ai-architecture"
+          className="text-fd-muted-foreground hover:text-fd-foreground transition-colors text-sm font-medium"
+        >
+          AI Architecture
+        </Link>
+      </div>
+
+      {/* Social Links */}
+      <div className="flex justify-center gap-6 mt-4">
         <a
           href="https://x.com/Adityanaraynn29"
           target="_blank"

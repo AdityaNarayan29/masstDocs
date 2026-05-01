@@ -1,0 +1,32 @@
+{
+  "title": "Building Blocks",
+  "description": "Components you reach for when designing systems",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "---Networking---",
+    "dns",
+    "cdn",
+    "load-balancer",
+    "reverse-proxy",
+    "---Caching---",
+    "cache-aside",
+    "cache-strategies",
+    "write-through",
+    "write-behind",
+    "---Data---",
+    "sharding",
+    "consistent-hashing",
+    "indexing",
+    "bloom-filters",
+    "---Messaging---",
+    "message-queues",
+    "task-queues",
+    "pub-sub",
+    "---Coordination---",
+    "rate-limiting",
+    "distributed-locking",
+    "leader-election",
+    "heartbeat"
+  ]
+}

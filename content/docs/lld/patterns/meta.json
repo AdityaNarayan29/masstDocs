@@ -1,0 +1,6 @@
+{
+  "title": "Design Patterns",
+  "description": "Gang of Four patterns",
+  "defaultOpen": true,
+  "pages": ["creational", "structural", "behavioral"]
+}

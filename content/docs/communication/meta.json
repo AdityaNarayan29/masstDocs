@@ -1,0 +1,14 @@
+{
+  "title": "Communication",
+  "description": "How services talk to each other",
+  "pages": [
+    "index",
+    "http",
+    "rest",
+    "graphql",
+    "grpc",
+    "websockets",
+    "sse",
+    "webhooks"
+  ]
+}

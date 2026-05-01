@@ -1,0 +1,13 @@
+{
+  "title": "Structural",
+  "description": "Class composition patterns",
+  "pages": [
+    "adapter",
+    "decorator",
+    "facade",
+    "proxy",
+    "composite",
+    "bridge",
+    "flyweight"
+  ]
+}

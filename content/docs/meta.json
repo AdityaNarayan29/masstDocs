@@ -1,0 +1,16 @@
+{
+  "title": "System Design",
+  "root": true,
+  "pages": [
+    "index",
+    "fundamentals",
+    "building-blocks",
+    "communication",
+    "architecture",
+    "design-patterns",
+    "system-components",
+    "observability",
+    "security",
+    "case-studies"
+  ]
+}

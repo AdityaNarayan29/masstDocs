@@ -14,11 +14,61 @@ export const HLD_FOLDERS = ["case-studies"];
  */
 export const LLD_FOLDERS = ["lld"];
 
-// Default source
-export const source = loader({
+// Raw default source (unfiltered)
+const rawSource = loader({
   baseUrl: "/sd",
   source: docs.toFumadocsSource(),
 });
+
+/**
+ * Default /sd source — excludes the lld/ subtree, which has its own tab.
+ */
+function isSdPage(page: ReturnType<typeof rawSource.getPage>): boolean {
+  if (!page) return false;
+  const slugs = page.slugs as string[];
+  if (!slugs || slugs.length === 0) return true; // root index
+  return slugs[0] !== "lld";
+}
+
+function filterSdNode(
+  node: (typeof rawSource.pageTree.children)[number],
+): (typeof rawSource.pageTree.children)[number] | null {
+  if (node.type === "page") {
+    if (node.url === "/sd/lld" || node.url?.startsWith("/sd/lld/")) return null;
+    return node;
+  }
+  if (node.type === "folder") {
+    const indexUrl = node.index?.url ?? "";
+    const folderName = String(node.name).toLowerCase().replace(/\s+/g, "-");
+    if (folderName === "lld" || indexUrl === "/sd/lld" || indexUrl.startsWith("/sd/lld/")) {
+      return null;
+    }
+    return node;
+  }
+  return node;
+}
+
+export const source: typeof rawSource = {
+  ...rawSource,
+  pageTree: {
+    ...rawSource.pageTree,
+    children: (rawSource.pageTree.children ?? [])
+      .map(filterSdNode)
+      .filter(
+        (n): n is (typeof rawSource.pageTree.children)[number] => n !== null,
+      ),
+  },
+  getPages: () => rawSource.getPages().filter(isSdPage),
+  getPage: (slug?: string[], lang?: string) => {
+    const page = rawSource.getPage(slug, lang);
+    return isSdPage(page) ? page : undefined;
+  },
+  generateParams: () =>
+    rawSource.generateParams().filter((params) => {
+      const page = rawSource.getPage(params.slug, params.lang);
+      return isSdPage(page);
+    }) as ReturnType<typeof rawSource.generateParams>,
+};
 
 // Raw HLD source
 const rawHldSource = loader({

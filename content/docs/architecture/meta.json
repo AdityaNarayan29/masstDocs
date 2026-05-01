@@ -1,0 +1,11 @@
+{
+  "title": "Architecture",
+  "description": "Architectural patterns for distributed systems",
+  "pages": [
+    "index",
+    "api-gateway",
+    "bff",
+    "service-discovery",
+    "service-mesh"
+  ]
+}

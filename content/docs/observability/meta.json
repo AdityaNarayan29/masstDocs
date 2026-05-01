@@ -1,0 +1,5 @@
+{
+  "title": "Observability",
+  "description": "Logging, metrics, tracing",
+  "pages": ["index", "logging", "monitoring", "tracing"]
+}

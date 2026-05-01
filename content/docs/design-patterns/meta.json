@@ -1,0 +1,17 @@
+{
+  "title": "Design Patterns",
+  "description": "Resilience and architectural patterns",
+  "pages": [
+    "index",
+    "---Resilience---",
+    "circuit-breaker",
+    "bulkhead",
+    "retry",
+    "idempotency",
+    "---Architectural---",
+    "saga",
+    "cqrs",
+    "event-sourcing",
+    "strangler-fig"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Behavioral",
+  "description": "Object interaction patterns",
+  "pages": [
+    "strategy",
+    "observer",
+    "command",
+    "state",
+    "chain-of-responsibility",
+    "template-method",
+    "iterator",
+    "mediator",
+    "visitor",
+    "memento"
+  ]
+}

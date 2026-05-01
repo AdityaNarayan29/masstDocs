@@ -1,0 +1,11 @@
+{
+  "title": "Security",
+  "description": "Auth, encryption, API security",
+  "pages": [
+    "index",
+    "authentication",
+    "authorization",
+    "encryption",
+    "api-security"
+  ]
+}

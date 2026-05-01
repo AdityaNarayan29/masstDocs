@@ -1,0 +1,14 @@
+{
+  "title": "Foundations",
+  "description": "OOP, SOLID, UML, design principles",
+  "defaultOpen": true,
+  "pages": [
+    "oop-principles",
+    "solid",
+    "design-patterns",
+    "uml-diagrams",
+    "dry-kiss-yagni",
+    "composition-vs-inheritance",
+    "coupling-cohesion"
+  ]
+}

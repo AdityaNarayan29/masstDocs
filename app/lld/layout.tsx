@@ -1,12 +1,12 @@
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
-import { hldSource } from '@/lib/source';
+import { lldSource } from '@/lib/source';
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout
-      tree={hldSource.pageTree}
+      tree={lldSource.pageTree}
       {...baseOptions}
       sidebar={{
         tabs: [
@@ -18,10 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {
             title: "System Design - HLD",
             description: "HLD!",
-            // active for `/docs/components` and sub routes like `/docs/components/button`
             url: "/hld",
-            // optionally, you can specify a set of urls which activates the item
-            // urls: new Set(['/docs/hld', '/docs/components']),
           },
           {
             title: "System Design - LLD",

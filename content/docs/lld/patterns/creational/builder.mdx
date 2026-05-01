@@ -1,0 +1,187 @@
+---
+title: Builder
+description: Construct a complex object step by step, separating construction from representation.
+---
+
+## Intent
+
+> Build an object **incrementally**, especially when it has many optional parameters or requires multi-step setup, and produce an immutable result.
+
+Use when:
+- A class has 4+ constructor parameters, many optional.
+- The construction order matters or has validation steps.
+- You want the result to be immutable.
+
+---
+
+## The Problem It Solves: Telescoping Constructors
+
+```java
+new Pizza(12);
+new Pizza(12, "thin");
+new Pizza(12, "thin", true);
+new Pizza(12, "thin", true, false);
+new Pizza(12, "thin", true, false, List.of("mushroom", "olives"));
+new Pizza(12, "thin", true, false, List.of("mushroom"), true);
+```
+
+Six constructors, hard to remember which boolean is which. Add another option and you've got 12.
+
+---
+
+## Builder Solution
+
+```java
+public class Pizza {
+    private final int sizeInches;
+    private final String crust;
+    private final boolean cheese;
+    private final boolean pepperoni;
+    private final List<String> toppings;
+    private final boolean glutenFree;
+
+    private Pizza(Builder b) {
+        this.sizeInches  = b.sizeInches;
+        this.crust       = b.crust;
+        this.cheese      = b.cheese;
+        this.pepperoni   = b.pepperoni;
+        this.toppings    = List.copyOf(b.toppings);
+        this.glutenFree  = b.glutenFree;
+    }
+
+    public static class Builder {
+        private final int sizeInches;          // required
+        private String crust = "thin";         // optional with defaults
+        private boolean cheese = true;
+        private boolean pepperoni = false;
+        private List<String> toppings = new ArrayList<>();
+        private boolean glutenFree = false;
+
+        public Builder(int sizeInches) {
+            this.sizeInches = sizeInches;
+        }
+
+        public Builder crust(String c) { this.crust = c; return this; }
+        public Builder cheese(boolean v) { this.cheese = v; return this; }
+        public Builder pepperoni(boolean v) { this.pepperoni = v; return this; }
+        public Builder addTopping(String t) { this.toppings.add(t); return this; }
+        public Builder glutenFree(boolean v) { this.glutenFree = v; return this; }
+
+        public Pizza build() {
+            // Centralized validation
+            if (sizeInches < 6 || sizeInches > 24) throw new IllegalStateException();
+            if (glutenFree && pepperoni) throw new IllegalStateException("Pepperoni isn't gluten-free");
+            return new Pizza(this);
+        }
+    }
+}
+```
+
+### Usage
+
+```java
+Pizza p = new Pizza.Builder(12)
+    .crust("stuffed")
+    .addTopping("mushroom")
+    .addTopping("olives")
+    .glutenFree(false)
+    .build();
+```
+
+Reads top-to-bottom, every parameter is named.
+
+---
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class Pizza {
+        -sizeInches: int
+        -crust: String
+        -toppings: List
+        -Pizza(Builder)
+    }
+    class Builder {
+        -sizeInches: int
+        -crust: String
+        +Builder(size)
+        +crust(c) Builder
+        +addTopping(t) Builder
+        +build() Pizza
+    }
+    Pizza +-- Builder : nested
+    Builder ..> Pizza : creates
+```
+
+---
+
+## When *not* to Use Builder
+
+- **2–3 parameters:** plain constructor is simpler.
+- **Mostly required fields:** builder's value (optional handling) is wasted.
+- **Mutable target object:** if the result is a bean with setters, you don't need a builder.
+
+---
+
+## Variations
+
+### Builder with required fields enforced at compile time (step builder)
+
+```java
+new PizzaBuilder()
+    .size(12)            // returns CrustStep
+    .crust("thin")       // returns OptionalStep
+    .build();            // size and crust required, others optional
+```
+
+Each step returns a different type so the compiler enforces the order.
+
+### Director (GoF original)
+
+The original GoF builder had a separate **Director** that orchestrates the builder for a specific recipe:
+
+```java
+class PizzaDirector {
+    Pizza margherita(Pizza.Builder b) {
+        return b.crust("thin").addTopping("basil").addTopping("tomato").build();
+    }
+}
+```
+
+In modern Java, directors are usually just static methods (`Pizza.margherita()`).
+
+---
+
+## Real-world Examples
+
+| **API** | **Use** |
+|--------|---------|
+| `StringBuilder` | Build strings incrementally |
+| `Stream.builder()` | Build a stream piece by piece |
+| `HttpRequest.newBuilder()` | Java HTTP client request |
+| `OkHttp Request.Builder` | HTTP requests |
+| `Lombok @Builder` | Annotation-based builder generation |
+
+---
+
+## Trade-offs
+
+✅ **Pros:**
+- Readable construction with named parameters
+- Validation centralized in `build()`
+- Result can be immutable
+- Optional parameters with defaults
+
+❌ **Cons:**
+- More code than a constructor (mitigated by Lombok / records)
+- Two parallel class shapes to maintain (`Pizza` and `Pizza.Builder`)
+- Can be overkill for simple objects
+
+---
+
+## Interview Tips
+
+- Reach for builder when the interviewer says "lots of optional fields" or "configuration object."
+- Mention immutability — the result has only `final` fields.
+- If the interviewer is using Java 14+, mention **records** as a competing approach for simple immutable data; builder still wins for many-optionals or validation.

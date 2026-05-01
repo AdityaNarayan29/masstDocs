@@ -23,6 +23,11 @@ export default function Layout({ children }: { children: ReactNode }) {
             // optionally, you can specify a set of urls which activates the item
             // urls: new Set(['/docs/hld', '/docs/components']),
           },
+          {
+            title: "System Design - LLD",
+            description: "LLD!",
+            url: "/lld",
+          },
         ],
       }}
     >

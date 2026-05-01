@@ -1,0 +1,159 @@
+---
+title: UML Diagrams
+description: Class, sequence, and activity diagrams — the visual vocabulary of LLD interviews.
+---
+
+## Why UML in LLD?
+
+In an LLD interview you have ~45 minutes and a whiteboard. UML is shorthand: it tells the interviewer *exactly* what kind of relationship you mean (inheritance vs composition vs association) without prose.
+
+You only need three diagrams:
+
+| **Diagram** | **Answers** | **When to draw** |
+|------------|-------------|------------------|
+| **Class** | What classes exist and how they relate | Always |
+| **Sequence** | Who calls whom, in what order | When flow matters (login, checkout) |
+| **Activity** | What is the control flow / decision tree | When the algorithm is the point |
+
+---
+
+## Class Diagram
+
+### Notation
+
+```
+┌─────────────────────────────────────┐
+│         <<interface>>               │   <- stereotype
+│         PaymentGateway              │   <- name
+├─────────────────────────────────────┤
+│ + charge(amount: Money): Result     │   <- + public, - private, # protected
+└─────────────────────────────────────┘
+```
+
+### Relationships
+
+```mermaid
+classDiagram
+    class Vehicle {
+        <<abstract>>
+        -licensePlate: String
+        +getType() VehicleType
+    }
+    class Car
+    class Engine {
+        -horsepower: int
+    }
+    class Driver
+
+    Vehicle <|-- Car : inheritance (is-a)
+    Car *-- Engine : composition (owns)
+    Car o-- Driver : aggregation (has)
+```
+
+| **Symbol** | **Relationship** | **Lifetime** |
+|-----------|------------------|--------------|
+| `<\|--` | Inheritance | n/a |
+| `*--` | Composition | child dies with parent |
+| `o--` | Aggregation | child outlives parent |
+| `-->` | Association (uses) | independent |
+| `..>` | Dependency (transient use) | independent |
+
+### Multiplicity
+
+```
+ParkingLot "1" *-- "1..*" ParkingFloor
+```
+
+Read as: one `ParkingLot` owns one-or-more `ParkingFloor`s.
+
+---
+
+## Sequence Diagram
+
+Shows the **order** of messages between objects over time.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Login UI
+    participant Auth as AuthService
+    participant DB as UserRepo
+
+    User->>UI: enter credentials
+    UI->>Auth: login(email, password)
+    Auth->>DB: findByEmail(email)
+    DB-->>Auth: User
+    Auth->>Auth: verifyHash(password)
+
+    alt password valid
+        Auth-->>UI: JWT token
+        UI-->>User: redirect to dashboard
+    else password invalid
+        Auth-->>UI: 401 Unauthorized
+        UI-->>User: show error
+    end
+```
+
+**When to use:**
+- Walking through a happy-path flow
+- Showing a failure branch (`alt` / `else`)
+- Highlighting async calls (open arrow vs filled arrow)
+
+---
+
+## Activity Diagram
+
+Shows control flow — branches, loops, parallel paths. Closer to a flowchart.
+
+```mermaid
+flowchart TD
+    Start([Start checkout]) --> Cart[Validate cart]
+    Cart --> Stock{In stock?}
+    Stock -->|no| Fail([Show out-of-stock])
+    Stock -->|yes| Pay[Charge payment]
+    Pay --> Paid{Paid?}
+    Paid -->|no| Fail
+    Paid -->|yes| Reserve[Reserve inventory]
+    Reserve --> Notify[Email confirmation]
+    Notify --> End([Done])
+```
+
+---
+
+## State Diagram
+
+Shows how a single entity transitions between states.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created
+    Created --> Paid : pay()
+    Created --> Cancelled : cancel()
+    Paid --> Shipped : dispatch()
+    Shipped --> Delivered : confirm()
+    Delivered --> [*]
+    Cancelled --> [*]
+```
+
+Useful when the problem is fundamentally state-machine shaped: orders, tickets, jobs, network connections.
+
+---
+
+## What to Skip in Interviews
+
+You will *never* need:
+- Component diagrams
+- Deployment diagrams (that's HLD territory)
+- Object diagrams
+- Use-case diagrams
+
+Stick to **class + sequence**, add **state** if the problem demands it.
+
+---
+
+## Interview Tips
+
+- Draw the **class diagram first** — it's the skeleton everything else hangs off of.
+- Keep methods on the diagram to the **public interface**; don't list every private helper.
+- Use **stereotypes** (`<<interface>>`, `<<abstract>>`) — they save explanation time.
+- If you draw a sequence diagram, **annotate failures** — interviewers love seeing you think about the unhappy path.

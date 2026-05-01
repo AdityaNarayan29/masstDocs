@@ -1,249 +1,75 @@
 import { docs } from "@/.source";
-import { loader } from "fumadocs-core/source";
+import { loader, type VirtualFile } from "fumadocs-core/source";
 
 /**
- * HLD Configuration
- * Add folder paths here to include them in the HLD tab.
- * All files within these folders (and subfolders) will be shown.
- */
-export const HLD_FOLDERS = ["case-studies"];
-
-/**
- * LLD Configuration
- * Top-level folder paths included in the LLD tab.
- */
-export const LLD_FOLDERS = ["lld"];
-
-// Raw default source (unfiltered)
-const rawSource = loader({
-  baseUrl: "/sd",
-  source: docs.toFumadocsSource(),
-});
-
-/**
- * Default /sd source — excludes the lld/ subtree, which has its own tab.
- */
-function isSdPage(page: ReturnType<typeof rawSource.getPage>): boolean {
-  if (!page) return false;
-  const slugs = page.slugs as string[];
-  if (!slugs || slugs.length === 0) return true; // root index
-  return slugs[0] !== "lld";
-}
-
-function filterSdNode(
-  node: (typeof rawSource.pageTree.children)[number],
-): (typeof rawSource.pageTree.children)[number] | null {
-  if (node.type === "page") {
-    if (node.url === "/sd/lld" || node.url?.startsWith("/sd/lld/")) return null;
-    return node;
-  }
-  if (node.type === "folder") {
-    const indexUrl = node.index?.url ?? "";
-    const folderName = String(node.name).toLowerCase().replace(/\s+/g, "-");
-    if (folderName === "lld" || indexUrl === "/sd/lld" || indexUrl.startsWith("/sd/lld/")) {
-      return null;
-    }
-    return node;
-  }
-  return node;
-}
-
-export const source: typeof rawSource = {
-  ...rawSource,
-  pageTree: {
-    ...rawSource.pageTree,
-    children: (rawSource.pageTree.children ?? [])
-      .map(filterSdNode)
-      .filter(
-        (n): n is (typeof rawSource.pageTree.children)[number] => n !== null,
-      ),
-  },
-  getPages: () => rawSource.getPages().filter(isSdPage),
-  getPage: (slug?: string[], lang?: string) => {
-    const page = rawSource.getPage(slug, lang);
-    return isSdPage(page) ? page : undefined;
-  },
-  generateParams: () =>
-    rawSource.generateParams().filter((params) => {
-      const page = rawSource.getPage(params.slug, params.lang);
-      return isSdPage(page);
-    }) as ReturnType<typeof rawSource.generateParams>,
-};
-
-// Raw HLD source
-const rawHldSource = loader({
-  baseUrl: "/hld",
-  source: docs.toFumadocsSource(),
-});
-
-// Raw LLD source
-const rawLldSource = loader({
-  baseUrl: "/lld",
-  source: docs.toFumadocsSource(),
-});
-
-// Pre-compute folder set for fast lookup
-const hldFolderSet = new Set(HLD_FOLDERS);
-const lldFolderSet = new Set(LLD_FOLDERS);
-
-/**
- * Check if a page belongs to an HLD section
- * A page is HLD if its path starts with any of the HLD_FOLDERS
- */
-function isHLDPage(page: ReturnType<typeof rawHldSource.getPage>): boolean {
-  if (!page) return false;
-
-  const slugs = page.slugs as string[];
-  if (!slugs || slugs.length === 0) return false;
-
-  // Check if the first slug (top-level folder) is in HLD_FOLDERS
-  return hldFolderSet.has(slugs[0]);
-}
-
-function isLLDPage(page: ReturnType<typeof rawLldSource.getPage>): boolean {
-  if (!page) return false;
-  const slugs = page.slugs as string[];
-  if (!slugs || slugs.length === 0) return false;
-  return lldFolderSet.has(slugs[0]);
-}
-
-type PageTreeNode = (typeof rawHldSource.pageTree.children)[number];
-
-/**
- * Filter the page tree to only include HLD folders
- */
-function filterPageTree(node: PageTreeNode): PageTreeNode | null {
-  if (node.type === "page") {
-    // Extract folder from URL: /hld/case-studies/amazon -> case-studies
-    const match = node.url?.match(/^\/hld\/([^/]+)/);
-    const folder = match?.[1];
-    return folder && hldFolderSet.has(folder) ? node : null;
-  }
-
-  if (node.type === "folder") {
-    // Extract folder name from the index page URL or folder name
-    const indexUrl = node.index?.url;
-    const match = indexUrl?.match(/^\/hld\/([^/]+)/);
-    const folder = match?.[1] ?? String(node.name).toLowerCase().replace(/\s+/g, "-");
-
-    // If this is an HLD folder, include it entirely
-    if (hldFolderSet.has(folder)) {
-      return node;
-    }
-
-    // Otherwise, skip this folder entirely (don't recurse)
-    return null;
-  }
-
-  return null;
-}
-
-/**
- * Strip the leading "/lld/lld" -> "/lld" so on-disk path lld/foo
- * surfaces in the URL as /lld/foo (not /lld/lld/foo).
- */
-function rewriteLldUrl(url: string | undefined): string | undefined {
-  if (!url) return url;
-  if (url === "/lld/lld") return "/lld";
-  if (url.startsWith("/lld/lld/")) return "/lld" + url.slice("/lld/lld".length);
-  return url;
-}
-
-/**
- * Recursively rewrite URLs on every descendant. Caller is responsible for
- * only invoking this on the lld subtree.
- */
-function rewriteLldNode(node: PageTreeNode): PageTreeNode {
-  if (node.type === "page") {
-    return { ...node, url: rewriteLldUrl(node.url) ?? node.url } as PageTreeNode;
-  }
-
-  if (node.type === "folder") {
-    const newIndex = node.index
-      ? { ...node.index, url: rewriteLldUrl(node.index.url) ?? node.index.url }
-      : node.index;
-    const rewrittenChildren = (node.children ?? []).map(rewriteLldNode);
-    return { ...node, index: newIndex, children: rewrittenChildren } as PageTreeNode;
-  }
-
-  return node;
-}
-
-/**
- * Get filtered page tree for HLD
- */
-function getFilteredPageTree(): typeof rawHldSource.pageTree {
-  const root = rawHldSource.pageTree;
-  const children = (root.children ?? [])
-    .map(filterPageTree)
-    .filter((node): node is PageTreeNode => node !== null);
-  return { ...root, children };
-}
-
-function getFilteredLldPageTree(): typeof rawLldSource.pageTree {
-  const root = rawLldSource.pageTree;
-  // Find the top-level "lld" folder. Identify by name match since folders
-  // without an index.mdx have no index URL to inspect.
-  for (const child of root.children ?? []) {
-    if (child.type === "folder") {
-      const folderName = String(child.name).toLowerCase().replace(/\s+/g, "-");
-      const idxUrl = child.index?.url ?? "";
-      const isLldFolder =
-        folderName === "lld" || idxUrl === "/lld/lld" || idxUrl.startsWith("/lld/lld");
-      if (isLldFolder) {
-        const rewritten = rewriteLldNode(child);
-        if (rewritten.type === "folder") {
-          return { ...root, children: rewritten.children ?? [] };
-        }
-      }
-    }
-  }
-  return { ...root, children: [] };
-}
-
-/**
- * Filtered HLD source - includes pages under HLD_FOLDERS
- */
-export const hldSource: typeof rawHldSource = {
-  ...rawHldSource,
-  pageTree: getFilteredPageTree(),
-  getPages: () => rawHldSource.getPages().filter(isHLDPage),
-  getPage: (slug?: string[], lang?: string) => {
-    const page = rawHldSource.getPage(slug, lang);
-    return isHLDPage(page) ? page : undefined;
-  },
-  generateParams: () =>
-    rawHldSource.generateParams().filter((params) => {
-      const page = rawHldSource.getPage(params.slug, params.lang);
-      return isHLDPage(page);
-    }) as ReturnType<typeof rawHldSource.generateParams>,
-};
-
-/**
- * Filtered LLD source - includes pages under LLD_FOLDERS.
+ * The default fumadocs source mounts every file under `content/docs` as
+ * `<baseUrl>/<path>`. We expose three views over the same docs:
  *
- * Surface URLs as /lld/<rest> by stripping the on-disk "lld/" prefix.
- * Lookups (getPage, generateParams) re-add it.
+ *   /sd  — everything except the `lld/` subtree
+ *   /hld — same content as /sd (HLD reference + case studies)
+ *   /lld — only the `lld/` subtree, with the `lld/` prefix stripped from
+ *          paths so URLs surface as `/lld/foundations/solid` rather than
+ *          `/lld/lld/foundations/solid`
+ *
+ * To do this we materialize the docs source's files and rebuild scoped
+ * sources from them.
  */
-export const lldSource: typeof rawLldSource = {
-  ...rawLldSource,
-  pageTree: getFilteredLldPageTree(),
-  getPages: () => rawLldSource.getPages().filter(isLLDPage),
-  getPage: (slug?: string[], lang?: string) => {
-    // External callers pass [foundations, solid]; on-disk slug is [lld, foundations, solid]
-    const adjusted = slug && slug.length > 0 ? ["lld", ...slug] : ["lld"];
-    const page = rawLldSource.getPage(adjusted, lang);
-    return isLLDPage(page) ? page : undefined;
-  },
-  generateParams: () => {
-    const filtered = rawLldSource.generateParams().filter((params) => {
-      const page = rawLldSource.getPage(params.slug, params.lang);
-      return isLLDPage(page);
-    });
-    const stripped = filtered.map((params) => {
-      const slug = (params.slug as string[]) ?? [];
-      return { ...params, slug: slug[0] === "lld" ? slug.slice(1) : slug };
-    });
-    return stripped as unknown as ReturnType<typeof rawLldSource.generateParams>;
-  },
+
+const fullSource = docs.toFumadocsSource();
+const allFiles: VirtualFile[] =
+  typeof fullSource.files === "function" ? fullSource.files() : fullSource.files;
+
+const isLldFile = (f: VirtualFile) => {
+  const path = f.path.replace(/\\/g, "/");
+  return path === "lld" || path.startsWith("lld/");
 };
+
+// Files outside the lld/ subtree (used by /sd and /hld).
+const sdFiles: VirtualFile[] = allFiles.filter((f) => !isLldFile(f));
+
+// Files inside lld/, with the lld/ prefix stripped so the loader treats
+// them as if they lived at the top level under baseUrl=/lld.
+const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map((f) => {
+  const path = f.path.replace(/\\/g, "/");
+  const stripped = path === "lld" ? "" : path.slice("lld/".length);
+  return {
+    ...f,
+    path: stripped,
+    // Drop any explicit slugs override that still includes "lld" — let
+    // the loader recompute slugs from the rewritten path.
+    slugs: undefined,
+  };
+});
+
+// Build scoped Source objects that share the same type as fullSource so
+// downstream consumers (DocsRenderer, etc.) see the same `pageData` shape
+// (with `body`, `toc`, etc.). We re-use the type via `as typeof fullSource`.
+const sdSourceConfig = { files: sdFiles } as typeof fullSource;
+const lldSourceConfig = { files: lldFiles } as typeof fullSource;
+
+/**
+ * Default /sd source — everything except lld/.
+ */
+export const source = loader({
+  baseUrl: "/sd",
+  source: sdSourceConfig,
+});
+
+/**
+ * /hld source — same files as /sd. The two surfaces share content; the
+ * HLD tab is a separate entry point so users who arrive there land on a
+ * URL that reads "high-level design" rather than the generic "/sd".
+ */
+export const hldSource = loader({
+  baseUrl: "/hld",
+  source: sdSourceConfig,
+});
+
+/**
+ * /lld source — only the lld/ subtree, paths flattened so URLs are
+ * `/lld/foundations/solid` instead of `/lld/lld/foundations/solid`.
+ */
+export const lldSource = loader({
+  baseUrl: "/lld",
+  source: lldSourceConfig,
+});

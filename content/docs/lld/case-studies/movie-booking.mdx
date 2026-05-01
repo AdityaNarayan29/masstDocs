@@ -349,11 +349,11 @@ Cancellation:
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **State** | `SeatStatus` lifecycle (Available / Held / Booked) |
-| **Strategy** | Pricing per seat type; cancellation refund policy |
-| **Facade** | `BookingService` |
-| **Observer** | Show countdown to hold expiry on user UI |
-| **Singleton** | One `BookingService` per app |
+| **[State](/lld/patterns/behavioral/state)** | `SeatStatus` lifecycle (Available / Held / Booked) |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Pricing per seat type; cancellation refund policy |
+| **[Facade](/lld/patterns/structural/facade)** | `BookingService` |
+| **[Observer](/lld/patterns/behavioral/observer)** | Show countdown to hold expiry on user UI |
+| **[Singleton](/lld/patterns/creational/singleton)** | One `BookingService` per app |
 | **Repository** | Persistence for shows, holds, bookings |
 
 ---

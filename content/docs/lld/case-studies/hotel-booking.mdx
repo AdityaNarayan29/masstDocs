@@ -340,12 +340,12 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **State** | Reservation lifecycle, Room status |
-| **Strategy** | Pricing (standard, weekend, corporate, dynamic) |
-| **Facade** | `HotelService` |
+| **[State](/lld/patterns/behavioral/state)** | Reservation lifecycle, Room status |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Pricing (standard, weekend, corporate, dynamic) |
+| **[Facade](/lld/patterns/structural/facade)** | `HotelService` |
 | **Repository** | Hotels, Reservations, Guests |
-| **Observer** | Notifications (confirmation, check-in reminder) |
-| **Singleton** | One service per app |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notifications (confirmation, check-in reminder) |
+| **[Singleton](/lld/patterns/creational/singleton)** | One service per app |
 
 ---
 

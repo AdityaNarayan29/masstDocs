@@ -316,12 +316,12 @@ public class SplitwiseService {
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Strategy** | `SplitStrategy` (Equal / Exact / Percent) |
-| **Facade** | `SplitwiseService` |
-| **Observer** | Notify users when added to expense |
-| **Memento** | Reverse expense for edits/undo |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | `SplitStrategy` (Equal / Exact / Percent) |
+| **[Facade](/lld/patterns/structural/facade)** | `SplitwiseService` |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notify users when added to expense |
+| **[Memento](/lld/patterns/behavioral/memento)** | Reverse expense for edits/undo |
 | **Repository** | `BalanceRepository`, `ExpenseRepository` |
-| **Builder** | Build complex `Expense` (many participants) |
+| **[Builder](/lld/patterns/creational/builder)** | Build complex `Expense` (many participants) |
 
 ---
 

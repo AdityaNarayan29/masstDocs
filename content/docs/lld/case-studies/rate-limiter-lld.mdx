@@ -320,10 +320,10 @@ local last = redis.call("HGET", KEYS[1], "last")
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Strategy** | Different rate-limiting algorithms behind one interface |
-| **Singleton** | One limiter per application instance |
-| **Decorator** | Wrap a limiter with logging, metrics, multi-tier |
-| **Factory** | Construct limiter from config |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Different rate-limiting algorithms behind one interface |
+| **[Singleton](/lld/patterns/creational/singleton)** | One limiter per application instance |
+| **[Decorator](/lld/patterns/structural/decorator)** | Wrap a limiter with logging, metrics, multi-tier |
+| **[Factory](/lld/patterns/creational/factory)** | Construct limiter from config |
 
 ---
 

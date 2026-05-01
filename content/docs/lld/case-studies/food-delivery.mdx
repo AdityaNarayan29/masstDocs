@@ -394,11 +394,11 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **State** | `OrderStatus` lifecycle |
-| **Strategy** | Pricing rules, partner assignment, discount rules |
-| **Facade** | `OrderService` orchestrates |
-| **Observer** | Notifications to user/restaurant/partner |
-| **Builder** | Cart → Order conversion |
+| **[State](/lld/patterns/behavioral/state)** | `OrderStatus` lifecycle |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Pricing rules, partner assignment, discount rules |
+| **[Facade](/lld/patterns/structural/facade)** | `OrderService` orchestrates |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notifications to user/restaurant/partner |
+| **[Builder](/lld/patterns/creational/builder)** | Cart → Order conversion |
 | **Repository** | `OrderRepository` for persistence |
 
 ---

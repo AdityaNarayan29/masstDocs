@@ -391,13 +391,13 @@ public class CheckInService {
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **State** | `FlightStatus`, `SeatStatus`, `BookingStatus` |
-| **Strategy** | Fare rules (refund policy), search algorithm |
-| **Facade** | `AirlineService` |
+| **[State](/lld/patterns/behavioral/state)** | `FlightStatus`, `SeatStatus`, `BookingStatus` |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Fare rules (refund policy), search algorithm |
+| **[Facade](/lld/patterns/structural/facade)** | `AirlineService` |
 | **Repository** | Flights, bookings, passengers |
-| **Observer** | Notify passenger of delays / changes |
-| **Builder** | Itinerary construction |
-| **Composite** | `Itinerary` is a list of `Flight` segments — uniform treatment |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notify passenger of delays / changes |
+| **[Builder](/lld/patterns/creational/builder)** | Itinerary construction |
+| **[Composite](/lld/patterns/structural/composite)** | `Itinerary` is a list of `Flight` segments — uniform treatment |
 
 ---
 

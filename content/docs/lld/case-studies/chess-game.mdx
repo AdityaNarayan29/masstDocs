@@ -360,11 +360,11 @@ public void undoLast() {
 | **Pattern** | **Where** |
 |------------|-----------|
 | **Strategy** (via polymorphism) | Each piece's `canMove` |
-| **State** | `GameStatus` transitions |
-| **Command** | Each `Move` is a reversible action |
-| **Memento** | `Move` stores captured piece for undo |
-| **Factory** | Construct piece by type during promotion |
-| **Singleton** | (not really; `Game` is one per match) |
+| **[State](/lld/patterns/behavioral/state)** | `GameStatus` transitions |
+| **[Command](/lld/patterns/behavioral/command)** | Each `Move` is a reversible action |
+| **[Memento](/lld/patterns/behavioral/memento)** | `Move` stores captured piece for undo |
+| **[Factory](/lld/patterns/creational/factory)** | Construct piece by type during promotion |
+| **[Singleton](/lld/patterns/creational/singleton)** | (not really; `Game` is one per match) |
 
 ---
 

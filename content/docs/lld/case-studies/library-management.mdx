@@ -321,12 +321,12 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Facade** | `LibraryService` simplifies multi-step flows |
-| **State** | `CopyStatus`, `MemberStatus` |
-| **Strategy** | Late-fee calculation (per-day, escalating, capped) |
-| **Observer** | Notify members when holds become available |
+| **[Facade](/lld/patterns/structural/facade)** | `LibraryService` simplifies multi-step flows |
+| **[State](/lld/patterns/behavioral/state)** | `CopyStatus`, `MemberStatus` |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Late-fee calculation (per-day, escalating, capped) |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notify members when holds become available |
 | **Repository** | `Catalog`, `LoanRepository` for persistence abstraction |
-| **Singleton** | `LibraryService` (per app instance) |
+| **[Singleton](/lld/patterns/creational/singleton)** | `LibraryService` (per app instance) |
 
 ---
 

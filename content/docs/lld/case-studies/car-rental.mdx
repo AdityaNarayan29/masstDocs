@@ -351,12 +351,12 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **State** | Vehicle status (Available / Reserved / Rented / Maintenance) |
-| **Strategy** | Pricing (standard, hourly, weekly, surge) |
-| **Facade** | `RentalService` |
-| **Observer** | Notify customer at confirmation / pickup reminder / late |
+| **[State](/lld/patterns/behavioral/state)** | Vehicle status (Available / Reserved / Rented / Maintenance) |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Pricing (standard, hourly, weekly, surge) |
+| **[Facade](/lld/patterns/structural/facade)** | `RentalService` |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notify customer at confirmation / pickup reminder / late |
 | **Repository** | Reservations, vehicles, customers |
-| **Builder** | `Bill` with many components (base, mileage, late, fuel, damage) |
+| **[Builder](/lld/patterns/creational/builder)** | `Bill` with many components (base, mileage, late, fuel, damage) |
 
 ---
 

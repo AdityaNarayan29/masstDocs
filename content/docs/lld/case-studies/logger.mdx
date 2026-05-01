@@ -392,13 +392,13 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Singleton** | `LoggerFactory` |
-| **Factory** | Logger creation by name |
-| **Strategy** | `Formatter` |
-| **Decorator** | `AsyncAppender` wraps any appender |
-| **Chain of responsibility** | Hierarchical logger lookup |
-| **Observer** | Appenders subscribe to logger output |
-| **Producer-consumer** | AsyncAppender's queue + worker |
+| **[Singleton](/lld/patterns/creational/singleton)** | `LoggerFactory` |
+| **[Factory](/lld/patterns/creational/factory)** | Logger creation by name |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | `Formatter` |
+| **[Decorator](/lld/patterns/structural/decorator)** | `AsyncAppender` wraps any appender |
+| **[Chain of responsibility](/lld/patterns/behavioral/chain-of-responsibility)** | Hierarchical logger lookup |
+| **[Observer](/lld/patterns/behavioral/observer)** | Appenders subscribe to logger output |
+| **[Producer-consumer](/lld/concurrency/producer-consumer)** | AsyncAppender's queue + worker |
 
 ---
 

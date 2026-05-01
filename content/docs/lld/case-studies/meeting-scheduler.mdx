@@ -315,12 +315,12 @@ Don't store every occurrence as a row — store the rule and **expand on read**.
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Facade** | `Calendar` service |
-| **Strategy** | `RecurrenceRule` (daily, weekly, monthly, custom) |
-| **Observer** | Notify attendees on book / change / cancel |
-| **State** | `MeetingStatus` lifecycle |
-| **Composite** | Recurring meeting → expanded child meetings |
-| **Singleton** | One Calendar per workspace |
+| **[Facade](/lld/patterns/structural/facade)** | `Calendar` service |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | `RecurrenceRule` (daily, weekly, monthly, custom) |
+| **[Observer](/lld/patterns/behavioral/observer)** | Notify attendees on book / change / cancel |
+| **[State](/lld/patterns/behavioral/state)** | `MeetingStatus` lifecycle |
+| **[Composite](/lld/patterns/structural/composite)** | Recurring meeting → expanded child meetings |
+| **[Singleton](/lld/patterns/creational/singleton)** | One Calendar per workspace |
 
 ---
 

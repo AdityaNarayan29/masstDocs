@@ -319,11 +319,11 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| Strategy | Dispatching algorithm (NearestCar, LOOK, fixed-sector) |
-| State | Car state (Moving, Stopped, DoorOpen, Maintenance) |
-| Singleton | `ElevatorSystem` (per building) |
-| Observer | Floor display boards subscribe to car positions |
-| Command | Each Request as a queueable command |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Dispatching algorithm (NearestCar, LOOK, fixed-sector) |
+| **[State](/lld/patterns/behavioral/state)** | Car state (Moving, Stopped, DoorOpen, Maintenance) |
+| **[Singleton](/lld/patterns/creational/singleton)** | `ElevatorSystem` (per building) |
+| **[Observer](/lld/patterns/behavioral/observer)** | Floor display boards subscribe to car positions |
+| **[Command](/lld/patterns/behavioral/command)** | Each Request as a queueable command |
 
 ---
 

@@ -347,12 +347,12 @@ sequenceDiagram
 | **Pattern** | **Where** |
 |------------|-----------|
 | **Event sourcing** | `StockMovement` log is authoritative |
-| **State** | `ReservationStatus` lifecycle |
-| **Strategy** | Reorder rules (threshold / forecast / JIT) |
-| **Facade** | `InventoryService` orchestrates |
-| **Observer** | `ReorderService` reacts to stock-low events |
-| **Command** | Each `StockMovement` is a recorded command |
-| **Singleton** | One service instance per region |
+| **[State](/lld/patterns/behavioral/state)** | `ReservationStatus` lifecycle |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Reorder rules (threshold / forecast / JIT) |
+| **[Facade](/lld/patterns/structural/facade)** | `InventoryService` orchestrates |
+| **[Observer](/lld/patterns/behavioral/observer)** | `ReorderService` reacts to stock-low events |
+| **[Command](/lld/patterns/behavioral/command)** | Each `StockMovement` is a recorded command |
+| **[Singleton](/lld/patterns/creational/singleton)** | One service instance per region |
 
 ---
 

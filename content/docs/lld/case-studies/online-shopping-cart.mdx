@@ -391,13 +391,13 @@ sequenceDiagram
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Strategy** | Coupons, tax, shipping calculators |
-| **Facade** | `CheckoutService` |
-| **State** | `OrderStatus` lifecycle |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Coupons, tax, shipping calculators |
+| **[Facade](/lld/patterns/structural/facade)** | `CheckoutService` |
+| **[State](/lld/patterns/behavioral/state)** | `OrderStatus` lifecycle |
 | **Repository** | Cart, Order, Product persistence |
-| **Singleton** | One `CheckoutService` per app |
-| **Command** | Each order operation as a command (refund, ship) |
-| **Builder** | Construct `Order` with many fields |
+| **[Singleton](/lld/patterns/creational/singleton)** | One `CheckoutService` per app |
+| **[Command](/lld/patterns/behavioral/command)** | Each order operation as a command (refund, ship) |
+| **[Builder](/lld/patterns/creational/builder)** | Construct `Order` with many fields |
 
 ---
 

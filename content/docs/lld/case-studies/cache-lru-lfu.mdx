@@ -329,10 +329,10 @@ public class CacheStats {
 
 | **Pattern** | **Where** |
 |------------|-----------|
-| **Strategy** | `EvictionPolicy` swappable |
-| **Decorator** | `TTLCache` wraps any `Cache` |
-| **Singleton** | One cache instance per app context |
-| **Observer** | Listeners on eviction (write-behind cache) |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | `EvictionPolicy` swappable |
+| **[Decorator](/lld/patterns/structural/decorator)** | `TTLCache` wraps any `Cache` |
+| **[Singleton](/lld/patterns/creational/singleton)** | One cache instance per app context |
+| **[Observer](/lld/patterns/behavioral/observer)** | Listeners on eviction (write-behind cache) |
 
 ---
 

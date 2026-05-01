@@ -324,11 +324,11 @@ public class VendingMachine {
 
 | **Pattern** | **Usage** |
 |------------|-----------|
-| **State** | Idle / ItemSelected / Dispensing transitions |
-| **Strategy** | Change-making algorithm (greedy vs DP) |
-| **Singleton** | `VendingMachine` per physical unit |
-| **Command** | Each user action as a command (for replay/audit) |
-| **Observer** | Display board updates from machine events |
+| **[State](/lld/patterns/behavioral/state)** | Idle / ItemSelected / Dispensing transitions |
+| **[Strategy](/lld/patterns/behavioral/strategy)** | Change-making algorithm (greedy vs DP) |
+| **[Singleton](/lld/patterns/creational/singleton)** | `VendingMachine` per physical unit |
+| **[Command](/lld/patterns/behavioral/command)** | Each user action as a command (for replay/audit) |
+| **[Observer](/lld/patterns/behavioral/observer)** | Display board updates from machine events |
 
 ---
 

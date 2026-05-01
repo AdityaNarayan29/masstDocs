@@ -3,30 +3,30 @@ import type { ReactNode } from 'react';
 import { baseOptions } from '@/app/layout.config';
 import { lldSource } from '@/lib/source';
 
+const sidebarTabs = [
+  {
+    title: "System Design",
+    description: "Fundamentals, components, communication",
+    url: "/sd",
+  },
+  {
+    title: "HLD Case Studies",
+    description: "Real-world high-level designs",
+    url: "/hld",
+  },
+  {
+    title: "LLD & Patterns",
+    description: "OOP, design patterns, machine coding",
+    url: "/lld",
+  },
+];
+
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <DocsLayout
       tree={lldSource.pageTree}
       {...baseOptions}
-      sidebar={{
-        tabs: [
-          {
-            title: "System Design",
-            description: "Hello World!",
-            url: "/sd",
-          },
-          {
-            title: "System Design - HLD",
-            description: "HLD!",
-            url: "/hld",
-          },
-          {
-            title: "System Design - LLD",
-            description: "LLD!",
-            url: "/lld",
-          },
-        ],
-      }}
+      sidebar={{ tabs: sidebarTabs }}
     >
       {children}
     </DocsLayout>

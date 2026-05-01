@@ -99,29 +99,24 @@ function rewriteLldUrl(url: string | undefined): string | undefined {
   return url;
 }
 
-function rewriteLldNode(node: PageTreeNode): PageTreeNode | null {
+/**
+ * Recursively rewrite URLs on every descendant. Caller is responsible for
+ * only invoking this on the lld subtree.
+ */
+function rewriteLldNode(node: PageTreeNode): PageTreeNode {
   if (node.type === "page") {
-    if (!node.url?.startsWith("/lld/lld") && node.url !== "/lld/lld") return null;
-    return { ...node, url: rewriteLldUrl(node.url)! } as PageTreeNode;
+    return { ...node, url: rewriteLldUrl(node.url) ?? node.url } as PageTreeNode;
   }
 
   if (node.type === "folder") {
-    // The top-level lld folder is what we want to flatten — promote its children up.
-    const indexUrl = node.index?.url;
-    if (indexUrl === "/lld/lld" || indexUrl?.startsWith("/lld/lld")) {
-      // Recurse and rewrite descendants
-      const rewritten = (node.children ?? [])
-        .map(rewriteLldNode)
-        .filter((n): n is PageTreeNode => n !== null);
-      const newIndex = node.index
-        ? { ...node.index, url: rewriteLldUrl(node.index.url)! }
-        : node.index;
-      return { ...node, index: newIndex, children: rewritten } as PageTreeNode;
-    }
-    return null;
+    const newIndex = node.index
+      ? { ...node.index, url: rewriteLldUrl(node.index.url) ?? node.index.url }
+      : node.index;
+    const rewrittenChildren = (node.children ?? []).map(rewriteLldNode);
+    return { ...node, index: newIndex, children: rewrittenChildren } as PageTreeNode;
   }
 
-  return null;
+  return node;
 }
 
 /**
@@ -137,17 +132,18 @@ function getFilteredPageTree(): typeof rawHldSource.pageTree {
 
 function getFilteredLldPageTree(): typeof rawLldSource.pageTree {
   const root = rawLldSource.pageTree;
-  // Find the top-level "lld" folder, promote its children to root.
+  // Find the top-level "lld" folder. Identify by name match since folders
+  // without an index.mdx have no index URL to inspect.
   for (const child of root.children ?? []) {
     if (child.type === "folder") {
-      const idx = child.index?.url;
-      if (idx === "/lld/lld" || idx?.startsWith("/lld/lld")) {
+      const folderName = String(child.name).toLowerCase().replace(/\s+/g, "-");
+      const idxUrl = child.index?.url ?? "";
+      const isLldFolder =
+        folderName === "lld" || idxUrl === "/lld/lld" || idxUrl.startsWith("/lld/lld");
+      if (isLldFolder) {
         const rewritten = rewriteLldNode(child);
-        if (rewritten && rewritten.type === "folder") {
-          // Use the lld folder's children as the new root children;
-          // promote its index page too if present.
-          const promoted = [...(rewritten.children ?? [])];
-          return { ...root, children: promoted };
+        if (rewritten.type === "folder") {
+          return { ...root, children: rewritten.children ?? [] };
         }
       }
     }

@@ -16,17 +16,7 @@ export const baseOptions: BaseLayoutProps = {
       </>
     ),
   },
-  // see https://fumadocs.dev/docs/ui/navigation/links
-  links: [
-    {
-      text: 'Twitter',
-      url: 'https://x.com/Adityanaraynn29',
-      external: true,
-    },
-    {
-      text: 'GitHub',
-      url: 'https://github.com/adityanarayan29',
-      external: true,
-    },
-  ],
+  // Twitter / GitHub / LinkedIn now live in the sidebar footer
+  // (components/SidebarSocialFooter.tsx) to keep the nav uncluttered
+  // and surface social presence inside the docs reading flow.
 };

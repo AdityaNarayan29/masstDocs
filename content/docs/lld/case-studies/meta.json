@@ -3,6 +3,7 @@
   "description": "Machine-coding designs grouped by domain",
   "defaultOpen": true,
   "pages": [
+    "index",
     "---Games & Puzzles---",
     "tic-tac-toe",
     "snake-and-ladder",

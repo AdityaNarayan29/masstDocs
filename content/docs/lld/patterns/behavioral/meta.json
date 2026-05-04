@@ -2,6 +2,7 @@
   "title": "Behavioral",
   "description": "Object interaction patterns",
   "pages": [
+    "index",
     "strategy",
     "observer",
     "command",

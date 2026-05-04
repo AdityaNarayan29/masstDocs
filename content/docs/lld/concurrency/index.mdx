@@ -1,0 +1,15 @@
+---
+title: Concurrency
+description: Thread safety, producer-consumer, locking strategies, thread pools.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+Concurrency in LLD interviews shows up as soon as multiple users hit the same resource — seat reservations, cache lookups, queue draining.
+
+<Cards>
+  <Card title="Thread Safety" href="/lld/concurrency/thread-safety" description="Atomicity, visibility, ordering — synchronized vs Atomic vs volatile" />
+  <Card title="Producer-Consumer" href="/lld/concurrency/producer-consumer" description="Decouple work generation from work processing with a bounded queue" />
+  <Card title="Read-Write Lock" href="/lld/concurrency/read-write-lock" description="Many readers OR one writer for read-heavy workloads" />
+  <Card title="Thread Pool" href="/lld/concurrency/thread-pool" description="Reuse worker threads for predictable performance" />
+</Cards>

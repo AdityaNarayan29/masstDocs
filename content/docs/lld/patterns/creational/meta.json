@@ -2,6 +2,7 @@
   "title": "Creational",
   "description": "Object creation patterns",
   "pages": [
+    "index",
     "singleton",
     "factory",
     "abstract-factory",

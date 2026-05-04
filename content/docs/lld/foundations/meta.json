@@ -3,6 +3,7 @@
   "description": "OOP, SOLID, UML, design principles",
   "defaultOpen": true,
   "pages": [
+    "index",
     "oop-principles",
     "solid",
     "design-patterns",

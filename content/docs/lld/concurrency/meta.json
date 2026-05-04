@@ -2,6 +2,7 @@
   "title": "Concurrency",
   "description": "Thread safety and concurrency patterns",
   "pages": [
+    "index",
     "thread-safety",
     "producer-consumer",
     "read-write-lock",

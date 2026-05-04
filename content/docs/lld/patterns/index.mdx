@@ -1,0 +1,36 @@
+---
+title: Design Patterns
+description: Gang of Four patterns split into creational, structural, and behavioral.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+22 patterns from the Gang of Four book, organized by intent.
+
+<Cards>
+  <Card title="Creational" href="/lld/patterns/creational/singleton" description="Object creation: Singleton, Factory, Abstract Factory, Builder, Prototype" />
+  <Card title="Structural" href="/lld/patterns/structural/adapter" description="Class composition: Adapter, Decorator, Facade, Proxy, Composite, Bridge, Flyweight" />
+  <Card title="Behavioral" href="/lld/patterns/behavioral/strategy" description="Object interaction: Strategy, Observer, Command, State, Chain of Responsibility, Template Method, Iterator, Mediator, Visitor, Memento" />
+</Cards>
+
+---
+
+## Picking the Right Pattern
+
+| **Symptom** | **Reach for** |
+|------------|---------------|
+| `if/else` cascade selecting an algorithm | [Strategy](/lld/patterns/behavioral/strategy) |
+| Many optional constructor parameters | [Builder](/lld/patterns/creational/builder) |
+| Need exactly one shared instance | [Singleton](/lld/patterns/creational/singleton) |
+| Object behavior changes with internal state | [State](/lld/patterns/behavioral/state) |
+| Adding cross-cutting features (logging, retry, cache) | [Decorator](/lld/patterns/structural/decorator) |
+| Bridging incompatible interfaces | [Adapter](/lld/patterns/structural/adapter) |
+| Tree of nested objects, treat them uniformly | [Composite](/lld/patterns/structural/composite) |
+| Notify many dependents of a state change | [Observer](/lld/patterns/behavioral/observer) |
+| Undo/redo, queue, replay | [Command](/lld/patterns/behavioral/command) |
+| Hide a complex subsystem | [Facade](/lld/patterns/structural/facade) |
+| Family of related objects (UI theme, DB driver) | [Abstract Factory](/lld/patterns/creational/abstract-factory) |
+| Two orthogonal axes of variation | [Bridge](/lld/patterns/structural/bridge) |
+| Millions of similar objects, save memory | [Flyweight](/lld/patterns/structural/flyweight) |
+| Multiple handlers for one request | [Chain of Responsibility](/lld/patterns/behavioral/chain-of-responsibility) |
+| Skeleton algorithm with overridable steps | [Template Method](/lld/patterns/behavioral/template-method) |

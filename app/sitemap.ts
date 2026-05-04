@@ -1,4 +1,4 @@
-import { source, hldSource } from '@/lib/source';
+import { source, hldSource, lldSource } from '@/lib/source';
 
 type SitemapEntry = {
   url: string;
@@ -11,7 +11,7 @@ export default function sitemap(): SitemapEntry[] {
   const baseUrl = 'https://docs.masst.dev';
   // Use a fixed build-time date so CDN can cache the sitemap
   // instead of regenerating on every request
-  const now = new Date('2026-03-20');
+  const now = new Date('2026-05-04');
 
   // Static pages
   const staticPages: SitemapEntry[] = [
@@ -39,5 +39,13 @@ export default function sitemap(): SitemapEntry[] {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...sdPages, ...hldPages];
+  // LLD documentation pages
+  const lldPages: SitemapEntry[] = lldSource.getPages().map((page) => ({
+    url: `${baseUrl}/lld/${page.slugs.join('/')}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...sdPages, ...hldPages, ...lldPages];
 }

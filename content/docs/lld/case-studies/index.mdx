@@ -1,0 +1,57 @@
+---
+title: LLD Case Studies
+description: Machine-coding designs grouped by domain — games, booking, devices, apps, infrastructure.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+24 machine-coding problems with class diagrams, code, and pattern-by-pattern walkthroughs. Pick a category or work straight through.
+
+## Games & Puzzles
+
+<Cards>
+  <Card title="Tic-Tac-Toe" href="/lld/case-studies/tic-tac-toe" description="O(1) win detection on N×N boards" />
+  <Card title="Snake & Ladder" href="/lld/case-studies/snake-and-ladder" description="Round-robin loop with seeded dice" />
+  <Card title="Chess" href="/lld/case-studies/chess-game" description="Polymorphic pieces, check detection, special moves" />
+</Cards>
+
+## Booking & Reservation
+
+<Cards>
+  <Card title="Movie Booking" href="/lld/case-studies/movie-booking" description="Concurrent seat holds with TTL expiry" />
+  <Card title="Hotel Booking" href="/lld/case-studies/hotel-booking" description="Per-date inventory counters" />
+  <Card title="Car Rental" href="/lld/case-studies/car-rental" description="Reservations + pricing + return inspection" />
+  <Card title="Meeting Scheduler" href="/lld/case-studies/meeting-scheduler" description="Room conflicts, attendee conflicts, recurrence" />
+  <Card title="Airline Management" href="/lld/case-studies/airline-management" description="Multi-leg itineraries, atomic seat reservation" />
+</Cards>
+
+## Devices & Systems
+
+<Cards>
+  <Card title="Parking Lot" href="/lld/case-studies/parking-lot" description="Multi-floor lot, pricing strategies, concurrency" />
+  <Card title="Elevator System" href="/lld/case-studies/elevator-system" description="SCAN/LOOK scheduling across multiple cars" />
+  <Card title="Vending Machine" href="/lld/case-studies/vending-machine" description="State pattern + change-making" />
+  <Card title="ATM System" href="/lld/case-studies/atm-system" description="Banking authentication, transaction processing" />
+  <Card title="Traffic Signal" href="/lld/case-studies/traffic-signal" description="Phase machine with pedestrian + emergency override" />
+</Cards>
+
+## Apps & Services
+
+<Cards>
+  <Card title="Splitwise" href="/lld/case-studies/splitwise" description="Money in cents, split strategies, min-cash-flow settlement" />
+  <Card title="Food Delivery" href="/lld/case-studies/food-delivery" description="Order lifecycle + partner assignment" />
+  <Card title="LinkedIn Connections" href="/lld/case-studies/linkedin-connections" description="Bidirectional BFS for degree of separation" />
+  <Card title="Stack Overflow" href="/lld/case-studies/stack-overflow" description="Posts, votes (toggle/switch), reputation" />
+  <Card title="Online Shopping Cart" href="/lld/case-studies/online-shopping-cart" description="Atomic stock reservation + idempotent payment" />
+  <Card title="Library Management" href="/lld/case-studies/library-management" description="Catalog, loans, holds, late fees" />
+</Cards>
+
+## Infrastructure
+
+<Cards>
+  <Card title="Logger Utility" href="/lld/case-studies/logger" description="Levels, appenders, async writes" />
+  <Card title="LRU/LFU Cache" href="/lld/case-studies/cache-lru-lfu" description="O(1) get/put with doubly-linked-list + map" />
+  <Card title="Rate Limiter (LLD)" href="/lld/case-studies/rate-limiter-lld" description="Token bucket, leaky bucket, sliding window" />
+  <Card title="File System" href="/lld/case-studies/file-system" description="In-memory FS with composite pattern" />
+  <Card title="Inventory Management" href="/lld/case-studies/inventory-management" description="Multi-warehouse stock with event sourcing" />
+</Cards>

@@ -65,7 +65,7 @@ export default function HomePage() {
         Our structured curriculum takes you from basic concepts to advanced system architecture.
         Each section builds upon the previous, ensuring a solid foundation for designing complex systems.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           href="/sd/fundamentals"
           className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-lg transition-all"
@@ -89,14 +89,25 @@ export default function HomePage() {
           </p>
         </Link>
         <Link
-          href="/sd/case-studies"
-          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-lg transition-all"
+          href="/hld/case-studies"
+          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:shadow-lg transition-all"
         >
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-purple-500 transition-colors">
-            Case Studies
+          <h3 className="font-semibold text-lg mb-2 group-hover:text-emerald-500 transition-colors">
+            HLD Case Studies
           </h3>
           <p className="text-sm text-fd-muted-foreground">
-            Explore real-world system designs of Netflix, Uber, WhatsApp, Instagram, and 15+ other popular applications used by millions.
+            Explore real-world system designs of Netflix, Uber, WhatsApp, Instagram, Stripe, and 20+ other applications used by millions.
+          </p>
+        </Link>
+        <Link
+          href="/lld"
+          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-lg transition-all"
+        >
+          <h3 className="font-semibold text-lg mb-2 group-hover:text-blue-500 transition-colors">
+            LLD &amp; Patterns
+          </h3>
+          <p className="text-sm text-fd-muted-foreground">
+            OOP, SOLID, 22 Gang-of-Four design patterns, concurrency, and 24 machine-coding case studies (Splitwise, parking lot, elevator, ...).
           </p>
         </Link>
       </div>
@@ -109,29 +120,63 @@ export default function HomePage() {
         Learn high-level design (HLD) of real-world systems used by top tech companies
       </p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Link href="/sd/case-studies/netflix" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/netflix" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-red-500">Netflix HLD</span>
         </Link>
-        <Link href="/sd/case-studies/uber" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-gray-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/uber" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-gray-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-gray-500">Uber HLD</span>
         </Link>
-        <Link href="/sd/case-studies/whatsapp" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/whatsapp" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-green-500">WhatsApp HLD</span>
         </Link>
-        <Link href="/sd/case-studies/instagram" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/instagram" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-pink-500">Instagram HLD</span>
         </Link>
-        <Link href="/sd/case-studies/youtube" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-600/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/youtube" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-600/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-red-600">YouTube HLD</span>
         </Link>
-        <Link href="/sd/case-studies/twitter" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-400/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/twitter" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-400/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-blue-400">Twitter HLD</span>
         </Link>
-        <Link href="/sd/case-studies/amazon" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/amazon" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-orange-500">Amazon HLD</span>
         </Link>
-        <Link href="/sd/case-studies/slack" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/case-studies/slack" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-purple-500">Slack HLD</span>
+        </Link>
+      </div>
+
+      {/* LLD Machine-Coding Section */}
+      <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
+        LLD Machine-Coding Case Studies
+      </h2>
+      <p className="text-fd-muted-foreground text-center mb-4 max-w-2xl mx-auto">
+        Practice low-level design with class diagrams, code, and pattern walkthroughs
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Link href="/lld/case-studies/parking-lot" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Parking Lot</span>
+        </Link>
+        <Link href="/lld/case-studies/elevator-system" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Elevator</span>
+        </Link>
+        <Link href="/lld/case-studies/splitwise" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Splitwise</span>
+        </Link>
+        <Link href="/lld/case-studies/movie-booking" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Movie Booking</span>
+        </Link>
+        <Link href="/lld/case-studies/chess-game" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Chess Game</span>
+        </Link>
+        <Link href="/lld/case-studies/cache-lru-lfu" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">LRU/LFU Cache</span>
+        </Link>
+        <Link href="/lld/case-studies/logger" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">Logger</span>
+        </Link>
+        <Link href="/lld/patterns" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-blue-500">22 Patterns →</span>
         </Link>
       </div>
 
@@ -166,6 +211,21 @@ export default function HomePage() {
         </Link>
         <Link href="/hld" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-sm">
           HLD Guide
+        </Link>
+        <Link href="/lld/foundations/solid" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
+          SOLID Principles
+        </Link>
+        <Link href="/lld/patterns/creational/singleton" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
+          Singleton Pattern
+        </Link>
+        <Link href="/lld/patterns/behavioral/strategy" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
+          Strategy Pattern
+        </Link>
+        <Link href="/lld/concurrency/thread-safety" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
+          Thread Safety
+        </Link>
+        <Link href="/lld" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
+          LLD Guide
         </Link>
       </div>
 

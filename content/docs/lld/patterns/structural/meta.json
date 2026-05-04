@@ -2,6 +2,7 @@
   "title": "Structural",
   "description": "Class composition patterns",
   "pages": [
+    "index",
     "adapter",
     "decorator",
     "facade",

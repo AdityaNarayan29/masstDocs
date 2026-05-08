@@ -17,18 +17,21 @@ export const metadata = {
   },
   description: 'Free System Design tutorial with HLD & LLD. Learn Netflix, Uber, WhatsApp architecture for interviews.',
   metadataBase: new URL('https://docs.masst.dev'),
+  // Note: openGraph.images and twitter.images are auto-populated from
+  // app/opengraph-image.tsx (Next.js convention). See:
+  // https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
   openGraph: {
     title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
-    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams.',
+    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD & LLD with diagrams.',
     url: 'https://docs.masst.dev/',
     siteName: 'Masst Docs',
     type: 'website',
     images: [
       {
-        url: '/og-image.png',
+        url: 'https://docs.masst.dev/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Masst Docs - System Design Tutorial Platform',
+        alt: 'Masst Docs — System Design Tutorial, HLD & LLD Guide',
       },
     ],
   },
@@ -36,8 +39,11 @@ export const metadata = {
     card: 'summary_large_image',
     site: '@masstdev',
     title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
-    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD with diagrams.',
-    images: ['/og-image.png'],
+    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD & LLD with diagrams.',
+    images: ['https://docs.masst.dev/opengraph-image'],
+  },
+  alternates: {
+    canonical: 'https://docs.masst.dev/',
   },
 };
 
@@ -140,12 +146,19 @@ export default function Layout({ children }: { children: ReactNode }) {
                 "Software Architecture",
                 "Distributed Systems",
                 "System Design Interview",
+                "Design Patterns",
+                "Object-Oriented Programming",
+                "SOLID Principles",
+                "Concurrency",
               ],
               teaches: [
                 "Design scalable distributed systems",
                 "Create high-level architecture diagrams",
-                "Implement low-level design patterns",
+                "Apply Gang of Four design patterns",
+                "Implement SOLID principles in OOP",
+                "Solve LLD machine-coding problems (parking lot, elevator, splitwise)",
                 "Understand Netflix, Uber, WhatsApp architecture",
+                "Handle concurrency with thread pools and locks",
               ],
               isAccessibleForFree: true,
             }),
@@ -170,6 +183,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   position: 2,
                   name: "HLD Case Studies",
                   item: "https://docs.masst.dev/hld",
+                },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: "LLD & Patterns",
+                  item: "https://docs.masst.dev/lld",
                 },
               ],
             }),

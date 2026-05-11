@@ -10,9 +10,14 @@ const OG_IMAGE = `${SITE_URL}/opengraph-image`;
  */
 const HLD_CANONICAL_PREFIXES = ["case-studies"];
 
-function pickCanonical(slugs: string[], surface: "sd" | "hld" | "lld"): string {
+type Surface = "sd" | "hld" | "lld" | "dsa";
+
+function pickCanonical(slugs: string[], surface: Surface): string {
   if (surface === "lld") {
     return slugs.length === 0 ? `${SITE_URL}/lld` : `${SITE_URL}/lld/${slugs.join("/")}`;
+  }
+  if (surface === "dsa") {
+    return slugs.length === 0 ? `${SITE_URL}/dsa` : `${SITE_URL}/dsa/${slugs.join("/")}`;
   }
 
   // For SD and HLD surfaces, route the canonical based on content type.
@@ -40,7 +45,7 @@ export function buildPageMetadata({
   title: string;
   description?: string;
   slugs: string[];
-  surface: "sd" | "hld" | "lld";
+  surface: Surface;
 }): Metadata {
   const canonical = pickCanonical(slugs, surface);
   const ogTitle = title;

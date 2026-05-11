@@ -1,0 +1,6 @@
+{
+  "title": "Dynamic Programming",
+  "description": "DP organized by state shape: linear, grid, knapsack, intervals, tree, bitmask",
+  "defaultOpen": true,
+  "pages": ["linear", "grid-2d", "knapsack", "intervals", "tree-dp", "bitmask"]
+}

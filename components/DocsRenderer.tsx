@@ -15,7 +15,8 @@ export async function DocsRenderer({
   source:
     | typeof import("@/lib/source").source
     | typeof import("@/lib/source").hldSource
-    | typeof import("@/lib/source").lldSource;
+    | typeof import("@/lib/source").lldSource
+    | typeof import("@/lib/source").dsaSource;
   slug?: string[];
 }) {
   const page = source.getPage(slug);

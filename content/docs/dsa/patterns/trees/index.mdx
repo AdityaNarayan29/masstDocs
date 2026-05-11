@@ -1,0 +1,14 @@
+---
+title: Trees
+description: Binary tree traversals, BST properties, Trie (prefix tree).
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+Tree problems decompose into three patterns. **Traversals** answer "given this tree, compute X" via DFS (pre/in/post) or BFS. **BST properties** exploit `left < root < right` for O(h) operations. **Trie** is a specialized tree shape for prefix-keyed lookup.
+
+<Cards>
+  <Card title="Binary Tree Traversals" href="/dsa/patterns/trees/traversals" description="Pre/in/post-order DFS + BFS level-order" />
+  <Card title="BST Properties" href="/dsa/patterns/trees/bst" description="In-order = sorted; O(h) search/insert/delete" />
+  <Card title="Trie (Prefix Tree)" href="/dsa/patterns/trees/trie" description="O(length) prefix operations" />
+</Cards>

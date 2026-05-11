@@ -1,0 +1,13 @@
+{
+  "title": "Arrays & Strings",
+  "description": "Foundational patterns: two pointers, sliding window, prefix sums, binary search, hashing, sorting & intervals",
+  "defaultOpen": true,
+  "pages": [
+    "two-pointers",
+    "sliding-window",
+    "prefix-sum",
+    "binary-search",
+    "hashing",
+    "intervals-greedy"
+  ]
+}

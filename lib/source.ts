@@ -3,16 +3,17 @@ import { loader, type VirtualFile } from "fumadocs-core/source";
 
 /**
  * The default fumadocs source mounts every file under `content/docs` as
- * `<baseUrl>/<path>`. We expose three views over the same docs:
+ * `<baseUrl>/<path>`. We expose four views over the same docs:
  *
- *   /sd  — everything except the `lld/` subtree
+ *   /sd  — everything except `lld/` and `dsa/` subtrees
  *   /hld — same content as /sd (HLD reference + case studies)
- *   /lld — only the `lld/` subtree, with the `lld/` prefix stripped from
- *          paths so URLs surface as `/lld/foundations/solid` rather than
- *          `/lld/lld/foundations/solid`
+ *   /lld — only the `lld/` subtree, with `lld/` stripped from paths
+ *   /dsa — only the `dsa/` subtree, with `dsa/` stripped from paths
  *
- * To do this we materialize the docs source's files and rebuild scoped
- * sources from them.
+ * URL rewriting is done by materializing the source's VirtualFile array
+ * and rewriting `path` for the scoped subtrees so the loader naturally
+ * serves `/dsa/patterns/sliding-window` rather than
+ * `/dsa/dsa/patterns/sliding-window`.
  */
 
 const fullSource = docs.toFumadocsSource();
@@ -24,31 +25,39 @@ const isLldFile = (f: VirtualFile) => {
   return path === "lld" || path.startsWith("lld/");
 };
 
-// Files outside the lld/ subtree (used by /sd and /hld).
-const sdFiles: VirtualFile[] = allFiles.filter((f) => !isLldFile(f));
+const isDsaFile = (f: VirtualFile) => {
+  const path = f.path.replace(/\\/g, "/");
+  return path === "dsa" || path.startsWith("dsa/");
+};
 
-// Files inside lld/, with the lld/ prefix stripped so the loader treats
-// them as if they lived at the top level under baseUrl=/lld.
+// Files outside the lld/ and dsa/ subtrees (used by /sd and /hld).
+const sdFiles: VirtualFile[] = allFiles.filter(
+  (f) => !isLldFile(f) && !isDsaFile(f),
+);
+
+// Files inside lld/, with the lld/ prefix stripped.
 const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map((f) => {
   const path = f.path.replace(/\\/g, "/");
   const stripped = path === "lld" ? "" : path.slice("lld/".length);
-  return {
-    ...f,
-    path: stripped,
-    // Drop any explicit slugs override that still includes "lld" — let
-    // the loader recompute slugs from the rewritten path.
-    slugs: undefined,
-  };
+  return { ...f, path: stripped, slugs: undefined };
 });
 
-// Build scoped Source objects that share the same type as fullSource so
-// downstream consumers (DocsRenderer, etc.) see the same `pageData` shape
-// (with `body`, `toc`, etc.). We re-use the type via `as typeof fullSource`.
+// Files inside dsa/, with the dsa/ prefix stripped.
+const dsaFiles: VirtualFile[] = allFiles.filter(isDsaFile).map((f) => {
+  const path = f.path.replace(/\\/g, "/");
+  const stripped = path === "dsa" ? "" : path.slice("dsa/".length);
+  return { ...f, path: stripped, slugs: undefined };
+});
+
+// Scoped Source objects sharing the same type as fullSource so downstream
+// consumers (DocsRenderer, etc.) see the same `pageData` shape with
+// `body`, `toc`, etc.
 const sdSourceConfig = { files: sdFiles } as typeof fullSource;
 const lldSourceConfig = { files: lldFiles } as typeof fullSource;
+const dsaSourceConfig = { files: dsaFiles } as typeof fullSource;
 
 /**
- * Default /sd source — everything except lld/.
+ * Default /sd source — everything except lld/ and dsa/.
  */
 export const source = loader({
   baseUrl: "/sd",
@@ -56,9 +65,9 @@ export const source = loader({
 });
 
 /**
- * /hld source — same files as /sd. The two surfaces share content; the
- * HLD tab is a separate entry point so users who arrive there land on a
- * URL that reads "high-level design" rather than the generic "/sd".
+ * /hld source — same files as /sd. The two share content; HLD is a
+ * separate entry point so users who arrive there land on a URL that
+ * reads "high-level design" rather than the generic "/sd".
  */
 export const hldSource = loader({
   baseUrl: "/hld",
@@ -66,10 +75,17 @@ export const hldSource = loader({
 });
 
 /**
- * /lld source — only the lld/ subtree, paths flattened so URLs are
- * `/lld/foundations/solid` instead of `/lld/lld/foundations/solid`.
+ * /lld source — only the lld/ subtree, paths flattened.
  */
 export const lldSource = loader({
   baseUrl: "/lld",
   source: lldSourceConfig,
+});
+
+/**
+ * /dsa source — only the dsa/ subtree, paths flattened.
+ */
+export const dsaSource = loader({
+  baseUrl: "/dsa",
+  source: dsaSourceConfig,
 });

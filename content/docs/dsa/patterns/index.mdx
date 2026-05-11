@@ -1,0 +1,80 @@
+---
+title: All Patterns
+description: The full list of 25 DSA patterns organized by category, with a one-line summary of each.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+The 25 patterns, each in its own page with trigger conditions, an invariant, a template, a worked example, variants, pitfalls, and curated practice problems.
+
+---
+
+## Arrays & Strings (6)
+
+<Cards>
+  <Card title="Two Pointers" href="/dsa/patterns/arrays-strings/two-pointers" description="O(n) pair/partition via opposing or same-direction indices. Includes Fast & Slow (Floyd's cycle detection)." />
+  <Card title="Sliding Window" href="/dsa/patterns/arrays-strings/sliding-window" description="Contiguous window with expand-right / shrink-left. Both fixed-size and variable-size." />
+  <Card title="Prefix Sums & Difference Arrays" href="/dsa/patterns/arrays-strings/prefix-sum" description="O(1) range queries (prefix sum) and O(1) range updates (difference array)." />
+  <Card title="Binary Search" href="/dsa/patterns/arrays-strings/binary-search" description="Sorted array, monotonic predicate, or binary-search-on-answer." />
+  <Card title="Hashing" href="/dsa/patterns/arrays-strings/hashing" description="Frequency counts, seen-state, group-by. When O(1) lookup unlocks the algorithm." />
+  <Card title="Intervals & Greedy" href="/dsa/patterns/arrays-strings/intervals-greedy" description="Sort by custom key, then sweep. Covers most 'interval' and many 'greedy' problems." />
+</Cards>
+
+## Stacks & Queues (1)
+
+<Cards>
+  <Card title="Monotonic Stack / Deque" href="/dsa/patterns/stacks-queues/monotonic-stack" description="Stack for 'next/previous greater'; deque when the window evicts from the left." />
+</Cards>
+
+## Linked List (1)
+
+<Cards>
+  <Card title="Linked List Manipulation" href="/dsa/patterns/linked-list/linked-list" description="Reverse, merge, middle-via-fast-slow, cycle detection. All canonical pointer-rewiring ops." />
+</Cards>
+
+## Trees (3)
+
+<Cards>
+  <Card title="Binary Tree Traversals" href="/dsa/patterns/trees/traversals" description="Pre/in/post-order DFS + BFS level-order. When to use which." />
+  <Card title="BST Properties" href="/dsa/patterns/trees/bst" description="Exploit left < root < right for O(h) ops. In-order = sorted." />
+  <Card title="Trie (Prefix Tree)" href="/dsa/patterns/trees/trie" description="Character-branching tree for O(length) prefix operations." />
+</Cards>
+
+## Graphs (4)
+
+<Cards>
+  <Card title="DFS / BFS / Islands" href="/dsa/patterns/graphs/dfs-bfs" description="Generic graph traversal + 2D grid flood fill." />
+  <Card title="Topological Sort" href="/dsa/patterns/graphs/topological-sort" description="DAG ordering via Kahn's BFS or DFS post-order. Detects cycles in directed graphs." />
+  <Card title="Union-Find (DSU)" href="/dsa/patterns/graphs/union-find" description="Path compression + union by rank. Dynamic connectivity and Kruskal's MST." />
+  <Card title="Shortest Paths" href="/dsa/patterns/graphs/shortest-paths" description="Dijkstra (heap, non-negative weights). Bellman-Ford for negative edges." />
+</Cards>
+
+## Heaps (1)
+
+<Cards>
+  <Card title="Heap / Top-K / Two Heaps / K-way Merge" href="/dsa/patterns/heaps/heap" description="All heap-flavored patterns on one page." />
+</Cards>
+
+## Recursion & Search (2)
+
+<Cards>
+  <Card title="Backtracking" href="/dsa/patterns/recursion/backtracking" description="Choose → recurse → unchoose with pruning. Subsets, permutations, combinations, N-Queens." />
+  <Card title="Cyclic Sort" href="/dsa/patterns/recursion/cyclic-sort" description="When array contains 1..n: swap each value to its index. O(n) / O(1)." />
+</Cards>
+
+## Dynamic Programming (6)
+
+<Cards>
+  <Card title="DP — Linear / 1D" href="/dsa/patterns/dp/linear" description="dp[i] from constant previous indices. Climbing Stairs, House Robber, LIS." />
+  <Card title="DP — 2D Grid / Two-Sequence" href="/dsa/patterns/dp/grid-2d" description="dp[i][j] over a matrix or pair of sequences. LCS, edit distance." />
+  <Card title="DP — Knapsack Family" href="/dsa/patterns/dp/knapsack" description="0/1, unbounded, subset-sum, coin change." />
+  <Card title="DP — Intervals / Partition / MCM" href="/dsa/patterns/dp/intervals" description="dp[i][j] by trying every split k." />
+  <Card title="DP — Tree DP" href="/dsa/patterns/dp/tree-dp" description="Post-order DP where child results compose into parent." />
+  <Card title="DP — Bitmask" href="/dsa/patterns/dp/bitmask" description="Use bits as set-of-used. dp[mask] over 2^n states." />
+</Cards>
+
+## Bit Tricks (1)
+
+<Cards>
+  <Card title="Bit Manipulation" href="/dsa/patterns/bit/bit-manipulation" description="XOR pairing, n & (n-1) for popcount, masks as sets, two's-complement tricks." />
+</Cards>

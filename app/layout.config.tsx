@@ -64,3 +64,28 @@ export const baseOptions: BaseLayoutProps = {
   },
   links: socialLinks,
 };
+
+// Sidebar tab list shared across all DocsLayout instances (sd, hld, lld, dsa).
+// Keep this in sync with the four corresponding routes.
+export const sidebarTabs = [
+  {
+    title: "System Design",
+    description: "Fundamentals, components, communication",
+    url: "/sd",
+  },
+  {
+    title: "HLD Case Studies",
+    description: "Real-world high-level designs",
+    url: "/hld",
+  },
+  {
+    title: "LLD & Patterns",
+    description: "OOP, design patterns, machine coding",
+    url: "/lld",
+  },
+  {
+    title: "DSA Patterns",
+    description: "Interview patterns: sliding window, DP, graphs, ...",
+    url: "/dsa",
+  },
+];

@@ -1,0 +1,12 @@
+---
+title: Stacks & Queues
+description: Monotonic stack and deque — the two specialized container patterns that unlock 'next greater' and 'window max' problems.
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+A monotonic stack maintains its elements in strict order. By popping violators on every push, it lets us answer **"what's the next greater / smaller element?"** in amortized O(n). The deque variant adds left-side eviction for sliding-window aggregates.
+
+<Cards>
+  <Card title="Monotonic Stack / Deque" href="/dsa/patterns/stacks-queues/monotonic-stack" description="Stack for all-subarrays; deque when window evicts from the left" />
+</Cards>

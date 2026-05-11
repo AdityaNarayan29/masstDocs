@@ -1,0 +1,5 @@
+{
+  "title": "Graphs",
+  "description": "DFS/BFS, topological sort, union-find, shortest paths",
+  "pages": ["dfs-bfs", "topological-sort", "union-find", "shortest-paths"]
+}

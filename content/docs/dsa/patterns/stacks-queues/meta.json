@@ -1,0 +1,5 @@
+{
+  "title": "Stacks & Queues",
+  "description": "Monotonic stacks and deques",
+  "pages": ["monotonic-stack"]
+}

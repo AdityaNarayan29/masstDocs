@@ -1,0 +1,16 @@
+{
+  "title": "Patterns",
+  "description": "25 patterns covering ~85% of interview problems",
+  "defaultOpen": true,
+  "pages": [
+    "arrays-strings",
+    "stacks-queues",
+    "linked-list",
+    "trees",
+    "graphs",
+    "heaps",
+    "recursion",
+    "dp",
+    "bit"
+  ]
+}

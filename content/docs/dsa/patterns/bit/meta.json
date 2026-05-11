@@ -1,0 +1,5 @@
+{
+  "title": "Bit Tricks",
+  "description": "XOR, masks-as-sets, n & (n-1)",
+  "pages": ["bit-manipulation"]
+}

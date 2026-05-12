@@ -196,7 +196,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className='flex flex-col min-h-screen'>
-        <RootProvider>
+        <RootProvider
+          search={{
+            options: {
+              // Section filter chips in the search dialog. Tag values
+              // map to the `tag` field set per-page in
+              // app/api/search/route.ts (sd / hld / lld / dsa).
+              allowClear: true,
+              tags: [
+                { name: 'System Design', value: 'sd' },
+                { name: 'HLD Case Studies', value: 'hld' },
+                { name: 'LLD & Patterns', value: 'lld' },
+                { name: 'DSA Patterns', value: 'dsa' },
+              ],
+            },
+          }}
+        >
           {children}
           <PWAInstallPrompt />
           <ChatWidget />

@@ -22,6 +22,15 @@ function isHldFlavored(slugs: readonly string[]): boolean {
   return slugs.length > 0 && HLD_TOP_FOLDERS.has(slugs[0]);
 }
 
+// Short human label appended to result titles so users can see at a
+// glance which section a result belongs to.
+const SECTION_LABEL: Record<'sd' | 'hld' | 'lld' | 'dsa', string> = {
+  sd: 'System Design',
+  hld: 'HLD',
+  lld: 'LLD',
+  dsa: 'DSA',
+};
+
 type IndexedPage = {
   url: string;
   data: {
@@ -64,10 +73,15 @@ export const { GET } = createFromSource(combinedSource, {
   language: 'english',
   buildIndex(page) {
     const tagged = page as unknown as IndexedPage;
+    const label = SECTION_LABEL[tagged.__tag];
+    const baseTitle = tagged.data.title ?? '';
+    // Suffix the title with the section so each result row is
+    // self-identifying. Renders as e.g. "Bloom Filters · System Design".
+    const title = `${baseTitle} · ${label}`;
     return {
       id: tagged.url,
       url: tagged.url,
-      title: tagged.data.title ?? '',
+      title,
       description: tagged.data.description,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       structuredData: tagged.data.structuredData as any,

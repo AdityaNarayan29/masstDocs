@@ -86,11 +86,11 @@ This perspective shift is what makes interval DP unintuitive but powerful.
 ```mermaid
 flowchart LR
     Q[Problem on a sequence]
-    Q --> A{State is<br/>an interval?}
-    A -->|yes, depends on split| MCM[Interval DP<br/>try every split k]
-    A -->|yes, last-element framing| Burst[Burst Balloons-style<br/>which to handle LAST]
-    A -->|no, single index| Linear[1D DP]
-    A -->|no, two strings| TwoSeq[2D DP]
+    Q --> A{"State is<br/>an interval?"}
+    A -->|"yes, depends on split"| MCM["Interval DP<br/>try every split k"]
+    A -->|"yes, last-element framing"| Burst["Burst Balloons-style<br/>which to handle LAST"]
+    A -->|"no, single index"| Linear[1D DP]
+    A -->|"no, two strings"| TwoSeq[2D DP]
 
     style MCM fill:#dbeafe
     style Burst fill:#dcfce7

@@ -77,19 +77,19 @@ For BSTs, in-order traversal yields nodes in sorted order. This is the *one* sit
 
 ```mermaid
 flowchart TD
-    Root[Root: choose traversal]
+    Root["Root: choose traversal"]
 
-    Root --> A{Depends on<br/>child answers?}
-    A -->|yes| PostOrder[Post-order DFS<br/>recurse first, combine after]
+    Root --> A{"Depends on<br/>child answers?"}
+    A -->|yes| PostOrder["Post-order DFS<br/>recurse first, combine after"]
 
-    Root --> B{Need to<br/>process by depth?}
-    B -->|yes| BFS[BFS with queue<br/>track level via size]
+    Root --> B{"Need to<br/>process by depth?"}
+    B -->|yes| BFS["BFS with queue<br/>track level via size"]
 
-    Root --> C{BST, want<br/>sorted output?}
-    C -->|yes| InOrder[In-order DFS<br/>L → root → R]
+    Root --> C{"BST, want<br/>sorted output?"}
+    C -->|yes| InOrder["In-order DFS<br/>L → root → R"]
 
-    Root --> D{Need to<br/>serialize/clone?}
-    D -->|yes| PreOrder[Pre-order DFS<br/>root first, then children]
+    Root --> D{"Need to<br/>serialize/clone?"}
+    D -->|yes| PreOrder["Pre-order DFS<br/>root first, then children"]
 
     style PostOrder fill:#dcfce7,stroke:#14532d
     style BFS fill:#dbeafe,stroke:#1e3a8a

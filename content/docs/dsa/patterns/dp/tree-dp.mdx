@@ -88,13 +88,13 @@ This split between *what's returned* and *what's recorded* is **the** hallmark o
 ```mermaid
 flowchart LR
     Q[Tree problem]
-    Q --> A{Just one value<br/>per subtree?}
-    A -->|yes| Simple[Simple post-order<br/>height, sum, count]
-    A -->|no, multiple states| Tuple[Return tuple<br/>rob/skip, with/without camera]
+    Q --> A{"Just one value<br/>per subtree?"}
+    A -->|yes| Simple["Simple post-order<br/>height, sum, count"]
+    A -->|"no, multiple states"| Tuple["Return tuple<br/>rob/skip, with/without camera"]
 
-    Q --> B{Global answer is<br/>different from return?}
-    B -->|yes| RR[Return + Record<br/>diameter, max path sum]
-    B -->|no, root's value| Direct[helper of root]
+    Q --> B{"Global answer is<br/>different from return?"}
+    B -->|yes| RR["Return + Record<br/>diameter, max path sum"]
+    B -->|"no, root's value"| Direct[helper of root]
 
     style Simple fill:#dbeafe
     style Tuple fill:#dcfce7

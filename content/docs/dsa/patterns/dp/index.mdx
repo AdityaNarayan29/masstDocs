@@ -32,11 +32,11 @@ flowchart TD
     D --> E{What's the state?}
 
     E -->|1 index over an array| L[Linear DP]
-    E -->|2 indices, matrix or 2 sequences| G[Grid / Two-Seq DP]
+    E -->|"2 indices, matrix or 2 sequences"| G["Grid / Two-Seq DP"]
     E -->|Items + capacity| K[Knapsack family]
-    E -->|Interval i..j, split k| I[Interval DP]
+    E -->|"Interval i..j, split k"| I[Interval DP]
     E -->|Subtree result| T[Tree DP]
-    E -->|Subset of n items, n<=20| BM[Bitmask DP]
+    E -->|"Subset of n items, n<=20"| BM[Bitmask DP]
 
     style L fill:#dbeafe
     style G fill:#dbeafe

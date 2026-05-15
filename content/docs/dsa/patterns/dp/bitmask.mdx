@@ -113,7 +113,7 @@ flowchart LR
     Q[Subset-based problem]
     Q --> A{n ≤ 20?}
     A -->|yes| B{What's the state?}
-    A -->|no| Skip[NOT bitmask — try other DP / approximation]
+    A -->|no| Skip["NOT bitmask — try other DP / approximation"]
 
     B -->|just subset| dp1[dp of mask]
     B -->|subset + position| dp2[dp of mask comma pos]

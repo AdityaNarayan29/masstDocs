@@ -72,9 +72,9 @@ Cyclic sort is a *specific* algorithm for a *specific* shape of problem. Unlike 
 
 ```mermaid
 flowchart LR
-    A[Array index i] --> B{Is nums i<br/>at its correct slot?}
+    A[Array index i] --> B{"Is nums i<br/>at its correct slot?"}
     B -->|yes or out of range| C[i++]
-    B -->|no, belongs elsewhere| D[Swap nums i<br/>with nums of target]
+    B -->|"no, belongs elsewhere"| D["Swap nums i<br/>with nums of target"]
     D --> B
     C --> E[i >= n? done]
 ```

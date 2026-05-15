@@ -110,7 +110,7 @@ classDiagram
         +addTopping(t) Builder
         +build() Pizza
     }
-    Pizza +-- Builder : nested
+    Pizza *-- Builder : nested
     Builder ..> Pizza : creates
 ```
 

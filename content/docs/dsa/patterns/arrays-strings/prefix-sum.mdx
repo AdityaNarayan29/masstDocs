@@ -113,7 +113,7 @@ The off-by-one: `P[i]` is the sum of *the first i elements*. So `P[right+1] - P[
 
 ```mermaid
 flowchart LR
-    subgraph diff ["Difference array (after 3 range-add ops on [1,2,10], [2,3,20], [2,5,25])"]
+    subgraph diff ["Difference array — after 3 range-add ops: #91;1,2,10#93;, #91;2,3,20#93;, #91;2,5,25#93;"]
       D0[0] --> D1[10] --> D2[45] --> D3[−10] --> D4[−20] --> D5[0]
     end
     subgraph Prefix ["Take prefix sum"]

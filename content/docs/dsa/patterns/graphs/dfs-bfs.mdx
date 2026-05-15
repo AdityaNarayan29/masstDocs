@@ -101,20 +101,20 @@ Notice: **BFS does NOT give shortest path in weighted graphs.** For that, you ne
 flowchart TD
     Q[Graph traversal needed]
 
-    Q --> A{Shortest path in<br/>unweighted graph?}
+    Q --> A{"Shortest path in<br/>unweighted graph?"}
     A -->|yes| BFS[BFS]
 
-    Q --> B{Level-by-level<br/>spreading?}
+    Q --> B{"Level-by-level<br/>spreading?"}
     B -->|yes| BFS
 
-    Q --> C{Connectivity /<br/>cycle / flood fill?}
+    Q --> C{"Connectivity /<br/>cycle / flood fill?"}
     C -->|yes| DFS[DFS]
 
-    Q --> D{Compose child answers<br/>like tree DP?}
+    Q --> D{"Compose child answers<br/>like tree DP?"}
     D -->|yes| DFS
 
-    Q --> E{Weighted shortest<br/>path?}
-    E -->|yes| Dijkstra[Use Dijkstra<br/>not BFS]
+    Q --> E{"Weighted shortest<br/>path?"}
+    E -->|yes| Dijkstra["Use Dijkstra<br/>not BFS"]
 
     style BFS fill:#dbeafe
     style DFS fill:#dcfce7

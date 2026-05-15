@@ -91,16 +91,16 @@ This is the basis for:
 flowchart TD
     Q[Problem with integers]
 
-    Q --> A{Pairs of duplicates<br/>with one or two singles?}
+    Q --> A{"Pairs of duplicates<br/>with one or two singles?"}
     A -->|yes| XOR[XOR pairing trick]
 
-    Q --> B{Count set bits /<br/>iterate set bits / power of 2?}
+    Q --> B{"Count set bits /<br/>iterate set bits / power of 2?"}
     B -->|yes| Lowbit["n & n-1 or n & -n tricks"]
 
-    Q --> C{n ≤ 20 and<br/>state is a subset?}
+    Q --> C{"n ≤ 20 and<br/>state is a subset?"}
     C -->|yes| Bitmask[Bitmask as a set]
 
-    Q --> D{Per-bit arithmetic /<br/>addition without +?}
+    Q --> D{"Per-bit arithmetic /<br/>addition without +?"}
     D -->|yes| BitArith[Bit-by-bit logic]
 
     style XOR fill:#dbeafe

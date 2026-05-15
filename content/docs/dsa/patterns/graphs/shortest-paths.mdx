@@ -76,14 +76,14 @@ The deeper insight: **shortest-path algorithms differ only in *which node to rel
 flowchart TD
     Q[Need shortest path]
     Q --> A{Weights?}
-    A -->|All 1 / no weights| BFS[BFS<br/>O V+E]
-    A -->|0/1 weights only| ZeroOne[0-1 BFS<br/>deque-based<br/>O V+E]
-    A -->|Non-negative| Dijkstra[Dijkstra<br/>O V+E log V]
+    A -->|"All 1 / no weights"| BFS["BFS<br/>O V+E"]
+    A -->|"0/1 weights only"| ZeroOne["0-1 BFS<br/>deque-based<br/>O V+E"]
+    A -->|Non-negative| Dijkstra["Dijkstra<br/>O V+E log V"]
     A -->|May be negative| Q2{Detect negative cycle?}
-    Q2 -->|yes| BF[Bellman-Ford<br/>O V·E]
-    Q2 -->|no, just shortest path| BF
+    Q2 -->|yes| BF["Bellman-Ford<br/>O V·E"]
+    Q2 -->|"no, just shortest path"| BF
     Q --> B{All pairs?}
-    B -->|yes, small graph| FW[Floyd-Warshall<br/>O V³]
+    B -->|"yes, small graph"| FW["Floyd-Warshall<br/>O V³"]
 
     style BFS fill:#dbeafe
     style ZeroOne fill:#dcfce7

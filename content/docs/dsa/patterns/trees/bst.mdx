@@ -72,16 +72,16 @@ flowchart TD
     Q[BST problem]
 
     Q --> A{Need a single value?}
-    A -->|search/insert/delete| Search[Recurse one child per node<br/>O h]
+    A -->|"search/insert/delete"| Search["Recurse one child per node<br/>O h"]
 
-    Q --> B{Need kth smallest /<br/>median / sorted?}
-    B -->|yes| InOrder[In-order traversal<br/>early-terminate if k known]
+    Q --> B{"Need kth smallest /<br/>median / sorted?"}
+    B -->|yes| InOrder["In-order traversal<br/>early-terminate if k known"]
 
     Q --> C{Validate BST?}
-    C -->|yes| Validate[DFS w/ min/max bounds<br/>OR in-order check sorted]
+    C -->|yes| Validate["DFS w/ min/max bounds<br/>OR in-order check sorted"]
 
-    Q --> D{Range queries<br/>between L and R?}
-    D -->|yes| Range[DFS w/ early prune<br/>skip subtrees fully outside L,R]
+    Q --> D{"Range queries<br/>between L and R?"}
+    D -->|yes| Range["DFS w/ early prune<br/>skip subtrees fully outside L,R"]
 
     style Search fill:#dbeafe
     style InOrder fill:#dcfce7

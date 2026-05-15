@@ -106,14 +106,14 @@ For unbounded, we *want* to reuse, so we iterate forward.
 ```mermaid
 flowchart LR
     Q[Knapsack-flavored problem]
-    Q --> A{Each item used<br/>at most once?}
-    A -->|yes| Zero[0/1 Knapsack<br/>iterate capacity BACKWARD]
-    A -->|no, unlimited copies| Unb[Unbounded Knapsack<br/>iterate capacity FORWARD]
+    Q --> A{"Each item used<br/>at most once?"}
+    A -->|yes| Zero["0/1 Knapsack<br/>iterate capacity BACKWARD"]
+    A -->|"no, unlimited copies"| Unb["Unbounded Knapsack<br/>iterate capacity FORWARD"]
 
-    Q --> B{Counting or<br/>feasibility?}
+    Q --> B{"Counting or<br/>feasibility?"}
     B -->|count| Count["dp[c] += dp[c-x]"]
     B -->|feasibility| Feas["dp[c] |= dp[c-x]"]
-    B -->|min/max value| Opt["dp[c] = min/max(dp[c], dp[c-x] + value)"]
+    B -->|"min/max value"| Opt["dp[c] = min/max(dp[c], dp[c-x] + value)"]
 
     style Zero fill:#dbeafe
     style Unb fill:#dcfce7

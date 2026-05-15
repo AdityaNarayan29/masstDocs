@@ -47,14 +47,14 @@ flowchart TD
     end
 
     subgraph Tier2["Tier 2 — Core data structures (weeks 3-4)"]
-        LL[Linked List] --> MS[Monotonic Stack/Deque]
+        LL[Linked List] --> MS["Monotonic Stack/Deque"]
         MS --> TT[Tree Traversals]
         TT --> BST[BST Properties]
-        BST --> HP[Heap / Top-K]
+        BST --> HP["Heap / Top-K"]
     end
 
     subgraph Tier3["Tier 3 — Graphs (weeks 5-6)"]
-        DB[DFS / BFS / Islands] --> TS[Topological Sort]
+        DB["DFS / BFS / Islands"] --> TS[Topological Sort]
         TS --> UF[Union-Find]
         UF --> SP[Shortest Paths]
         SP --> TR[Trie]
@@ -97,14 +97,14 @@ flowchart TD
 
     Start -->|Sorted array| Sorted{Looking for what?}
     Sorted -->|Pair with property| TP[Two Pointers]
-    Sorted -->|First/last X| BS[Binary Search]
-    Sorted -->|Range sum/count| PS[Prefix Sums]
+    Sorted -->|"First/last X"| BS[Binary Search]
+    Sorted -->|"Range sum/count"| PS[Prefix Sums]
 
     Start -->|Unsorted array| Unsorted{Contiguous?}
-    Unsorted -->|Yes, optimize over subarrays| SW[Sliding Window]
-    Unsorted -->|No, pair lookup| H[Hashing]
-    Unsorted -->|Range 1..n, find missing/dup| CS[Cyclic Sort]
-    Unsorted -->|Need next-greater / window-max| MS[Monotonic Stack/Deque]
+    Unsorted -->|"Yes, optimize over subarrays"| SW[Sliding Window]
+    Unsorted -->|"No, pair lookup"| H[Hashing]
+    Unsorted -->|"Range 1..n, find missing/dup"| CS[Cyclic Sort]
+    Unsorted -->|"Need next-greater / window-max"| MS["Monotonic Stack/Deque"]
 
     Start -->|Tree| Tree{What do you need?}
     Tree -->|Aggregate child info| TT[Tree DFS post-order]
@@ -112,15 +112,15 @@ flowchart TD
     Tree -->|Prefix lookup| TR[Trie]
 
     Start -->|Graph| Graph{Weighted?}
-    Graph -->|No, connectivity| DB[DFS / BFS / Islands]
-    Graph -->|Yes, shortest path| SP[Dijkstra]
+    Graph -->|"No, connectivity"| DB["DFS / BFS / Islands"]
+    Graph -->|"Yes, shortest path"| SP[Dijkstra]
     Graph -->|Dependency order| TS[Topological Sort]
     Graph -->|Dynamic connectivity| UF[Union-Find]
 
-    Start -->|Optimization / Counting| Opt{Overlapping subproblems?}
+    Start -->|"Optimization / Counting"| Opt{Overlapping subproblems?}
     Opt -->|Yes| DP[Dynamic Programming]
-    Opt -->|No, all configs| BT[Backtracking]
-    Opt -->|No, sort+sweep works| IG[Intervals & Greedy]
+    Opt -->|"No, all configs"| BT[Backtracking]
+    Opt -->|"No, sort+sweep works"| IG[Intervals & Greedy]
     Opt -->|Streaming top-K| HP[Heap]
 
     style TP fill:#dbeafe

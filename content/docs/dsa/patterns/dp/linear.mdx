@@ -73,12 +73,12 @@ If those three are clear, the implementation is trivial. If they're murky, the i
 ```mermaid
 flowchart LR
     Q[Sequence problem]
-    Q --> A{State is<br/>single index?}
-    A -->|yes| B{Depends on<br/>O(1) previous states?}
-    B -->|yes, just i-1 or i-2| Fib[Fibonacci-like<br/>House Robber, Climb Stairs]
-    B -->|yes, but ALL previous| LIS[LIS-like<br/>scan back to find best]
-    A -->|no, two indices| Grid[2D DP - see grid-2d]
-    A -->|no, subset state| Bitmask[Bitmask DP]
+    Q --> A{"State is<br/>single index?"}
+    A -->|yes| B{"Depends on<br/>O(1) previous states?"}
+    B -->|"yes, just i-1 or i-2"| Fib["Fibonacci-like<br/>House Robber, Climb Stairs"]
+    B -->|"yes, but ALL previous"| LIS["LIS-like<br/>scan back to find best"]
+    A -->|"no, two indices"| Grid[2D DP - see grid-2d]
+    A -->|"no, subset state"| Bitmask[Bitmask DP]
 
     style Fib fill:#dbeafe
     style LIS fill:#dcfce7
@@ -115,11 +115,11 @@ dp[5] = dp[4] + dp[3] = 5 + 3 = 8
 
 ```mermaid
 flowchart LR
-    A[dp 1<br/>=1] --> C[dp 3<br/>=3]
-    B[dp 2<br/>=2] --> C
-    B --> D[dp 4<br/>=5]
+    A["dp 1<br/>=1"] --> C["dp 3<br/>=3"]
+    B["dp 2<br/>=2"] --> C
+    B --> D["dp 4<br/>=5"]
     C --> D
-    C --> E[dp 5<br/>=8]
+    C --> E["dp 5<br/>=8"]
     D --> E
 ```
 

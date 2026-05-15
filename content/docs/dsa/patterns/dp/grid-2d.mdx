@@ -77,11 +77,11 @@ flowchart LR
 
     Grid --> Paths[Count paths]
     Grid --> MinPath[Min cost path]
-    Grid --> MaxSqr[Max square / rectangle]
+    Grid --> MaxSqr["Max square / rectangle"]
 
     TwoSeq --> LCS[LCS]
     TwoSeq --> Edit[Edit distance]
-    TwoSeq --> Match[Regex / wildcard match]
+    TwoSeq --> Match["Regex / wildcard match"]
     TwoSeq --> Distinct[Distinct subsequences]
 
     style Grid fill:#dbeafe
@@ -123,12 +123,12 @@ Answer: dp[2][2] = 6.
 
 ```mermaid
 flowchart LR
-    A[1,1] -.-> D[2,2]
-    B[1,2] -.-> D
-    C[2,1] -.-> D
-    A2[2,2] --> E[3,3]
-    B2[2,3] --> E
-    C2[3,2] --> E
+    A["1,1"] -.-> D["2,2"]
+    B["1,2"] -.-> D
+    C["2,1"] -.-> D
+    A2["2,2"] --> E["3,3"]
+    B2["2,3"] --> E
+    C2["3,2"] --> E
 ```
 
 Each cell sums its top and left neighbors. The grid fills itself.

@@ -72,14 +72,14 @@ Backtracking has three universal slots:
 
 ```mermaid
 flowchart TD
-    Start[Decision tree<br/>build a partial solution]
-    Start --> Decide{At each step:<br/>make a choice}
-    Decide -->|valid| Recurse[Recurse with<br/>extended path]
+    Start["Decision tree<br/>build a partial solution"]
+    Start --> Decide{"At each step:<br/>make a choice"}
+    Decide -->|valid| Recurse["Recurse with<br/>extended path"]
     Decide -->|invalid| Prune[Prune this branch]
     Recurse --> Goal{Goal reached?}
     Goal -->|yes| Record[Record solution]
     Goal -->|no| Decide
-    Record --> Undo[Unchoose<br/>return to caller]
+    Record --> Undo["Unchoose<br/>return to caller"]
     Prune --> Undo
     Undo --> Decide
 ```

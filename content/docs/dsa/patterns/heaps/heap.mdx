@@ -76,9 +76,9 @@ All three flavors share the underlying primitive (a heap), but the *invariant th
 ```mermaid
 flowchart TD
     Q[Heap problem?]
-    Q -->|Top K from stream| TopK[Maintain heap of size K<br/>min-heap for top-K largest<br/>max-heap for top-K smallest]
-    Q -->|Median of stream| TwoHeap[Two heaps:<br/>max-heap lower + min-heap upper]
-    Q -->|Merge K sorted| Kway[Heap of K pointers,<br/>pop smallest, push from same list]
+    Q -->|Top K from stream| TopK["Maintain heap of size K<br/>min-heap for top-K largest<br/>max-heap for top-K smallest"]
+    Q -->|Median of stream| TwoHeap["Two heaps:<br/>max-heap lower + min-heap upper"]
+    Q -->|Merge K sorted| Kway["Heap of K pointers,<br/>pop smallest, push from same list"]
     Q -->|Frequency-based top-K| Freq[Counter + Top-K]
 
     style TopK fill:#dbeafe

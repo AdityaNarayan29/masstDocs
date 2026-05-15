@@ -75,9 +75,9 @@ Let's trace **Two Sum** on `nums = [2, 7, 11, 15]`, `target = 9`.
 
 ```mermaid
 flowchart TB
-    Start([Start: seen = empty]) --> S1
-    S1[i=0, x=2: need 9-2=7 in seen? No.<br/>seen = {2: 0}] --> S2
-    S2[i=1, x=7: need 9-7=2 in seen? Yes at 0!<br/>Return [0, 1]] --> Done([Done])
+    Start(["Start: seen = empty"]) --> S1
+    S1["i=0, x=2: need 9-2=7 in seen? No.<br/>seen = #123;2 → 0#125;"] --> S2
+    S2["i=1, x=7: need 9-7=2 in seen? Yes at 0!<br/>Return #91;0, 1#93;"] --> Done([Done])
 
     style Start fill:#dbeafe
     style Done fill:#dcfce7

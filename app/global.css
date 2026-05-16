@@ -2,6 +2,26 @@
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 
+/* Search dialog: shimmer bar shown under the input while a query is in flight. */
+@keyframes searchShimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+.animate-search-shimmer {
+  animation: searchShimmer 1.2s linear infinite !important;
+  will-change: transform;
+}
+
+/* Spinner animation — explicit to defeat any preset override. */
+@keyframes searchSpin {
+  to { transform: rotate(360deg); }
+}
+.animate-search-spin {
+  animation: searchSpin 0.8s linear infinite !important;
+  transform-origin: center;
+  will-change: transform;
+}
+
 /* Charging animation for SystemDesignRoadmap boxes */
 @keyframes fadeInScale {
   from {
@@ -13,6 +33,7 @@
     transform: scale(1);
   }
 }
+
 
 @keyframes borderChargePulse {
   /* Charge phase: 0-10% (0.6s of 6s = 10%) */

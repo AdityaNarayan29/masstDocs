@@ -197,6 +197,19 @@ const config = {
         destination: 'https://docs.masst.dev/:path*',
         permanent: true,
       },
+      // Legacy case-study URLs (pre-restructure): the case-studies subtree
+      // moved exclusively under /hld with the case-studies/ prefix stripped.
+      // Preserve link equity from the old URLs that shipped to production.
+      {
+        source: '/sd/case-studies/:slug*',
+        destination: '/hld/:slug*',
+        permanent: true,
+      },
+      {
+        source: '/hld/case-studies/:slug*',
+        destination: '/hld/:slug*',
+        permanent: true,
+      },
     ];
   },
 };

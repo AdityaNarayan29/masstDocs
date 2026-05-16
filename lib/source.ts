@@ -3,61 +3,65 @@ import { loader, type VirtualFile } from "fumadocs-core/source";
 
 /**
  * The default fumadocs source mounts every file under `content/docs` as
- * `<baseUrl>/<path>`. We expose four views over the same docs:
+ * `<baseUrl>/<path>`. We expose four scoped views over the same MDX
+ * collection — each surface owns a distinct part of the curriculum so
+ * sidebars and search filters agree on what belongs where:
  *
- *   /sd  — everything except `lld/` and `dsa/` subtrees
- *   /hld — same content as /sd (HLD reference + case studies)
- *   /lld — only the `lld/` subtree, with `lld/` stripped from paths
- *   /dsa — only the `dsa/` subtree, with `dsa/` stripped from paths
+ *   /sd  — the curriculum: fundamentals, building-blocks, architecture,
+ *          communication, design-patterns, system-components,
+ *          observability, security (NOT case-studies, lld, dsa)
+ *   /hld — only the `case-studies/` subtree, with `case-studies/`
+ *          stripped from paths so /hld/netflix works
+ *   /lld — only the `lld/` subtree, paths flattened
+ *   /dsa — only the `dsa/` subtree, paths flattened
  *
  * URL rewriting is done by materializing the source's VirtualFile array
- * and rewriting `path` for the scoped subtrees so the loader naturally
- * serves `/dsa/patterns/sliding-window` rather than
- * `/dsa/dsa/patterns/sliding-window`.
+ * and rewriting `path` for the scoped subtrees so the loader serves
+ * `/hld/netflix` rather than `/hld/case-studies/netflix`.
  */
 
 const fullSource = docs.toFumadocsSource();
 const allFiles: VirtualFile[] =
   typeof fullSource.files === "function" ? fullSource.files() : fullSource.files;
 
-const isLldFile = (f: VirtualFile) => {
-  const path = f.path.replace(/\\/g, "/");
-  return path === "lld" || path.startsWith("lld/");
-};
+const matchesPrefix = (path: string, prefix: string) =>
+  path === prefix || path.startsWith(`${prefix}/`);
 
-const isDsaFile = (f: VirtualFile) => {
-  const path = f.path.replace(/\\/g, "/");
-  return path === "dsa" || path.startsWith("dsa/");
-};
+const isLldFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "lld");
+const isDsaFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "dsa");
+const isCaseStudyFile = (f: VirtualFile) =>
+  matchesPrefix(f.path.replace(/\\/g, "/"), "case-studies");
 
-// Files outside the lld/ and dsa/ subtrees (used by /sd and /hld).
+// Files for /sd — the curriculum, minus case-studies/lld/dsa subtrees.
 const sdFiles: VirtualFile[] = allFiles.filter(
-  (f) => !isLldFile(f) && !isDsaFile(f),
+  (f) => !isLldFile(f) && !isDsaFile(f) && !isCaseStudyFile(f),
 );
 
-// Files inside lld/, with the lld/ prefix stripped.
-const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map((f) => {
+// Strip a top-level folder prefix from a VirtualFile path so the loader
+// serves /<baseUrl>/<rest> instead of /<baseUrl>/<folder>/<rest>.
+const stripPrefix = (prefix: string) => (f: VirtualFile): VirtualFile => {
   const path = f.path.replace(/\\/g, "/");
-  const stripped = path === "lld" ? "" : path.slice("lld/".length);
+  const stripped = path === prefix ? "" : path.slice(prefix.length + 1);
   return { ...f, path: stripped, slugs: undefined };
-});
+};
 
-// Files inside dsa/, with the dsa/ prefix stripped.
-const dsaFiles: VirtualFile[] = allFiles.filter(isDsaFile).map((f) => {
-  const path = f.path.replace(/\\/g, "/");
-  const stripped = path === "dsa" ? "" : path.slice("dsa/".length);
-  return { ...f, path: stripped, slugs: undefined };
-});
+// Files inside case-studies/, lld/, dsa/ — prefix stripped.
+const hldFiles: VirtualFile[] = allFiles
+  .filter(isCaseStudyFile)
+  .map(stripPrefix("case-studies"));
+const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map(stripPrefix("lld"));
+const dsaFiles: VirtualFile[] = allFiles.filter(isDsaFile).map(stripPrefix("dsa"));
 
 // Scoped Source objects sharing the same type as fullSource so downstream
 // consumers (DocsRenderer, etc.) see the same `pageData` shape with
 // `body`, `toc`, etc.
 const sdSourceConfig = { files: sdFiles } as typeof fullSource;
+const hldSourceConfig = { files: hldFiles } as typeof fullSource;
 const lldSourceConfig = { files: lldFiles } as typeof fullSource;
 const dsaSourceConfig = { files: dsaFiles } as typeof fullSource;
 
 /**
- * Default /sd source — everything except lld/ and dsa/.
+ * /sd — the curriculum view.
  */
 export const source = loader({
   baseUrl: "/sd",
@@ -65,17 +69,16 @@ export const source = loader({
 });
 
 /**
- * /hld source — same files as /sd. The two share content; HLD is a
- * separate entry point so users who arrive there land on a URL that
- * reads "high-level design" rather than the generic "/sd".
+ * /hld — real-world case studies only. /hld lands on the case-studies
+ * index page; individual pages are reachable at /hld/netflix etc.
  */
 export const hldSource = loader({
   baseUrl: "/hld",
-  source: sdSourceConfig,
+  source: hldSourceConfig,
 });
 
 /**
- * /lld source — only the lld/ subtree, paths flattened.
+ * /lld — only the lld/ subtree, paths flattened.
  */
 export const lldSource = loader({
   baseUrl: "/lld",
@@ -83,7 +86,7 @@ export const lldSource = loader({
 });
 
 /**
- * /dsa source — only the dsa/ subtree, paths flattened.
+ * /dsa — only the dsa/ subtree, paths flattened.
  */
 export const dsaSource = loader({
   baseUrl: "/dsa",

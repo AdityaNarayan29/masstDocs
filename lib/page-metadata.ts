@@ -4,32 +4,16 @@ const SITE_URL = "https://docs.masst.dev";
 // Generated at build time by app/opengraph-image.tsx and served at /opengraph-image
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
-/**
- * Sections whose canonical URL is /hld/... (case studies are HLD content).
- * Everything else canonicalizes to /sd/... (or /lld/... for LLD pages).
- */
-const HLD_CANONICAL_PREFIXES = ["case-studies"];
-
 type Surface = "sd" | "hld" | "lld" | "dsa";
 
+/**
+ * Each surface owns a disjoint slice of the MDX collection (see
+ * lib/source.ts) — case studies live under /hld, the curriculum under /sd,
+ * etc. — so the canonical is simply the page's own URL on its surface.
+ */
 function pickCanonical(slugs: string[], surface: Surface): string {
-  if (surface === "lld") {
-    return slugs.length === 0 ? `${SITE_URL}/lld` : `${SITE_URL}/lld/${slugs.join("/")}`;
-  }
-  if (surface === "dsa") {
-    return slugs.length === 0 ? `${SITE_URL}/dsa` : `${SITE_URL}/dsa/${slugs.join("/")}`;
-  }
-
-  // For SD and HLD surfaces, route the canonical based on content type.
-  if (slugs.length === 0) {
-    // /sd root canonicalizes to /sd; /hld root canonicalizes to /hld
-    return `${SITE_URL}/${surface}`;
-  }
-  const top = slugs[0];
-  if (HLD_CANONICAL_PREFIXES.includes(top)) {
-    return `${SITE_URL}/hld/${slugs.join("/")}`;
-  }
-  return `${SITE_URL}/sd/${slugs.join("/")}`;
+  const path = slugs.length === 0 ? `/${surface}` : `/${surface}/${slugs.join("/")}`;
+  return `${SITE_URL}${path}`;
 }
 
 /**

@@ -89,7 +89,7 @@ export default function HomePage() {
           </p>
         </Link>
         <Link
-          href="/hld/case-studies"
+          href="/hld"
           className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:shadow-lg transition-all"
         >
           <h3 className="font-semibold text-lg mb-2 group-hover:text-emerald-500 transition-colors">
@@ -120,28 +120,28 @@ export default function HomePage() {
         Learn high-level design (HLD) of real-world systems used by top tech companies
       </p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Link href="/hld/case-studies/netflix" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/netflix" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-red-500">Netflix HLD</span>
         </Link>
-        <Link href="/hld/case-studies/uber" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-gray-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/uber" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-gray-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-gray-500">Uber HLD</span>
         </Link>
-        <Link href="/hld/case-studies/whatsapp" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/whatsapp" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-green-500">WhatsApp HLD</span>
         </Link>
-        <Link href="/hld/case-studies/instagram" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/instagram" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-pink-500">Instagram HLD</span>
         </Link>
-        <Link href="/hld/case-studies/youtube" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-600/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/youtube" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-600/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-red-600">YouTube HLD</span>
         </Link>
-        <Link href="/hld/case-studies/twitter" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-400/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/twitter" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-400/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-blue-400">Twitter HLD</span>
         </Link>
-        <Link href="/hld/case-studies/amazon" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/amazon" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-orange-500">Amazon HLD</span>
         </Link>
-        <Link href="/hld/case-studies/slack" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-md transition-all text-center">
+        <Link href="/hld/slack" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-md transition-all text-center">
           <span className="font-medium group-hover:text-purple-500">Slack HLD</span>
         </Link>
       </div>

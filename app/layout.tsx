@@ -1,10 +1,12 @@
 import "@/app/global.css";
 import { RootProvider } from "fumadocs-ui/provider";
 import { Inter } from "next/font/google";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import { ChatWidget } from "@/components/chat";
 import { Analytics } from "@vercel/analytics/react";
+import CustomSearchDialog from "@/components/search/CustomSearchDialog";
+import { RouteProgress } from "@/components/ui/RouteProgress";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -196,18 +198,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className='flex flex-col min-h-screen'>
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         <RootProvider
           search={{
+            SearchDialog: CustomSearchDialog,
             options: {
               // Section filter chips in the search dialog. Tag values
               // map to the `tag` field set per-page in
               // app/api/search/route.ts (sd / hld / lld / dsa).
               allowClear: true,
               tags: [
-                { name: 'System Design', value: 'sd' },
-                { name: 'HLD Case Studies', value: 'hld' },
-                { name: 'LLD & Patterns', value: 'lld' },
-                { name: 'DSA Patterns', value: 'dsa' },
+                { name: 'SD', value: 'sd' },
+                { name: 'HLD', value: 'hld' },
+                { name: 'LLD', value: 'lld' },
+                { name: 'DSA', value: 'dsa' },
               ],
             },
           }}

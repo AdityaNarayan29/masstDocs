@@ -6,21 +6,13 @@ import { createFromSource } from 'fumadocs-core/search/server';
  * with the section it belongs to (sd / hld / lld / dsa) so the search UI
  * can show a "filter by section" chip row and label each result.
  *
+ * Each surface now owns a disjoint slice of the MDX collection (see
+ * lib/source.ts), so a page appears in exactly one tag — no dedup needed.
+ *
  * Tags are filterable via `?tag=lld` (single) or `?tag=hld&tag=dsa`
  * (multi). The default search dialog wires this up automatically when
  * tags are passed to RootProvider's search options.
- *
- * /sd and /hld share their MDX files (HLD reuses SD's source), so to
- * avoid surfacing the same content twice we route each shared page to
- * exactly one tag: case-studies pages to `hld`, everything else to `sd`.
- * /lld and /dsa each have their own files and are indexed wholesale.
  */
-
-const HLD_TOP_FOLDERS = new Set(['case-studies']);
-
-function isHldFlavored(slugs: readonly string[]): boolean {
-  return slugs.length > 0 && HLD_TOP_FOLDERS.has(slugs[0]);
-}
 
 // Short human label appended to result titles so users can see at a
 // glance which section a result belongs to.
@@ -45,11 +37,9 @@ function getAllIndexedPages(): IndexedPage[] {
   const result: IndexedPage[] = [];
 
   for (const p of source.getPages()) {
-    if (isHldFlavored(p.slugs)) continue; // route case studies to /hld below
     result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'sd' });
   }
   for (const p of hldSource.getPages()) {
-    if (!isHldFlavored(p.slugs)) continue; // only index case studies under /hld
     result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'hld' });
   }
   for (const p of lldSource.getPages()) {

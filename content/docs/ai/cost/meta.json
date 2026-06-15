@@ -1,0 +1,9 @@
+{
+  "title": "Cost engineering",
+  "description": "Cut your LLM bill 5-10x: prompt caching, model routing, batching, semantic dedup",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "caching-routing"
+  ]
+}

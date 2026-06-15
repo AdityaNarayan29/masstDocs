@@ -45,6 +45,7 @@ const TAG_STYLES: Record<string, { bg: string; ring: string }> = {
   hld: { bg: 'bg-blue-500',    ring: 'ring-blue-500/40' },
   lld: { bg: 'bg-violet-500',  ring: 'ring-violet-500/40' },
   dsa: { bg: 'bg-orange-500',  ring: 'ring-orange-500/40' },
+  ai:  { bg: 'bg-pink-500',    ring: 'ring-pink-500/40' },
 };
 
 export default function CustomSearchDialog({

@@ -1,12 +1,13 @@
-import { source, hldSource, lldSource, dsaSource } from '@/lib/source';
+import { source, hldSource, lldSource, dsaSource, aiSource } from '@/lib/source';
 import { createFromSource } from 'fumadocs-core/search/server';
 
 /**
- * Unified search across all four content surfaces. Each result is tagged
- * with the section it belongs to (sd / hld / lld / dsa) so the search UI
- * can show a "filter by section" chip row and label each result.
+ * Unified search across all five content surfaces. Each result is tagged
+ * with the section it belongs to (sd / hld / lld / dsa / ai) so the
+ * search UI can show a "filter by section" chip row and label each
+ * result.
  *
- * Each surface now owns a disjoint slice of the MDX collection (see
+ * Each surface owns a disjoint slice of the MDX collection (see
  * lib/source.ts), so a page appears in exactly one tag — no dedup needed.
  *
  * Tags are filterable via `?tag=lld` (single) or `?tag=hld&tag=dsa`
@@ -16,11 +17,12 @@ import { createFromSource } from 'fumadocs-core/search/server';
 
 // Short human label appended to result titles so users can see at a
 // glance which section a result belongs to.
-const SECTION_LABEL: Record<'sd' | 'hld' | 'lld' | 'dsa', string> = {
+const SECTION_LABEL: Record<'sd' | 'hld' | 'lld' | 'dsa' | 'ai', string> = {
   sd: 'System Design',
   hld: 'HLD',
   lld: 'LLD',
   dsa: 'DSA',
+  ai: 'AI',
 };
 
 type IndexedPage = {
@@ -30,7 +32,7 @@ type IndexedPage = {
     description?: string;
     structuredData: unknown;
   };
-  __tag: 'sd' | 'hld' | 'lld' | 'dsa';
+  __tag: 'sd' | 'hld' | 'lld' | 'dsa' | 'ai';
 };
 
 function getAllIndexedPages(): IndexedPage[] {
@@ -47,6 +49,9 @@ function getAllIndexedPages(): IndexedPage[] {
   }
   for (const p of dsaSource.getPages()) {
     result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'dsa' });
+  }
+  for (const p of aiSource.getPages()) {
+    result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'ai' });
   }
   return result;
 }

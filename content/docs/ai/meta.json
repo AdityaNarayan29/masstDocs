@@ -1,0 +1,22 @@
+{
+  "title": "AI Engineering",
+  "description": "Production patterns for building LLM systems: retrieval, inference, agents, eval, safety, cost",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "---Retrieval depth---",
+    "retrieval",
+    "---Inference internals---",
+    "inference",
+    "---Agents---",
+    "agents",
+    "---Eval & observability---",
+    "eval",
+    "---Safety & guardrails---",
+    "safety",
+    "---Cost engineering---",
+    "cost",
+    "---2026 edges---",
+    "edges"
+  ]
+}

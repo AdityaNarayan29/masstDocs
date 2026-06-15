@@ -180,6 +180,40 @@ export default function HomePage() {
         </Link>
       </div>
 
+      {/* AI Engineering Section */}
+      <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
+        AI Engineering
+      </h2>
+      <p className="text-fd-muted-foreground text-center mb-4 max-w-2xl mx-auto">
+        Production patterns for building LLM systems — retrieval, inference, agents, eval, safety, cost
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Link href="/ai/retrieval" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Retrieval (RAG)</span>
+        </Link>
+        <Link href="/ai/inference" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Inference Internals</span>
+        </Link>
+        <Link href="/ai/agents" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Agents</span>
+        </Link>
+        <Link href="/ai/eval" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Eval & Observability</span>
+        </Link>
+        <Link href="/ai/safety" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Safety & Guardrails</span>
+        </Link>
+        <Link href="/ai/cost" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">Cost Engineering</span>
+        </Link>
+        <Link href="/ai/edges/voice" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">2026 Edges</span>
+        </Link>
+        <Link href="/ai" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
+          <span className="font-medium group-hover:text-pink-500">26 Pages →</span>
+        </Link>
+      </div>
+
       {/* Popular Topics */}
       <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
         System Design Topics

@@ -214,6 +214,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 { name: 'HLD', value: 'hld' },
                 { name: 'LLD', value: 'lld' },
                 { name: 'DSA', value: 'dsa' },
+                { name: 'AI', value: 'ai' },
               ],
             },
           }}

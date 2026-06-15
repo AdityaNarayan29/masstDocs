@@ -1,0 +1,12 @@
+{
+  "title": "Retrieval depth",
+  "description": "RAG that actually works: chunking, embeddings, hybrid search, rerankers, context engineering",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "chunking",
+    "embeddings",
+    "hybrid-search",
+    "rerankers-context"
+  ]
+}

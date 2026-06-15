@@ -65,8 +65,8 @@ export const baseOptions: BaseLayoutProps = {
   links: socialLinks,
 };
 
-// Sidebar tab list shared across all DocsLayout instances (sd, hld, lld, dsa).
-// Keep this in sync with the four corresponding routes.
+// Sidebar tab list shared across all DocsLayout instances (sd, hld, lld, dsa, ai).
+// Keep this in sync with the five corresponding routes.
 export const sidebarTabs = [
   {
     title: "System Design",
@@ -87,5 +87,10 @@ export const sidebarTabs = [
     title: "DSA Patterns",
     description: "Interview patterns: sliding window, DP, graphs, ...",
     url: "/dsa",
+  },
+  {
+    title: "AI Engineering",
+    description: "Retrieval, inference, agents, eval, safety, cost",
+    url: "/ai",
   },
 ];

@@ -9,11 +9,12 @@ import { loader, type VirtualFile } from "fumadocs-core/source";
  *
  *   /sd  — the curriculum: fundamentals, building-blocks, architecture,
  *          communication, design-patterns, system-components,
- *          observability, security (NOT case-studies, lld, dsa)
+ *          observability, security (NOT case-studies, lld, dsa, ai)
  *   /hld — only the `case-studies/` subtree, with `case-studies/`
  *          stripped from paths so /hld/netflix works
  *   /lld — only the `lld/` subtree, paths flattened
  *   /dsa — only the `dsa/` subtree, paths flattened
+ *   /ai  — only the `ai/` subtree, paths flattened
  *
  * URL rewriting is done by materializing the source's VirtualFile array
  * and rewriting `path` for the scoped subtrees so the loader serves
@@ -29,12 +30,13 @@ const matchesPrefix = (path: string, prefix: string) =>
 
 const isLldFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "lld");
 const isDsaFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "dsa");
+const isAiFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "ai");
 const isCaseStudyFile = (f: VirtualFile) =>
   matchesPrefix(f.path.replace(/\\/g, "/"), "case-studies");
 
-// Files for /sd — the curriculum, minus case-studies/lld/dsa subtrees.
+// Files for /sd — the curriculum, minus case-studies/lld/dsa/ai subtrees.
 const sdFiles: VirtualFile[] = allFiles.filter(
-  (f) => !isLldFile(f) && !isDsaFile(f) && !isCaseStudyFile(f),
+  (f) => !isLldFile(f) && !isDsaFile(f) && !isAiFile(f) && !isCaseStudyFile(f),
 );
 
 // Strip a top-level folder prefix from a VirtualFile path so the loader
@@ -45,12 +47,13 @@ const stripPrefix = (prefix: string) => (f: VirtualFile): VirtualFile => {
   return { ...f, path: stripped, slugs: undefined };
 };
 
-// Files inside case-studies/, lld/, dsa/ — prefix stripped.
+// Files inside case-studies/, lld/, dsa/, ai/ — prefix stripped.
 const hldFiles: VirtualFile[] = allFiles
   .filter(isCaseStudyFile)
   .map(stripPrefix("case-studies"));
 const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map(stripPrefix("lld"));
 const dsaFiles: VirtualFile[] = allFiles.filter(isDsaFile).map(stripPrefix("dsa"));
+const aiFiles: VirtualFile[] = allFiles.filter(isAiFile).map(stripPrefix("ai"));
 
 // Scoped Source objects sharing the same type as fullSource so downstream
 // consumers (DocsRenderer, etc.) see the same `pageData` shape with
@@ -59,6 +62,7 @@ const sdSourceConfig = { files: sdFiles } as typeof fullSource;
 const hldSourceConfig = { files: hldFiles } as typeof fullSource;
 const lldSourceConfig = { files: lldFiles } as typeof fullSource;
 const dsaSourceConfig = { files: dsaFiles } as typeof fullSource;
+const aiSourceConfig = { files: aiFiles } as typeof fullSource;
 
 /**
  * /sd — the curriculum view.
@@ -91,4 +95,14 @@ export const lldSource = loader({
 export const dsaSource = loader({
   baseUrl: "/dsa",
   source: dsaSourceConfig,
+});
+
+/**
+ * /ai — only the ai/ subtree, paths flattened. Covers retrieval,
+ * inference internals, agents, eval/observability, safety, cost,
+ * and 2026 edges.
+ */
+export const aiSource = loader({
+  baseUrl: "/ai",
+  source: aiSourceConfig,
 });

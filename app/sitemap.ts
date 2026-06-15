@@ -1,4 +1,4 @@
-import { source, hldSource, lldSource, dsaSource } from '@/lib/source';
+import { source, hldSource, lldSource, dsaSource, aiSource } from '@/lib/source';
 
 type SitemapEntry = {
   url: string;
@@ -55,5 +55,13 @@ export default function sitemap(): SitemapEntry[] {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...sdPages, ...hldPages, ...lldPages, ...dsaPages];
+  // AI documentation pages
+  const aiPages: SitemapEntry[] = aiSource.getPages().map((page) => ({
+    url: `${baseUrl}/ai/${page.slugs.join('/')}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...sdPages, ...hldPages, ...lldPages, ...dsaPages, ...aiPages];
 }

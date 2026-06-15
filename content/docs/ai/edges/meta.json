@@ -1,0 +1,12 @@
+{
+  "title": "2026 edges",
+  "description": "Where the field is moving now: voice agents, coding agents, browser agents, MCP, sandboxed execution",
+  "defaultOpen": true,
+  "pages": [
+    "voice",
+    "coding-agents",
+    "browser-agents",
+    "mcp",
+    "sandboxed-execution"
+  ]
+}

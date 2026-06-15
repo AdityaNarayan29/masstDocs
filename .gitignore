@@ -36,3 +36,6 @@ yarn-error.log*
 .env*.local
 .vercel
 next-env.d.ts
+
+# Claude Code project settings (per-machine, not for VCS)
+.claude/

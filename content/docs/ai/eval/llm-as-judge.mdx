@@ -244,7 +244,7 @@ The single most-cited LLM-as-judge failure mode is **self-preference bias**: whe
 
 **The fix:** the judge should be from a different model family than the system under test. If your production system is Claude Sonnet, use GPT-4-class as judge (or vice versa). If you're picking between Claude and GPT for production, use Gemini as judge.
 
-A second mitigation: use **two judges** from different families and only mark an example as "passed" if both agree.
+A second mitigation: use **two judges** from different families and only mark an example as "passed" if both agree. The traces and per-example diffs that make this debuggable live in [Traces, prompt versioning, debugging](/ai/eval/observability).
 
 ## RAGAS, DeepEval, and friends
 
@@ -439,7 +439,7 @@ The aggregate score is useful for "do we ship?" but useless for "what broke?" Wi
 
 ### Pitfall 5: ignoring judge cost
 
-Running 500 examples × 3 rubric dims × $0.005 per judge call = $7.50 per CI run. At 50 PRs per week, that's $400/month — not catastrophic but real. Optimize by: caching judge results on examples whose system output didn't change, using a cheaper judge (Haiku, gpt-4o-mini) for non-blocking dimensions, sampling for fast feedback PRs and running the full set on merge.
+Running 500 examples × 3 rubric dims × $0.005 per judge call = $7.50 per CI run. At 50 PRs per week, that's $400/month — not catastrophic but real. Optimize by: caching judge results on examples whose system output didn't change, using a cheaper judge (Haiku, gpt-4o-mini) for non-blocking dimensions, batch-API submission for non-blocking nightly runs at 50% off (see [Cost engineering](/ai/cost/caching-routing)), sampling for fast-feedback PRs and running the full set on merge.
 
 ### Pitfall 6: testing on the same examples you trained on
 

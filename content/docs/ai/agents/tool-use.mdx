@@ -531,7 +531,7 @@ Notice the system prompt encodes the *process* — the model has explicit confir
 
 ### Pitfall 1: stuffing 50 tools into one prompt
 
-Already covered above, but it bears repeating because it's the single most common mistake. If your toolset has grown organically past 20 tools, build a **tool router**: an initial small LLM call that picks a subset of relevant tools, and pass only those to the main agent.
+Already covered above, but it bears repeating because it's the single most common mistake. If your toolset has grown organically past 20 tools, build a **tool router**: an initial small LLM call (a cheap classifier like Haiku — see [Cost engineering](/ai/cost/caching-routing)) that picks a subset of relevant tools, and pass only those to the main agent.
 
 ```python
 def route_tools(user_msg: str, all_tools: list) -> list:
@@ -603,7 +603,7 @@ for block in resp.content:
 
 ### Pitfall 5: returning raw stack traces or PII in tool results
 
-Already covered, but worth re-emphasizing: a stack trace can leak source paths, library versions, internal IPs, customer IDs. A SQL error can leak schema. Format all errors as structured `{"error": "type", "message": "..."}` and **redact aggressively**. Your model provider sees these results too — they end up in your provider's logs.
+Already covered, but worth re-emphasizing: a stack trace can leak source paths, library versions, internal IPs, customer IDs. A SQL error can leak schema. Format all errors as structured `{"error": "type", "message": "..."}` and **redact aggressively**. Your model provider sees these results too — they end up in your provider's logs. The full output-side guardrail stack is in [Output validation](/ai/safety/output-validation).
 
 ### Pitfall 6: forgetting that the model sees the schema
 

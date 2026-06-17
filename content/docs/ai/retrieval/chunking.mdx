@@ -192,7 +192,7 @@ contexts = [document_store.get(pid) for pid in parent_ids]
 **Why it works:** same insight as sentence-window but cleaner. The 200-token "fine" chunks retrieve precisely. The 2000-token "coarse" parents give the LLM rich context. The dedup step matters — multiple fine chunks often point to the same parent.
 
 **Recall@10:** 0.79.
-**Best for:** documents with natural hierarchy (Markdown with headings, code files with functions, books with chapters). LangChain's `ParentDocumentRetriever` and LlamaIndex's `AutoMergingRetriever` both implement this.
+**Best for:** documents with natural hierarchy (Markdown with headings, code files with functions, books with chapters). LangChain's `ParentDocumentRetriever` and LlamaIndex's `AutoMergingRetriever` both implement this. Pair this with a cross-encoder reranker — see [Rerankers & context engineering](/ai/retrieval/rerankers-context) — and you're at production quality.
 
 ## The new kid: late chunking
 
@@ -274,7 +274,7 @@ This costs you ~30-50 tokens per chunk but adds context for both retrieval (the 
 
 ### Pitfall 5: re-chunking without re-embedding
 
-Changing your chunk size from 512 to 800 means **every chunk in your vector DB is now wrong**. The embeddings were computed on different text. You have to re-index. Plan for periodic re-indexes; budget the embedding cost in advance.
+Changing your chunk size from 512 to 800 means **every chunk in your vector DB is now wrong**. The embeddings were computed on different text. You have to re-index. Plan for periodic re-indexes; budget the embedding cost in advance — and consider whether a cheaper embedder ([Embedding models](/ai/retrieval/embeddings)) gets you most of the way at a fraction of the bill ([Cost engineering](/ai/cost)).
 
 ## Complexity and cost
 

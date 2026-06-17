@@ -265,14 +265,14 @@ def send_email(to: str, subject: str, body: str, user_context: UserContext):
 ```
 
 Variants of this pattern in the wild:
-- **Per-request budget envelopes** ("you have $5 to spend on this task" — when the budget runs out, the tool layer refuses further calls).
+- **Per-request budget envelopes** ("you have $5 to spend on this task" — when the budget runs out, the tool layer refuses further calls). The tool-layer side of this is detailed in [Tool use & function calling](/ai/agents/tool-use).
 - **Allowlist tools by user role.** A read-only user's agent has read-only tools.
 - **Human-in-the-loop for high-impact actions.** Send-money tools require a human approval click. The LLM can't bypass it because the click is in the user's UI, not the model's output.
 - **Per-tenant data isolation.** Tool reads are scoped at the SQL layer, not the prompt layer. The model can ask for tenant B's data; the tool returns nothing.
 
 ### Layer 7 — Output verification
 
-After the model emits an action plan or a final answer, run independent checks:
+After the model emits an action plan or a final answer, run independent checks. The full layered output stack lives in [Output validation, PII redaction, jailbreak resistance](/ai/safety/output-validation); the short version:
 
 - Did the model claim it sent the email to `user@customer.com`, but the tool log shows it sent to `attacker@evil.com`? Block the response and alert.
 - Did the model output a Markdown image whose URL points to a domain not in your allowlist? Strip the image. (This is the EchoLeak exfiltration channel.)

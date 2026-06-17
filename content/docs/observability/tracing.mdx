@@ -11,20 +11,22 @@ description: Understanding distributed tracing for microservices.
 
 ## Why Distributed Tracing?
 
-```
-Without Tracing:
-User reports slow request... but which service caused it?
+Without tracing, a user reports a slow request but you cannot tell which service caused it.
 
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│ Gateway  │──►│ Service A│──►│ Service B│──►│ Database │
-│   ???    │   │   ???    │   │   ???    │   │   ???    │
-└──────────┘   └──────────┘   └──────────┘   └──────────┘
-
-With Tracing:
-Total: 250ms = Gateway(10ms) + A(20ms) + B(200ms) + DB(20ms)
-                                         ↑
-                                    Bottleneck!
+```mermaid
+flowchart LR
+    GW["Gateway (???)"]
+    A["Service A (???)"]
+    B["Service B (???)"]
+    DB["Database (???)"]
+    GW --> A --> B --> DB
+    style GW fill:#fee2e2
+    style A fill:#fee2e2
+    style B fill:#fee2e2
+    style DB fill:#fee2e2
 ```
+
+With tracing: Total 250ms = Gateway(10ms) + A(20ms) + B(200ms, bottleneck) + DB(20ms).
 
 ---
 
@@ -42,30 +44,28 @@ Total: 250ms = Gateway(10ms) + A(20ms) + B(200ms) + DB(20ms)
 
 ## Trace Structure
 
-```
 Trace ID: abc123
-│
-├── Span 1: API Gateway (10ms)
-│   │ span_id: span-001
-│   │ parent: none
-│   │
-│   └── Span 2: Auth Service (15ms)
-│       │ span_id: span-002
-│       │ parent: span-001
-│       │
-│       └── Span 3: User Service (25ms)
-│           │ span_id: span-003
-│           │ parent: span-002
-│           │
-│           ├── Span 4: Cache Lookup (2ms)
-│           │   span_id: span-004
-│           │   parent: span-003
-│           │
-│           └── Span 5: Database Query (18ms)
-│               span_id: span-005
-│               parent: span-003
+
+```mermaid
+flowchart TB
+    S1["Span 1: API Gateway (10ms)<br/>span_id: span-001, parent: none"]
+    S2["Span 2: Auth Service (15ms)<br/>span_id: span-002, parent: span-001"]
+    S3["Span 3: User Service (25ms)<br/>span_id: span-003, parent: span-002"]
+    S4["Span 4: Cache Lookup (2ms)<br/>span_id: span-004, parent: span-003"]
+    S5["Span 5: Database Query (18ms)<br/>span_id: span-005, parent: span-003"]
+    S1 --> S2 --> S3
+    S3 --> S4
+    S3 --> S5
+    style S1 fill:#dbeafe
+    style S2 fill:#dcfce7
+    style S3 fill:#fef3c7
+    style S4 fill:#fed7aa
+    style S5 fill:#fed7aa
+```
 
 Timeline:
+
+```
 |--Gateway--|
             |---Auth---|
                        |--------User--------|
@@ -130,53 +130,55 @@ Common Headers:
 
 ## Tracing Architecture
 
-```
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│  Service A  │ │  Service B  │ │  Service C  │
-│ ┌─────────┐ │ │ ┌─────────┐ │ │ ┌─────────┐ │
-│ │Trace SDK│ │ │ │Trace SDK│ │ │ │Trace SDK│ │
-│ └────┬────┘ │ │ └────┬────┘ │ │ └────┬────┘ │
-└──────┼──────┘ └──────┼──────┘ └──────┼──────┘
-       │               │               │
-       └───────────────┼───────────────┘
-                       │ Push spans
-                       ▼
-              ┌─────────────────┐
-              │    Collector    │
-              │ (Jaeger/Zipkin) │
-              └────────┬────────┘
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-       ┌───────────┐    ┌───────────┐
-       │  Storage  │    │    UI     │
-       │(ES/Cassan)│    │(Jaeger UI)│
-       └───────────┘    └───────────┘
+```mermaid
+flowchart TB
+    A["Service A + Trace SDK"]
+    B["Service B + Trace SDK"]
+    C["Service C + Trace SDK"]
+    Col["Collector (Jaeger/Zipkin)"]
+    Store["Storage (ES/Cassandra)"]
+    UI["UI (Jaeger UI)"]
+    A -->|Push spans| Col
+    B -->|Push spans| Col
+    C -->|Push spans| Col
+    Col --> Store
+    Col --> UI
+    style A fill:#dbeafe
+    style B fill:#dbeafe
+    style C fill:#dbeafe
+    style Col fill:#fef3c7
+    style Store fill:#dcfce7
+    style UI fill:#fed7aa
 ```
 
 ---
 
 ## OpenTelemetry
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    OpenTelemetry                         │
-├─────────────────┬─────────────────┬─────────────────────┤
-│     Traces      │     Metrics     │       Logs          │
-└────────┬────────┴────────┬────────┴──────────┬──────────┘
-         │                 │                   │
-         └─────────────────┼───────────────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  OTLP Protocol  │
-                  └────────┬────────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         ▼                 ▼                 ▼
-   ┌───────────┐    ┌───────────┐    ┌───────────┐
-   │   Jaeger  │    │  Zipkin   │    │  Datadog  │
-   └───────────┘    └───────────┘    └───────────┘
+```mermaid
+flowchart TB
+    OTel[OpenTelemetry]
+    Traces
+    Metrics
+    Logs
+    OTLP[OTLP Protocol]
+    Jaeger
+    Zipkin
+    Datadog
+    OTel --> Traces
+    OTel --> Metrics
+    OTel --> Logs
+    Traces --> OTLP
+    Metrics --> OTLP
+    Logs --> OTLP
+    OTLP --> Jaeger
+    OTLP --> Zipkin
+    OTLP --> Datadog
+    style OTel fill:#dbeafe
+    style OTLP fill:#fef3c7
+    style Jaeger fill:#dcfce7
+    style Zipkin fill:#dcfce7
+    style Datadog fill:#dcfce7
 ```
 
 ### Instrumentation

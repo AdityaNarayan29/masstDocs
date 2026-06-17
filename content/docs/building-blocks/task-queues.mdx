@@ -22,20 +22,17 @@ A **Task Queue** is a mechanism for distributing work across multiple workers. U
 
 ## How It Works
 
-```
-Client                  Task Queue              Workers
-   │                        │                      │
-   │─── Submit Task ───────►│                      │
-   │                        │                      │
-   │◄── Task ID ────────────│                      │
-   │                        │                      │
-   │                        │──── Assign Task ────►│
-   │                        │                      │
-   │                        │◄─── Progress ────────│
-   │                        │                      │
-   │                        │◄─── Result ──────────│
-   │                        │                      │
-   │◄── Poll Result ────────│                      │
+```mermaid
+sequenceDiagram
+    participant Client
+    participant TQ as Task Queue
+    participant W as Workers
+    Client->>TQ: Submit Task
+    TQ-->>Client: Task ID
+    TQ->>W: Assign Task
+    W-->>TQ: Progress
+    W-->>TQ: Result
+    TQ-->>Client: Poll Result
 ```
 
 ---
@@ -67,10 +64,16 @@ Client                  Task Queue              Workers
 
 ## Task States
 
-```
-PENDING ──► STARTED ──► SUCCESS
-                   └──► FAILURE ──► RETRY
-                              └──► DEAD (max retries)
+```mermaid
+flowchart LR
+    PENDING --> STARTED
+    STARTED --> SUCCESS
+    STARTED --> FAILURE
+    FAILURE --> RETRY
+    FAILURE --> DEAD["DEAD (max retries)"]
+    style SUCCESS fill:#dcfce7
+    style DEAD fill:#fee2e2
+    style FAILURE fill:#fef3c7
 ```
 
 ---

@@ -51,45 +51,25 @@ Bandwidth:
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Seed URLs                                  │
-└──────────────────────────────────┬──────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         URL Frontier                                 │
-│              (Priority Queue + Politeness Queue)                     │
-└──────────────────────────────────┬──────────────────────────────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                    ▼                             ▼
-          ┌──────────────────┐         ┌──────────────────┐
-          │  Crawler Worker  │   ...   │  Crawler Worker  │
-          │    (10,000+)     │         │    (10,000+)     │
-          └────────┬─────────┘         └────────┬─────────┘
-                   │                            │
-                   └────────────┬───────────────┘
-                                │
-                                ▼
-          ┌─────────────────────────────────────────────────┐
-          │              Content Processor                   │
-          ├─────────────────────────────────────────────────┤
-          │  • HTML Parser                                  │
-          │  • Link Extractor                               │
-          │  • Content Deduplication                        │
-          │  • Text Extraction                              │
-          └────────────────────┬────────────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-    ┌─────────────────┐ ┌─────────────┐ ┌─────────────────┐
-    │  URL Filter     │ │ Document    │ │ Extracted       │
-    │  (Add new URLs  │ │ Store       │ │ Links           │
-    │   to frontier)  │ │ (S3/HDFS)   │ │ (to frontier)   │
-    └─────────────────┘ └─────────────┘ └─────────────────┘
+```mermaid
+flowchart TB
+    Seed["Seed URLs"] --> Frontier["URL Frontier (Priority Queue + Politeness Queue)"]
+    Frontier --> W1["Crawler Worker 1"]
+    Frontier --> W2["Crawler Worker N (10,000+)"]
+    W1 --> CP["Content Processor"]
+    W2 --> CP
+    CP --> P1["HTML Parser"]
+    CP --> P2["Link Extractor"]
+    CP --> P3["Content Deduplication"]
+    CP --> P4["Text Extraction"]
+    CP --> UF["URL Filter (add new URLs to frontier)"]
+    CP --> DS["Document Store (S3/HDFS)"]
+    CP --> EL["Extracted Links (to frontier)"]
+    UF -.-> Frontier
+    EL -.-> Frontier
+    style Frontier fill:#dbeafe
+    style CP fill:#fef3c7
+    style DS fill:#dcfce7
 ```
 
 ---
@@ -98,83 +78,57 @@ Bandwidth:
 
 ### Priority-Based Crawling
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    URL Frontier                          │
-├─────────────────────────────────────────────────────────┤
-│  Priority Queues:                                        │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │ Priority 0: Important sites (news, wikipedia)   │    │
-│  │ Priority 1: High PageRank sites                 │    │
-│  │ Priority 2: Medium priority                     │    │
-│  │ Priority 3: Low priority / new sites            │    │
-│  └─────────────────────────────────────────────────┘    │
-│                                                          │
-│  Politeness Queues (per domain):                        │
-│  ┌────────────┐ ┌────────────┐ ┌────────────┐          │
-│  │example.com │ │ blog.com   │ │ news.org   │          │
-│  │ url1, url2 │ │ url3, url4 │ │ url5       │          │
-│  │ last: T-5s │ │ last: T-3s │ │ last: T-10s│          │
-│  └────────────┘ └────────────┘ └────────────┘          │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    UF["URL Frontier"]
+    UF --> PQ["Priority Queues"]
+    PQ --> P0["Priority 0: Important sites (news, wikipedia)"]
+    PQ --> P1["Priority 1: High PageRank sites"]
+    PQ --> P2["Priority 2: Medium priority"]
+    PQ --> P3["Priority 3: Low priority / new sites"]
+    UF --> PolQ["Politeness Queues (per domain)"]
+    PolQ --> D1["example.com — url1, url2 — last: T-5s"]
+    PolQ --> D2["blog.com — url3, url4 — last: T-3s"]
+    PolQ --> D3["news.org — url5 — last: T-10s"]
+    style UF fill:#dbeafe
+    style P0 fill:#dcfce7
+    style P3 fill:#fee2e2
 ```
 
 ### Back Queue Selector
 
-```
-                    URL Request
-                         │
-                         ▼
-              ┌──────────────────┐
-              │  Back Queue      │
-              │  Selector        │
-              └────────┬─────────┘
-                       │
-    ┌──────────────────┼──────────────────┐
-    │                  │                  │
-    ▼                  ▼                  ▼
-┌───────┐         ┌───────┐         ┌───────┐
-│Queue A│         │Queue B│         │Queue C│
-│(OK)   │         │(wait) │         │(OK)   │
-└───┬───┘         └───────┘         └───┬───┘
-    │                                   │
-    │ Next available queue              │
-    └────────────────┬──────────────────┘
-                     │
-                     ▼
-              Return URL to crawler
+```mermaid
+flowchart TB
+    Req["URL Request"] --> BQS["Back Queue Selector"]
+    BQS --> QA["Queue A (OK)"]
+    BQS --> QB["Queue B (wait)"]
+    BQS --> QC["Queue C (OK)"]
+    QA --> Out["Return URL to crawler"]
+    QC --> Out
+    style BQS fill:#dbeafe
+    style QB fill:#fee2e2
+    style Out fill:#dcfce7
 ```
 
 ---
 
 ## Crawler Worker Design
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Crawler Worker                        │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. Get URL from Frontier                               │
-│     │                                                    │
-│     ▼                                                    │
-│  2. Check robots.txt (cached)                           │
-│     │                                                    │
-│     ├── Blocked → Skip, mark URL                        │
-│     │                                                    │
-│     ▼                                                    │
-│  3. Fetch Page (HTTP GET)                               │
-│     │                                                    │
-│     ├── Timeout/Error → Retry with backoff              │
-│     │                                                    │
-│     ▼                                                    │
-│  4. Check Content-Type                                  │
-│     │                                                    │
-│     ├── Non-HTML → Send to appropriate processor        │
-│     │                                                    │
-│     ▼                                                    │
-│  5. Send to Content Processor                           │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    S1["1. Get URL from Frontier"] --> S2["2. Check robots.txt (cached)"]
+    S2 --> R1{Allowed?}
+    R1 -->|Blocked| Skip["Skip, mark URL"]
+    R1 -->|Allowed| S3["3. Fetch Page (HTTP GET)"]
+    S3 --> R2{Result?}
+    R2 -->|Timeout/Error| Retry["Retry with backoff"]
+    R2 -->|OK| S4["4. Check Content-Type"]
+    S4 --> R3{HTML?}
+    R3 -->|Non-HTML| Alt["Send to appropriate processor"]
+    R3 -->|HTML| S5["5. Send to Content Processor"]
+    style S5 fill:#dcfce7
+    style Skip fill:#fee2e2
+    style Retry fill:#fef3c7
 ```
 
 ---
@@ -317,29 +271,16 @@ DNS Caching Layer:
 
 ## Handling JavaScript-Rendered Content
 
+```mermaid
+flowchart TB
+    Static["Static Fetch (Simple HTML)"] --> CP["Content Processor"]
+    Dynamic["Dynamic Fetch (JS Required)"] --> HB["Headless Browser Pool (Chrome): render page, wait for JS, extract DOM"]
+    HB --> CP
+    style HB fill:#fef3c7
+    style CP fill:#dcfce7
 ```
-┌───────────────┐     ┌───────────────┐
-│ Static Fetch  │     │ Dynamic Fetch │
-│ (Simple HTML) │     │ (JS Required) │
-└───────┬───────┘     └───────┬───────┘
-        │                     │
-        │                     ▼
-        │           ┌───────────────────┐
-        │           │ Headless Browser  │
-        │           │ Pool (Chrome)     │
-        │           │ - Render page     │
-        │           │ - Wait for JS     │
-        │           │ - Extract DOM     │
-        │           └────────┬──────────┘
-        │                    │
-        └────────────────────┘
-                    │
-                    ▼
-           Content Processor
 
-Detection: If initial HTML has JS frameworks
-(React, Angular, Vue) → Use headless browser
-```
+Detection: If initial HTML has JS frameworks (React, Angular, Vue) → Use headless browser
 
 ---
 

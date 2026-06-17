@@ -59,10 +59,16 @@ No guarantee that subsequent reads will see a write.
 
 ## Consistency Spectrum
 
-```
-Strongest ◄─────────────────────────────────────► Weakest
-
-Linearizable → Sequential → Causal → Eventual → Weak
+```mermaid
+flowchart LR
+    L["Linearizable"] --> S["Sequential"]
+    S --> C["Causal"]
+    C --> E["Eventual"]
+    E --> W["Weak"]
+    Strongest(["Strongest"]) -.-> L
+    W -.-> Weakest(["Weakest"])
+    style L fill:#dbeafe
+    style W fill:#fef3c7
 ```
 
 | **Model** | **Guarantee** | **Performance** |

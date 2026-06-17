@@ -27,18 +27,19 @@ description: Understanding weak consistency model in distributed systems.
 3. Data may or may not propagate to other nodes
 4. Subsequent reads may return old, new, or no data
 
-```
-Client                  Server A              Server B
-  │                        │                     │
-  │──── Write X=1 ────────►│                     │
-  │◄─── ACK ───────────────│                     │
-  │                        │─ ─ ─(may or may not)─►│
-  │                        │                     │
-  │──── Read X ───────────►│                     │
-  │◄─── X=1 ───────────────│                     │
-  │                        │                     │
-  │──── Read X ────────────────────────────────►│
-  │◄─── X=? (old value, null, or 1) ────────────│
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Server A
+    participant B as Server B
+
+    C->>A: "Write X=1"
+    A-->>C: ACK
+    A-->>B: "propagate (may or may not arrive)"
+    C->>A: "Read X"
+    A-->>C: "X=1"
+    C->>B: "Read X"
+    B-->>C: "X=? (old value, null, or 1)"
 ```
 
 ---

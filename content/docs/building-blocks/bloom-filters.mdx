@@ -168,19 +168,24 @@ print(bf.contains("user789"))  # False (definitely not)
 
 ## Use Case: Database Optimization
 
+```mermaid
+flowchart TB
+    subgraph Without["Without Bloom Filter"]
+        R1[Request] --> D1[Check disk]
+        D1 --> N1["Not found (wasted I/O)"]
+    end
+    subgraph With["With Bloom Filter"]
+        R2[Request] --> BF[Check bloom filter]
+        BF -->|"Definitely not"| N2["Return not found (no I/O)"]
+        BF -->|"Maybe exists"| D2[Check disk]
+        D2 --> Result[Return result]
+    end
+    style BF fill:#fef3c7
+    style N1 fill:#fee2e2
+    style N2 fill:#dcfce7
 ```
-Without Bloom Filter:
-Request → Check disk → Not found (wasted I/O)
 
-With Bloom Filter:
-Request → Check bloom filter
-         │
-         ├─ "Definitely not" → Return not found (no I/O)
-         │
-         └─ "Maybe exists" → Check disk → Return result
-
-Savings: Avoid disk reads for non-existent keys
-```
+Savings: Avoid disk reads for non-existent keys.
 
 ---
 

@@ -74,50 +74,40 @@ Example for CPU:
 
 ## Monitoring Architecture
 
-```
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│  Service A  │ │  Service B  │ │  Service C  │
-│ /metrics    │ │ /metrics    │ │ /metrics    │
-└──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-       │               │               │
-       └───────────────┼───────────────┘
-                       │ Scrape
-                       ▼
-              ┌─────────────────┐
-              │   Prometheus    │
-              │  (Time Series   │
-              │    Database)    │
-              └────────┬────────┘
-                       │
-         ┌─────────────┼─────────────┐
-         ▼             ▼             ▼
-    ┌─────────┐  ┌───────────┐  ┌─────────┐
-    │ Grafana │  │Alertmanager│  │   API   │
-    │(Dashbd) │  │  (Alerts)  │  │ Queries │
-    └─────────┘  └───────────┘  └─────────┘
+```mermaid
+flowchart TB
+    A["Service A<br/>/metrics"]
+    B["Service B<br/>/metrics"]
+    C["Service C<br/>/metrics"]
+    Prom["Prometheus<br/>Time Series Database"]
+    Graf["Grafana (Dashboards)"]
+    AM["Alertmanager (Alerts)"]
+    API[API Queries]
+    A -->|Scrape| Prom
+    B -->|Scrape| Prom
+    C -->|Scrape| Prom
+    Prom --> Graf
+    Prom --> AM
+    Prom --> API
+    style Prom fill:#dbeafe
+    style AM fill:#fee2e2
+    style Graf fill:#dcfce7
 ```
 
 ---
 
 ## SLIs, SLOs, and SLAs
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  SLI (Service Level Indicator)                          │
-│  What you measure                                       │
-│  Example: p99 latency, availability %                   │
-├─────────────────────────────────────────────────────────┤
-│  SLO (Service Level Objective)                          │
-│  Internal target                                        │
-│  Example: 99.9% availability, p99 < 200ms              │
-├─────────────────────────────────────────────────────────┤
-│  SLA (Service Level Agreement)                          │
-│  External contract (with consequences)                  │
-│  Example: 99.5% uptime or credit issued                │
-└─────────────────────────────────────────────────────────┘
-
-Relationship:
-SLI → measures → SLO (internal) → looser than → SLA (external)
+```mermaid
+flowchart TB
+    SLI["SLI (Service Level Indicator)<br/>What you measure<br/>Example: p99 latency, availability %"]
+    SLO["SLO (Service Level Objective)<br/>Internal target<br/>Example: 99.9% availability, p99 lt 200ms"]
+    SLA["SLA (Service Level Agreement)<br/>External contract (with consequences)<br/>Example: 99.5% uptime or credit issued"]
+    SLI -->|measures| SLO
+    SLO -->|looser than| SLA
+    style SLI fill:#dbeafe
+    style SLO fill:#dcfce7
+    style SLA fill:#fef3c7
 ```
 
 ### Error Budget

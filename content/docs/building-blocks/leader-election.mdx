@@ -11,28 +11,29 @@ description: Understanding leader election in distributed systems.
 
 ## Why Leader Election?
 
-```
-Without Leader:
-┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Node A  │    │ Node B  │    │ Node C  │
-│(Process)│    │(Process)│    │(Process)│
-└────┬────┘    └────┬────┘    └────┬────┘
-     │              │              │
-     └──────────────┼──────────────┘
-                    │
-           Who processes job X?
-           → Conflicts, duplicates!
-
-With Leader:
-┌─────────┐    ┌─────────┐    ┌─────────┐
-│ Node A  │    │ Node B  │    │ Node C  │
-│(Follower)│    │(LEADER) │    │(Follower)│
-└────┬────┘    └────┬────┘    └────┬────┘
-     │              │              │
-     └──────────────┼──────────────┘
-                    │
-           Leader assigns work
-           → No conflicts!
+```mermaid
+flowchart TB
+    subgraph Without["Without Leader"]
+        A1["Node A (Process)"]
+        B1["Node B (Process)"]
+        C1["Node C (Process)"]
+        Q1["Who processes job X?<br/>Conflicts, duplicates!"]
+        A1 --- Q1
+        B1 --- Q1
+        C1 --- Q1
+    end
+    subgraph WithL["With Leader"]
+        A2["Node A (Follower)"]
+        B2["Node B (LEADER)"]
+        C2["Node C (Follower)"]
+        Q2["Leader assigns work<br/>No conflicts!"]
+        A2 --- Q2
+        B2 --- Q2
+        C2 --- Q2
+    end
+    style Q1 fill:#fee2e2
+    style Q2 fill:#dcfce7
+    style B2 fill:#fef3c7
 ```
 
 ---
@@ -52,60 +53,49 @@ With Leader:
 
 ### 1. Bully Algorithm
 
-```
 When a node detects leader failure:
 
 1. Send ELECTION to all higher-ID nodes
 2. Wait for OK response
-3. If no OK received → Become leader, send COORDINATOR
-4. If OK received → Wait for COORDINATOR from higher node
+3. If no OK received, become leader, send COORDINATOR
+4. If OK received, wait for COORDINATOR from higher node
 
-Example (Node 3 detects failure):
+Example (Node 3 detects failure). Node IDs: `[1, 2, 3, 4, 5]`. Current Leader: 5 (failed).
 
-Node IDs: [1, 2, 3, 4, 5]
-Current Leader: 5 (failed)
-
-┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐
-│ 1 │  │ 2 │  │ 3 │  │ 4 │  │ 5 │
-└─┬─┘  └─┬─┘  └─┬─┘  └─┬─┘  └─┬─┘
-  │      │      │      │      ✗ (dead)
-  │      │      │ELECT │      │
-  │      │      │─────>│      │
-  │      │      │  OK  │      │
-  │      │      │<─────│      │
-  │      │      │      │ELECT │
-  │      │      │      │─────>│ (no response)
-  │      │      │      │      │
-  │ COORD│ COORD│ COORD│      │
-  │<─────┼──────┼──────│      │
-  │      │      │      │      │
-
-Node 4 becomes new leader
+```mermaid
+sequenceDiagram
+    participant N1 as Node 1
+    participant N2 as Node 2
+    participant N3 as Node 3
+    participant N4 as Node 4
+    participant N5 as Node 5 (dead)
+    N3->>N4: ELECTION
+    N4-->>N3: OK
+    N4->>N5: ELECTION
+    Note over N5: no response
+    N4->>N1: COORDINATOR
+    N4->>N2: COORDINATOR
+    N4->>N3: COORDINATOR
+    Note over N4: Node 4 becomes new leader
 ```
 
 ### 2. Ring Algorithm
 
-```
 Nodes arranged in logical ring:
 
-       ┌───┐
-    ┌──│ 1 │──┐
-    │  └───┘  │
-    │         │
-┌───┐        ┌───┐
-│ 4 │        │ 2 │
-└───┘        └───┘
-    │         │
-    │  ┌───┐  │
-    └──│ 3 │──┘
-       └───┘
+```mermaid
+flowchart LR
+    N1[Node 1] --> N2[Node 2]
+    N2 --> N3[Node 3]
+    N3 --> N4[Node 4]
+    N4 --> N1
+```
 
 Election:
 1. Node sends ELECTION with its ID around ring
 2. Each node adds its ID to message
 3. When message returns to initiator
 4. Highest ID in message becomes leader
-```
 
 ---
 
@@ -169,64 +159,69 @@ func electLeader(client *clientv3.Client) {
 
 ## Raft Consensus (Leader Election Part)
 
+States: Follower -> Candidate -> Leader.
+
+```mermaid
+flowchart LR
+    subgraph T1["Term 1"]
+        A1["A (Follower)"]
+        B1["B (Leader)"]
+        C1["C (Follower)"]
+    end
+    subgraph T2["Term 2 (B fails)"]
+        A2["A (Candidate)"]
+        B2["B (dead)"]
+        C2["C (Follower)"]
+    end
+    style B1 fill:#fef3c7
+    style B2 fill:#fee2e2
+    style A2 fill:#dbeafe
 ```
-States: Follower → Candidate → Leader
 
-Term 1:
-┌─────────┐    ┌─────────┐    ┌─────────┐
-│Follower │    │ Leader  │    │Follower │
-│  (A)    │    │  (B)    │    │  (C)    │
-└─────────┘    └─────────┘    └─────────┘
-
-Leader B fails, Term 2:
+When B fails:
 1. Election timeout expires on A
 2. A becomes Candidate, increments term
 3. A votes for itself
-4. A requests votes from B, C
+4. A requests votes from C
 
-┌─────────┐    ┌─────────┐    ┌─────────┐
-│Candidate│────│ (dead)  │────│Follower │
-│  (A)    │    │  (B)    │    │  (C)    │
-└─────────┘    └─────────┘    └─────────┘
-     │                              │
-     │       RequestVote            │
-     │─────────────────────────────>│
-     │       VoteGranted            │
-     │<─────────────────────────────│
-
-4. A wins election (majority votes)
-5. A becomes Leader, sends heartbeats
+```mermaid
+sequenceDiagram
+    participant A as A (Candidate)
+    participant C as C (Follower)
+    A->>C: RequestVote
+    C-->>A: VoteGranted
+    Note over A: A wins election (majority votes)<br/>A becomes Leader, sends heartbeats
 ```
 
 ---
 
 ## Split Brain Prevention
 
-```
-Problem: Network partition causes two leaders
+Problem: Network partition causes two leaders.
 
-       Partition
-          ┃
-┌─────┐   ┃   ┌─────┐
-│  A  │   ┃   │  B  │
-│(Ldr)│   ┃   │(Ldr)│ ← Two leaders!
-└─────┘   ┃   └─────┘
-┌─────┐   ┃   ┌─────┐
-│  C  │   ┃   │  D  │
-└─────┘   ┃   └─────┘
+```mermaid
+flowchart LR
+    subgraph P1["Partition 1"]
+        A["A (Leader)"]
+        C
+    end
+    subgraph P2["Partition 2"]
+        B["B (Leader)"]
+        D
+    end
+    style A fill:#fee2e2
+    style B fill:#fee2e2
+```
 
 Solutions:
 1. Quorum requirement (majority needed)
-   - 4 nodes → Need 3 to elect
+   - 4 nodes -> Need 3 to elect
    - One partition can't have majority
-
 2. Fencing tokens
    - Increment token on election
    - Resources reject old tokens
-
 3. STONITH (Shoot The Other Node In The Head)
    - Force kill old leader
-```
 
 ---
 

@@ -11,15 +11,13 @@ description: Understanding service discovery in microservices architecture.
 
 ## The Problem
 
+```mermaid
+flowchart LR
+    A[Service A] -->|"hardcoded IP"| B["192.168.1.10:8080 (Service B)"]
+    style B fill:#fef3c7
 ```
-Without Service Discovery:
-┌─────────┐     ┌─────────────────────┐
-│Service A│────►│ 192.168.1.10:8080   │  ← Hardcoded!
-└─────────┘     │ (Service B)         │
-                └─────────────────────┘
 
 What if Service B scales or moves?
-```
 
 ---
 
@@ -29,20 +27,12 @@ What if Service B scales or moves?
 
 Client queries registry and chooses which instance to call:
 
-```
-┌─────────┐     ┌──────────────┐
-│ Client  │────►│   Registry   │
-└────┬────┘     │ Service B:   │
-     │          │  - 10.0.0.1  │
-     │          │  - 10.0.0.2  │
-     │          └──────────────┘
-     │
-     │ (client chooses)
-     ▼
-┌─────────┐
-│Service B│
-│10.0.0.1 │
-└─────────┘
+```mermaid
+flowchart TB
+    Client -->|"query"| Registry["Registry<br/>Service B:<br/>- 10.0.0.1<br/>- 10.0.0.2"]
+    Client -->|"client chooses"| B["Service B<br/>10.0.0.1"]
+    style Registry fill:#dbeafe
+    style B fill:#dcfce7
 ```
 
 **Examples**: Netflix Eureka, Consul (client mode)
@@ -51,15 +41,13 @@ Client queries registry and chooses which instance to call:
 
 Load balancer queries registry and routes request:
 
-```
-┌─────────┐     ┌─────────────┐     ┌──────────┐
-│ Client  │────►│Load Balancer│────►│Registry  │
-└─────────┘     └──────┬──────┘     └──────────┘
-                       │
-                       ▼
-                ┌─────────────┐
-                │  Service B  │
-                └─────────────┘
+```mermaid
+flowchart LR
+    Client --> LB[Load Balancer]
+    LB --> Registry
+    LB --> B[Service B]
+    style LB fill:#fef3c7
+    style Registry fill:#dbeafe
 ```
 
 **Examples**: AWS ALB, Kubernetes Services
@@ -84,21 +72,26 @@ Central database of service instances:
 
 Service registers itself on startup:
 
-```
-Service starts ──► Register with registry
-Service stops  ──► Deregister from registry
-Health check   ──► Send heartbeats
+```mermaid
+flowchart LR
+    S1[Service starts] --> R1[Register with registry]
+    S2[Service stops] --> R2[Deregister from registry]
+    S3[Health check] --> R3[Send heartbeats]
+    style R1 fill:#dcfce7
+    style R2 fill:#fee2e2
+    style R3 fill:#dbeafe
 ```
 
 ### Third-Party Registration
 
 Separate registrar watches and registers services:
 
-```
-┌──────────┐     ┌───────────┐     ┌──────────┐
-│Registrar │────►│  Watch    │────►│ Registry │
-└──────────┘     │ containers│     └──────────┘
-                 └───────────┘
+```mermaid
+flowchart LR
+    Registrar --> Watch[Watch containers]
+    Watch --> Registry
+    style Registrar fill:#fef3c7
+    style Registry fill:#dbeafe
 ```
 
 ---

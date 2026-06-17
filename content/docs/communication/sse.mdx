@@ -23,19 +23,16 @@ description: Server-Sent Events (SSE) — one-way streaming from server to brows
 
 ## How SSE Works
 
-```
-Client                              Server
-   │                                   │
-   │─── GET /events ──────────────────►│
-   │    Accept: text/event-stream      │
-   │                                   │
-   │◄── HTTP 200 ─────────────────────│
-   │    Content-Type: text/event-stream│
-   │                                   │
-   │◄── data: message 1 ──────────────│
-   │◄── data: message 2 ──────────────│
-   │◄── data: message 3 ──────────────│
-   │    (connection stays open)        │
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: GET /events<br/>Accept: text/event-stream
+    S-->>C: HTTP 200<br/>Content-Type: text/event-stream
+    S-->>C: data: message 1
+    S-->>C: data: message 2
+    S-->>C: data: message 3
+    Note over C,S: connection stays open
 ```
 
 ---

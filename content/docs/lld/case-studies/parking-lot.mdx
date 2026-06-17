@@ -30,47 +30,36 @@ Design an object-oriented parking lot system that manages vehicle parking, prici
 
 ### Class Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        ParkingLot (Singleton)                        │
-├─────────────────────────────────────────────────────────────────────┤
-│  - id: String                                                        │
-│  - floors: List<ParkingFloor>                                       │
-│  - entryPanels: List<EntryPanel>                                    │
-│  - exitPanels: List<ExitPanel>                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│  + getAvailableSpots(VehicleType): int                              │
-│  + parkVehicle(Vehicle): ParkingTicket                              │
-│  + unparkVehicle(ParkingTicket): Payment                            │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              │ has many
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         ParkingFloor                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  - floorNumber: int                                                 │
-│  - spots: Map<SpotType, List<ParkingSpot>>                         │
-│  - displayBoard: DisplayBoard                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│  + getAvailableSpot(VehicleType): ParkingSpot                       │
-│  + updateDisplayBoard(): void                                       │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              │ has many
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         ParkingSpot                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│  - spotId: String                                                   │
-│  - spotType: SpotType                                               │
-│  - isOccupied: boolean                                              │
-│  - vehicle: Vehicle                                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  + assignVehicle(Vehicle): boolean                                  │
-│  + removeVehicle(): Vehicle                                         │
-│  + canFitVehicle(VehicleType): boolean                              │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+classDiagram
+    class ParkingLot {
+        <<Singleton>>
+        -id: String
+        -floors: List~ParkingFloor~
+        -entryPanels: List~EntryPanel~
+        -exitPanels: List~ExitPanel~
+        +getAvailableSpots(VehicleType) int
+        +parkVehicle(Vehicle) ParkingTicket
+        +unparkVehicle(ParkingTicket) Payment
+    }
+    class ParkingFloor {
+        -floorNumber: int
+        -spots: Map~SpotType, List~ParkingSpot~~
+        -displayBoard: DisplayBoard
+        +getAvailableSpot(VehicleType) ParkingSpot
+        +updateDisplayBoard() void
+    }
+    class ParkingSpot {
+        -spotId: String
+        -spotType: SpotType
+        -isOccupied: boolean
+        -vehicle: Vehicle
+        +assignVehicle(Vehicle) boolean
+        +removeVehicle() Vehicle
+        +canFitVehicle(VehicleType) boolean
+    }
+    ParkingLot "1" *-- "1..*" ParkingFloor
+    ParkingFloor "1" *-- "1..*" ParkingSpot
 ```
 
 ---

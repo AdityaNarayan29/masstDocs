@@ -31,20 +31,21 @@ Slightly weaker:
 
 Strong consistency typically requires synchronous replication:
 
-```
-Client                 Leader              Follower 1          Follower 2
-  │                      │                     │                   │
-  │──── Write X=1 ──────►│                     │                   │
-  │                      │──── Replicate ─────►│                   │
-  │                      │──── Replicate ───────────────────────►│
-  │                      │                     │                   │
-  │                      │◄─── ACK ────────────│                   │
-  │                      │◄─── ACK ─────────────────────────────│
-  │                      │                     │                   │
-  │◄─── ACK (committed) ─│                     │                   │
-  │                      │                     │                   │
-  │──── Read X ─────────►│                     │                   │
-  │◄─── X=1 ─────────────│                     │                   │
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant L as Leader
+    participant F1 as Follower 1
+    participant F2 as Follower 2
+
+    C->>L: "Write X=1"
+    L->>F1: Replicate
+    L->>F2: Replicate
+    F1-->>L: ACK
+    F2-->>L: ACK
+    L-->>C: "ACK (committed)"
+    C->>L: "Read X"
+    L-->>C: "X=1"
 ```
 
 ---
@@ -112,9 +113,13 @@ Strong consistency: R + W > N
 
 ### Single Leader (Primary-Backup)
 
-```
-All writes ──► Leader ──► Followers
-All reads  ──► Leader (or Followers with sync)
+```mermaid
+flowchart LR
+    W["All writes"] --> L["Leader"]
+    L --> F["Followers"]
+    R["All reads"] --> L
+    R -.->|"with sync"| F
+    style L fill:#dbeafe
 ```
 
 **Pros**: Simple, strong consistency easy
@@ -134,14 +139,20 @@ All reads  ──► Leader (or Followers with sync)
 
 ### Two-Phase Commit (2PC)
 
-```
-Phase 1 (Prepare):
-  Coordinator ──► All participants: "Can you commit?"
-  All participants ──► Coordinator: "Yes/No"
+```mermaid
+sequenceDiagram
+    participant Co as Coordinator
+    participant P1 as Participant 1
+    participant P2 as Participant 2
 
-Phase 2 (Commit):
-  If all yes: Coordinator ──► All participants: "Commit"
-  If any no:  Coordinator ──► All participants: "Abort"
+    Note over Co,P2: "Phase 1: Prepare"
+    Co->>P1: "Can you commit?"
+    Co->>P2: "Can you commit?"
+    P1-->>Co: "Yes/No"
+    P2-->>Co: "Yes/No"
+    Note over Co,P2: "Phase 2: Commit (if all yes) or Abort (if any no)"
+    Co->>P1: "Commit / Abort"
+    Co->>P2: "Commit / Abort"
 ```
 
 **Pros**: Atomic transactions across nodes

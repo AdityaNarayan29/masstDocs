@@ -17,18 +17,15 @@ This is the latency cliff that defines voice agents. Conversational research peg
 
 The total budget you have to play with, end-to-end, is:
 
-```
-user stops speaking
-  ↓
-VAD detects end-of-turn        (~50-150ms)
-  ↓
-ASR finalizes transcript        (~50-200ms)
-  ↓
-LLM produces first token        (~300-800ms)
-  ↓
-TTS produces first audio frame  (~100-400ms)
-  ↓
-audio plays from speaker        (~30ms playback buffer)
+```mermaid
+flowchart TB
+    U["user stops speaking"] --> VAD["VAD detects end-of-turn (~50-150ms)"]
+    VAD --> ASR["ASR finalizes transcript (~50-200ms)"]
+    ASR --> LLM["LLM produces first token (~300-800ms)"]
+    LLM --> TTS["TTS produces first audio frame (~100-400ms)"]
+    TTS --> Spk["audio plays from speaker (~30ms playback buffer)"]
+    style U fill:#dbeafe
+    style Spk fill:#dcfce7
 ```
 
 Stack those up with a classic GPT-4 + ElevenLabs + Deepgram pipeline and you are at **1.5-2.0 seconds before the user hears the first phoneme**. That is the gap that ruined every Alexa/Siri-style assistant from 2014 to 2023, and the one that speech-to-speech models exist to close.

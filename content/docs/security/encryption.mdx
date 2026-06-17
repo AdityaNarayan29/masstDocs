@@ -21,23 +21,20 @@ description: Understanding encryption for data protection in system design.
 
 ## Symmetric Encryption
 
+```mermaid
+flowchart LR
+    PT1["Plaintext: Hello"]
+    Enc["Encrypt (Key)"]
+    CT1["Ciphertext: x7#k9"]
+    Dec["Decrypt (Key)"]
+    PT2["Plaintext: Hello"]
+    PT1 --> Enc --> CT1
+    CT1 --> Dec --> PT2
+    style Enc fill:#dbeafe
+    style Dec fill:#dbeafe
 ```
-           ┌──────────────┐
-Plaintext  │   Encrypt    │  Ciphertext
-"Hello" ───►│   (Key)     │───► "x7#k9"
-           └──────────────┘
-                 │
-                 │ Same Key
-                 ▼
-           ┌──────────────┐
-Ciphertext │   Decrypt    │  Plaintext
-"x7#k9" ───►│   (Key)     │───► "Hello"
-           └──────────────┘
 
-Algorithms:
-- AES-256 (recommended)
-- ChaCha20-Poly1305
-```
+Algorithms: AES-256 (recommended), ChaCha20-Poly1305.
 
 ### AES Modes
 
@@ -51,124 +48,94 @@ Algorithms:
 
 ## Asymmetric Encryption
 
+```mermaid
+flowchart TB
+    subgraph "Key Pair"
+        Pub["Public Key (shareable)"]
+        Priv["Private Key (secret)"]
+    end
+    PT1[Plaintext] -->|Anyone can encrypt| Pub
+    Pub --> CT[Ciphertext]
+    CT -->|Only owner can decrypt| Priv
+    Priv --> PT2[Plaintext]
+    style Pub fill:#dcfce7
+    style Priv fill:#fee2e2
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Key Pair                          │
-│  ┌──────────────┐       ┌──────────────┐            │
-│  │ Public Key   │       │ Private Key  │            │
-│  │ (shareable)  │       │ (secret)     │            │
-│  └──────────────┘       └──────────────┘            │
-└─────────────────────────────────────────────────────┘
 
-Encryption:
-Plaintext ──► [Public Key] ──► Ciphertext
-(Anyone can encrypt)
-
-Decryption:
-Ciphertext ──► [Private Key] ──► Plaintext
-(Only owner can decrypt)
-
-Algorithms:
-- RSA-2048/4096
-- ECDSA (Elliptic Curve)
-```
+Algorithms: RSA-2048/4096, ECDSA (Elliptic Curve).
 
 ---
 
 ## Data at Rest
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Application                       │
-└────────────────────────┬────────────────────────────┘
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-              ▼                     ▼
-┌─────────────────────┐  ┌─────────────────────┐
-│  Database           │  │  File Storage       │
-│  ┌───────────────┐  │  │  ┌───────────────┐  │
-│  │ Encrypted     │  │  │  │ Encrypted     │  │
-│  │ Columns       │  │  │  │ Files         │  │
-│  └───────────────┘  │  │  └───────────────┘  │
-│                     │  │                     │
-│  [DEK encrypted     │  │  [DEK encrypted     │
-│   by KEK]           │  │   by KEK]           │
-└─────────────────────┘  └─────────────────────┘
+```mermaid
+flowchart TB
+    App[Application]
+    DB["Database<br/>Encrypted Columns<br/>(DEK encrypted by KEK)"]
+    FS["File Storage<br/>Encrypted Files<br/>(DEK encrypted by KEK)"]
+    App --> DB
+    App --> FS
+    style App fill:#dbeafe
+    style DB fill:#dcfce7
+    style FS fill:#dcfce7
 ```
 
 ### Envelope Encryption
 
+```mermaid
+flowchart TB
+    KMS["Key Management Service<br/>Master Key (KEK) — never leaves KMS"]
+    DEK["Data Encryption Key (DEK)<br/>Generated per object"]
+    Data[Your Data]
+    KMS -->|Encrypts| DEK
+    DEK -->|Encrypts| Data
+    style KMS fill:#fee2e2
+    style DEK fill:#fef3c7
+    style Data fill:#dcfce7
 ```
-┌─────────────────────────────────────────────────────┐
-│                 Key Management Service               │
-│                                                      │
-│  ┌────────────────────────────────────────────┐     │
-│  │          Master Key (KEK)                  │     │
-│  │          (Never leaves KMS)                │     │
-│  └────────────────────────────────────────────┘     │
-└─────────────────────────────────────────────────────┘
-                         │
-                         │ Encrypts
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│              Data Encryption Key (DEK)               │
-│              (Generated per object)                  │
-└─────────────────────────────────────────────────────┘
-                         │
-                         │ Encrypts
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│                     Your Data                        │
-└─────────────────────────────────────────────────────┘
 
-Storage:
-[Encrypted Data] + [Encrypted DEK (by KEK)]
-```
+Storage: Encrypted Data + Encrypted DEK (by KEK).
 
 ---
 
 ## Data in Transit
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: "1. Client Hello (supported ciphers)"
+    S-->>C: "2. Server Hello (chosen cipher, certificate)"
+    C->>S: "3. Key Exchange (ECDHE)"
+    S-->>C: 4. Finished — encrypted communication begins
 ```
-┌──────────┐                         ┌──────────┐
-│  Client  │◄───── TLS 1.3 ─────────►│  Server  │
-└──────────┘                         └──────────┘
 
-TLS Handshake:
-1. Client Hello (supported ciphers)
-2. Server Hello (chosen cipher, certificate)
-3. Key Exchange (ECDHE)
-4. Finished (encrypted communication begins)
+### Certificate Chain
 
-Certificate Chain:
-┌─────────────────┐
-│    Root CA      │ (Trusted by browsers)
-└────────┬────────┘
-         │ Signs
-         ▼
-┌─────────────────┐
-│ Intermediate CA │
-└────────┬────────┘
-         │ Signs
-         ▼
-┌─────────────────┐
-│ Server Cert     │ (Your domain)
-└─────────────────┘
+```mermaid
+flowchart TB
+    Root["Root CA (Trusted by browsers)"]
+    Inter[Intermediate CA]
+    Server["Server Cert (Your domain)"]
+    Root -->|Signs| Inter
+    Inter -->|Signs| Server
+    style Root fill:#dbeafe
+    style Inter fill:#fef3c7
+    style Server fill:#dcfce7
 ```
 
 ### mTLS (Mutual TLS)
 
+```mermaid
+flowchart LR
+    A["Service A (client cert)"]
+    B["Service B (server cert)"]
+    A <-->|mTLS| B
+    style A fill:#dbeafe
+    style B fill:#dbeafe
 ```
-┌──────────┐                         ┌──────────┐
-│ Service A│◄───── mTLS ────────────►│ Service B│
-│ (client  │                         │ (server  │
-│  cert)   │                         │  cert)   │
-└──────────┘                         └──────────┘
 
-Both sides verify certificates
-Used for: Service-to-service authentication
-```
+Both sides verify certificates. Used for service-to-service authentication.
 
 ---
 
@@ -207,21 +174,25 @@ Storage:
 
 ### Key Hierarchy
 
-```
-┌─────────────────────────────────────────────────────┐
-│              Root Key (Master Key)                   │
-│              Stored in HSM                          │
-└────────────────────────┬────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ Region KEK │  │ Region KEK │  │ Region KEK │
-│   (US)     │  │   (EU)     │  │   (APAC)   │
-└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                │
-       ▼                ▼                ▼
-    [DEKs]           [DEKs]           [DEKs]
+```mermaid
+flowchart TB
+    Root["Root Key (Master Key)<br/>Stored in HSM"]
+    US["Region KEK (US)"]
+    EU["Region KEK (EU)"]
+    APAC["Region KEK (APAC)"]
+    USDEK[DEKs]
+    EUDEK[DEKs]
+    APACDEK[DEKs]
+    Root --> US
+    Root --> EU
+    Root --> APAC
+    US --> USDEK
+    EU --> EUDEK
+    APAC --> APACDEK
+    style Root fill:#fee2e2
+    style US fill:#fef3c7
+    style EU fill:#fef3c7
+    style APAC fill:#fef3c7
 ```
 
 ### Key Rotation

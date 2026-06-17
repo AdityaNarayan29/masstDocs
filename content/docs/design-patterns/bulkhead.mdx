@@ -13,14 +13,15 @@ The **Bulkhead** pattern isolates components so that a failure in one doesn't br
 
 Without isolation, one slow dependency affects everything:
 
-```
-┌────────────────────────────────────────┐
-│              Shared Pool (100 threads) │
-├────────────────────────────────────────┤
-│ Service A calls (fast)         ████    │
-│ Service B calls (SLOW!)  ██████████████│ ← Consumes all threads
-│ Service C calls (fast)         (none)  │ ← Starved!
-└────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Pool["Shared Pool (100 threads)"]
+        A["Service A calls (fast) — few threads"]
+        B["Service B calls (SLOW!) — consumes all threads"]
+        C["Service C calls (fast) — starved!"]
+    end
+    style B fill:#fee2e2
+    style C fill:#fef3c7
 ```
 
 ---
@@ -29,20 +30,17 @@ Without isolation, one slow dependency affects everything:
 
 Isolate resources for each dependency:
 
+```mermaid
+flowchart LR
+    PA["Pool A (30)"] --> SA[Service A]
+    PB["Pool B (40)"] --> SB["Service B (slow)"]
+    PC["Pool C (30)"] --> SC[Service C]
+    style PB fill:#fee2e2
+    style SB fill:#fee2e2
+    style SC fill:#dcfce7
 ```
-┌──────────────────┐
-│ Pool A (30)      │ → Service A
-│ ████             │
-└──────────────────┘
-┌──────────────────┐
-│ Pool B (40)      │ → Service B (slow)
-│ ██████████████   │ ← Can only use 40
-└──────────────────┘
-┌──────────────────┐
-│ Pool C (30)      │ → Service C
-│ ████             │ ← Still works!
-└──────────────────┘
-```
+
+Pool B is saturated by slow Service B, but Pools A and C are unaffected.
 
 ---
 
@@ -95,19 +93,19 @@ void callServiceA() {
 
 ## Architecture Example
 
-```
-┌─────────────────────────────────────────────┐
-│                 Application                  │
-├─────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐     │
-│  │ Payment │  │ Inventory│  │ Shipping│     │
-│  │ Bulkhead│  │ Bulkhead │  │ Bulkhead│     │
-│  │ (20)    │  │ (30)     │  │ (15)    │     │
-│  └────┬────┘  └────┬─────┘  └────┬────┘     │
-└───────┼────────────┼─────────────┼──────────┘
-        │            │             │
-        ▼            ▼             ▼
-   Payment API  Inventory API  Shipping API
+```mermaid
+flowchart TB
+    subgraph App["Application"]
+        PB["Payment Bulkhead (20)"]
+        IB["Inventory Bulkhead (30)"]
+        SB["Shipping Bulkhead (15)"]
+    end
+    PB --> PAPI[Payment API]
+    IB --> IAPI[Inventory API]
+    SB --> SAPI[Shipping API]
+    style PB fill:#dbeafe
+    style IB fill:#dbeafe
+    style SB fill:#dbeafe
 ```
 
 ---

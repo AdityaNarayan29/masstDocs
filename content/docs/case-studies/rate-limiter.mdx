@@ -112,20 +112,13 @@ Limit: 100 → Allow
 
 ## System Architecture
 
-```
-                    ┌─────────────────┐
-                    │   API Gateway   │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Rate Limiter   │
-                    │    Service      │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  Redis Cluster  │
-                    │  (counters)     │
-                    └─────────────────┘
+```mermaid
+flowchart TB
+    GW["API Gateway"] --> RL["Rate Limiter Service"]
+    RL --> Redis["Redis Cluster (counters)"]
+    style GW fill:#dbeafe
+    style RL fill:#fef3c7
+    style Redis fill:#dcfce7
 ```
 
 ---
@@ -206,10 +199,12 @@ Multiple servers need consistent counts.
 2. **Sticky sessions**: Same user → same server
 3. **Loose synchronization**: Accept some over-limit
 
-```
-Server 1 ──┐
-Server 2 ──┼──► Redis (shared counter)
-Server 3 ──┘
+```mermaid
+flowchart LR
+    S1["Server 1"] --> Redis["Redis (shared counter)"]
+    S2["Server 2"] --> Redis
+    S3["Server 3"] --> Redis
+    style Redis fill:#fef3c7
 ```
 
 ---

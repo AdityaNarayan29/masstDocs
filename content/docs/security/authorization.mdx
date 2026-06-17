@@ -24,23 +24,30 @@ description: Understanding authorization patterns for system design.
 
 ### Structure
 
-```
-┌─────────────────────────────────────────────────┐
-│                    Users                         │
-│   User1    User2    User3    User4    User5     │
-└──────┬────────┬────────┬────────┬────────┬──────┘
-       │        │        │        │        │
-       ▼        ▼        ▼        ▼        ▼
-┌─────────────────────────────────────────────────┐
-│                    Roles                         │
-│      Admin        Editor        Viewer          │
-└──────┬──────────────┬──────────────┬────────────┘
-       │              │              │
-       ▼              ▼              ▼
-┌─────────────────────────────────────────────────┐
-│                 Permissions                      │
-│  create  read  update  delete  manage_users     │
-└─────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Users
+        U1[User1]
+        U2[User2]
+        U3[User3]
+    end
+    subgraph Roles
+        Admin
+        Editor
+        Viewer
+    end
+    subgraph Permissions
+        P["create / read / update / delete / manage_users"]
+    end
+    U1 --> Admin
+    U2 --> Editor
+    U3 --> Viewer
+    Admin --> P
+    Editor --> P
+    Viewer --> P
+    style Admin fill:#fee2e2
+    style Editor fill:#fef3c7
+    style Viewer fill:#dcfce7
 ```
 
 ### Example
@@ -72,22 +79,19 @@ hasPermission('user3', 'delete');      // false
 
 ### Hierarchical RBAC
 
-```
-        ┌──────────┐
-        │  Admin   │  (inherits all below)
-        └────┬─────┘
-             │
-        ┌────┴─────┐
-        │ Manager  │  (inherits editor)
-        └────┬─────┘
-             │
-        ┌────┴─────┐
-        │  Editor  │  (inherits viewer)
-        └────┬─────┘
-             │
-        ┌────┴─────┐
-        │  Viewer  │
-        └──────────┘
+```mermaid
+flowchart TB
+    Admin["Admin (inherits all below)"]
+    Manager["Manager (inherits editor)"]
+    Editor["Editor (inherits viewer)"]
+    Viewer[Viewer]
+    Admin --> Manager
+    Manager --> Editor
+    Editor --> Viewer
+    style Admin fill:#fee2e2
+    style Manager fill:#fef3c7
+    style Editor fill:#dbeafe
+    style Viewer fill:#dcfce7
 ```
 
 ---
@@ -136,25 +140,23 @@ function evaluate(user, resource, action, env) {
 
 Used for social networks and collaborative apps:
 
+```mermaid
+flowchart LR
+    Alice[User: Alice]
+    DocA[Document A]
+    DocB[Document B]
+    FolderX[Folder X]
+    Bob[User: Bob]
+    Alice -- owner --> DocA
+    DocA -- parent --> FolderX
+    FolderX -- viewer --> Bob
+    Alice -- editor --> DocB
+    style Alice fill:#dbeafe
+    style Bob fill:#dcfce7
+    style FolderX fill:#fef3c7
 ```
-┌─────────────────────────────────────────────────┐
-│              Google Drive Example                │
-└─────────────────────────────────────────────────┘
 
-User: Alice
-     │
-     ├── owner ──► Document A
-     │                 │
-     │                 └── parent ──► Folder X
-     │                                    │
-     │                                    └── viewer ──► Bob
-     │
-     └── editor ──► Document B
-
-Query: Can Bob view Document A?
-Path:  Bob ← viewer ← Folder X ← parent ← Document A
-Result: YES (inherited from folder)
-```
+Query: Can Bob view Document A? Path: Bob is viewer of Folder X, which is parent of Document A. Result: YES (inherited from folder).
 
 ### Zanzibar (Google's AuthZ System)
 
@@ -191,34 +193,28 @@ ACL:
 
 ## Policy Decision Point (PDP) Architecture
 
-```
-┌─────────────┐         ┌─────────────┐
-│   Client    │         │    API      │
-│   Request   │────────►│   Gateway   │
-└─────────────┘         └──────┬──────┘
-                               │
-                     ┌─────────▼─────────┐
-                     │   Policy          │
-                     │   Enforcement     │
-                     │   Point (PEP)     │
-                     └─────────┬─────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-       ┌──────────┐    ┌──────────────┐  ┌──────────┐
-       │  Policy  │    │   Policy     │  │  Policy  │
-       │  Admin   │    │   Decision   │  │  Info    │
-       │  Point   │    │   Point      │  │  Point   │
-       │  (PAP)   │    │   (PDP)      │  │  (PIP)   │
-       └──────────┘    └──────────────┘  └──────────┘
-           │                  │                │
-           │                  │                │
-           ▼                  ▼                ▼
-       ┌──────────┐    ┌──────────────┐  ┌──────────┐
-       │  Policy  │    │   Policy     │  │  User    │
-       │  Store   │    │   Engine     │  │  Store   │
-       └──────────┘    └──────────────┘  └──────────┘
+```mermaid
+flowchart TB
+    Client[Client Request]
+    GW[API Gateway]
+    PEP["Policy Enforcement Point (PEP)"]
+    PAP["Policy Admin Point (PAP)"]
+    PDP["Policy Decision Point (PDP)"]
+    PIP["Policy Info Point (PIP)"]
+    PStore[Policy Store]
+    PEngine[Policy Engine]
+    UStore[User Store]
+    Client --> GW
+    GW --> PEP
+    PEP --> PAP
+    PEP --> PDP
+    PEP --> PIP
+    PAP --> PStore
+    PDP --> PEngine
+    PIP --> UStore
+    style Client fill:#dbeafe
+    style PEP fill:#fef3c7
+    style PDP fill:#dcfce7
 ```
 
 ---

@@ -11,27 +11,32 @@ The **Strangler Fig** pattern incrementally replaces a legacy system by graduall
 
 ## The Pattern
 
+**Phase 1: New component alongside legacy**
+
+```mermaid
+flowchart LR
+    P1[Proxy] -->|"100% traffic"| L1[Legacy]
+    style L1 fill:#fef3c7
 ```
-Phase 1: New component alongside legacy
-┌─────────┐     ┌─────────────┐
-│  Proxy  │────►│   Legacy    │ 100% traffic
-└─────────┘     └─────────────┘
 
-Phase 2: Gradual migration
-┌─────────┐     ┌─────────────┐
-│  Proxy  │──┬─►│   Legacy    │ 70% traffic
-└─────────┘  │  └─────────────┘
-             │  ┌─────────────┐
-             └─►│    New      │ 30% traffic
-                └─────────────┘
+**Phase 2: Gradual migration**
 
-Phase 3: Complete migration
-┌─────────┐     ┌─────────────┐
-│  Proxy  │     │   Legacy    │ Decommissioned
-└─────────┘     └─────────────┘
-     │          ┌─────────────┐
-     └─────────►│    New      │ 100% traffic
-                └─────────────┘
+```mermaid
+flowchart LR
+    P2[Proxy] -->|"70% traffic"| L2[Legacy]
+    P2 -->|"30% traffic"| N2[New]
+    style L2 fill:#fef3c7
+    style N2 fill:#dbeafe
+```
+
+**Phase 3: Complete migration**
+
+```mermaid
+flowchart LR
+    P3[Proxy] -->|"100% traffic"| N3[New]
+    L3["Legacy (decommissioned)"]
+    style L3 fill:#fee2e2
+    style N3 fill:#dcfce7
 ```
 
 ---
@@ -128,16 +133,30 @@ X-Use-New-System: true → New system
 
 Options for handling data during migration:
 
+**Option 1: Shared Database**
+
+```mermaid
+flowchart LR
+    L1[Legacy] --> DB[(Database)]
+    N1[New] --> DB
 ```
-Option 1: Shared Database
-Legacy ──┬──► Database ◄──┬── New
-         └────────────────┘
 
-Option 2: Data Sync
-Legacy ──► Legacy DB ──sync──► New DB ◄── New
+**Option 2: Data Sync**
 
-Option 3: Event-Based
-Legacy ──► Events ──► New DB ◄── New
+```mermaid
+flowchart LR
+    L2[Legacy] --> LDB[(Legacy DB)]
+    LDB -->|"sync"| NDB[(New DB)]
+    N2[New] --> NDB
+```
+
+**Option 3: Event-Based**
+
+```mermaid
+flowchart LR
+    L3[Legacy] --> E[(Events)]
+    E --> NDB2[(New DB)]
+    N3[New] --> NDB2
 ```
 
 ---

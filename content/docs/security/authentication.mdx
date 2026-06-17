@@ -25,29 +25,19 @@ description: Understanding authentication patterns for system design.
 
 ## Session-Based Authentication
 
-```
-┌────────┐         ┌────────────┐         ┌─────────────┐
-│ Client │         │   Server   │         │Session Store│
-└───┬────┘         └─────┬──────┘         └──────┬──────┘
-    │                    │                       │
-    │  1. Login (creds)  │                       │
-    │───────────────────>│                       │
-    │                    │  2. Create session    │
-    │                    │──────────────────────>│
-    │                    │     Session ID        │
-    │                    │<──────────────────────│
-    │  3. Set-Cookie:    │                       │
-    │     session_id     │                       │
-    │<───────────────────│                       │
-    │                    │                       │
-    │  4. Request +      │                       │
-    │     Cookie         │                       │
-    │───────────────────>│  5. Validate session  │
-    │                    │──────────────────────>│
-    │                    │      User data        │
-    │                    │<──────────────────────│
-    │  6. Response       │                       │
-    │<───────────────────│                       │
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant SS as Session Store
+    C->>S: "1. Login (creds)"
+    S->>SS: 2. Create session
+    SS-->>S: Session ID
+    S-->>C: "3. Set-Cookie: session_id"
+    C->>S: 4. Request + Cookie
+    S->>SS: 5. Validate session
+    SS-->>S: User data
+    S-->>C: 6. Response
 ```
 
 **Pros**: Easy revocation, server control
@@ -86,25 +76,16 @@ eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.signature
 
 ### JWT Flow
 
-```
-┌────────┐                    ┌────────────┐
-│ Client │                    │   Server   │
-└───┬────┘                    └─────┬──────┘
-    │                               │
-    │  1. Login (credentials)       │
-    │──────────────────────────────>│
-    │                               │ 2. Verify credentials
-    │                               │    Generate JWT
-    │  3. Return JWT                │
-    │<──────────────────────────────│
-    │                               │
-    │  4. Request + JWT             │
-    │     (Authorization: Bearer)   │
-    │──────────────────────────────>│
-    │                               │ 5. Verify signature
-    │                               │    Check expiration
-    │  6. Response                  │
-    │<──────────────────────────────│
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: 1. Login (credentials)
+    Note over S: 2. Verify credentials, Generate JWT
+    S-->>C: 3. Return JWT
+    C->>S: "4. Request + JWT (Authorization: Bearer)"
+    Note over S: 5. Verify signature, Check expiration
+    S-->>C: 6. Response
 ```
 
 **Pros**: Stateless, scalable, self-contained
@@ -125,68 +106,43 @@ eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMTIzIn0.signature
 
 ### Authorization Code Flow
 
-```
-┌──────────┐    ┌──────────┐    ┌─────────────┐    ┌────────────┐
-│   User   │    │  Client  │    │  Auth Server│    │  Resource  │
-│ (Browser)│    │   App    │    │   (Google)  │    │   Server   │
-└────┬─────┘    └────┬─────┘    └──────┬──────┘    └─────┬──────┘
-     │               │                 │                 │
-     │ 1. Click      │                 │                 │
-     │   "Login"     │                 │                 │
-     │──────────────>│                 │                 │
-     │               │                 │                 │
-     │  2. Redirect to Auth Server     │                 │
-     │<──────────────────────────────────────────────────│
-     │               │                 │                 │
-     │  3. Login &   │                 │                 │
-     │     Consent   │                 │                 │
-     │─────────────────────────────────>                 │
-     │               │                 │                 │
-     │  4. Redirect with Auth Code     │                 │
-     │<─────────────────────────────────                 │
-     │               │                 │                 │
-     │  5. Send Auth Code              │                 │
-     │──────────────>│                 │                 │
-     │               │                 │                 │
-     │               │ 6. Exchange code│                 │
-     │               │    for tokens   │                 │
-     │               │────────────────>│                 │
-     │               │                 │                 │
-     │               │ 7. Access +     │                 │
-     │               │    Refresh Token│                 │
-     │               │<────────────────│                 │
-     │               │                 │                 │
-     │               │ 8. API call with Access Token     │
-     │               │─────────────────────────────────> │
-     │               │                                   │
-     │               │ 9. Protected Resource             │
-     │               │<──────────────────────────────────│
+```mermaid
+sequenceDiagram
+    participant U as User (Browser)
+    participant C as Client App
+    participant AS as Auth Server (Google)
+    participant RS as Resource Server
+    U->>C: 1. Click Login
+    C-->>U: 2. Redirect to Auth Server
+    U->>AS: 3. Login and Consent
+    AS-->>U: 4. Redirect with Auth Code
+    U->>C: 5. Send Auth Code
+    C->>AS: 6. Exchange code for tokens
+    AS-->>C: 7. Access + Refresh Token
+    C->>RS: 8. API call with Access Token
+    RS-->>C: 9. Protected Resource
 ```
 
 ---
 
 ## Single Sign-On (SSO)
 
+```mermaid
+flowchart TB
+    IdP["Identity Provider (IdP)<br/>User Directory + Session Store"]
+    A["App A (Gmail)"]
+    B["App B (Drive)"]
+    C["App C (Docs)"]
+    IdP --> A
+    IdP --> B
+    IdP --> C
+    style IdP fill:#dbeafe
+    style A fill:#dcfce7
+    style B fill:#dcfce7
+    style C fill:#dcfce7
 ```
-┌────────────────────────────────────────────────────────┐
-│                    Identity Provider                    │
-│                       (IdP)                            │
-│              ┌─────────────────────┐                   │
-│              │   User Directory    │                   │
-│              │   Session Store     │                   │
-│              └─────────────────────┘                   │
-└──────────────────────┬─────────────────────────────────┘
-                       │
-       ┌───────────────┼───────────────┐
-       │               │               │
-       ▼               ▼               ▼
-  ┌─────────┐    ┌─────────┐    ┌─────────┐
-  │  App A  │    │  App B  │    │  App C  │
-  │ (Gmail) │    │ (Drive) │    │ (Docs)  │
-  └─────────┘    └─────────┘    └─────────┘
 
-Login once → Access all applications
-```
+Login once and access all applications.
 
 ### SSO Protocols
 
@@ -200,28 +156,17 @@ Login once → Access all applications
 
 ## Token Refresh Flow
 
-```
-Access Token:  Short-lived (15 min - 1 hour)
-Refresh Token: Long-lived (days - weeks)
+Access Token: Short-lived (15 min to 1 hour). Refresh Token: Long-lived (days to weeks).
 
-┌────────┐                    ┌────────────┐
-│ Client │                    │   Server   │
-└───┬────┘                    └─────┬──────┘
-    │                               │
-    │  Request + Expired Token      │
-    │──────────────────────────────>│
-    │                               │
-    │  401 Unauthorized             │
-    │<──────────────────────────────│
-    │                               │
-    │  Refresh Token Request        │
-    │──────────────────────────────>│
-    │                               │
-    │  New Access Token             │
-    │<──────────────────────────────│
-    │                               │
-    │  Retry Request                │
-    │──────────────────────────────>│
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    C->>S: Request + Expired Token
+    S-->>C: 401 Unauthorized
+    C->>S: Refresh Token Request
+    S-->>C: New Access Token
+    C->>S: Retry Request
 ```
 
 ---

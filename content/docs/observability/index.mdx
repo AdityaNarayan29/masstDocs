@@ -35,17 +35,19 @@ import { Cards, Card } from "fumadocs-ui/components/card";
 
 ## The Three Pillars
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Observability                         │
-├──────────────────┬──────────────────┬───────────────────┤
-│      Logs        │     Metrics      │     Traces        │
-│  (What happened) │  (How much)      │  (Request flow)   │
-├──────────────────┼──────────────────┼───────────────────┤
-│  Events          │  Counters        │  Spans            │
-│  Errors          │  Gauges          │  Context          │
-│  Debug info      │  Histograms      │  Latency          │
-└──────────────────┴──────────────────┴───────────────────┘
+```mermaid
+flowchart TB
+    O[Observability]
+    L["Logs (What happened)<br/>Events, Errors, Debug info"]
+    M["Metrics (How much)<br/>Counters, Gauges, Histograms"]
+    T["Traces (Request flow)<br/>Spans, Context, Latency"]
+    O --> L
+    O --> M
+    O --> T
+    style O fill:#dbeafe
+    style L fill:#fef3c7
+    style M fill:#dcfce7
+    style T fill:#fee2e2
 ```
 
 ---

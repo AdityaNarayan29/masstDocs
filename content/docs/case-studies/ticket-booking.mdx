@@ -50,33 +50,19 @@ Traffic:
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                              Clients                                 │
-│                    (Web, Mobile, Partners)                          │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                           API Gateway                                │
-│              (Rate limiting, Auth, Routing)                          │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-        ┌────────────────────────┼────────────────────────────────┐
-        │                        │                                │
-        ▼                        ▼                                ▼
-┌──────────────┐        ┌──────────────┐        ┌──────────────────────┐
-│   Search     │        │   Booking    │        │     Payment          │
-│   Service    │        │   Service    │        │     Service          │
-└──────┬───────┘        └──────┬───────┘        └──────────┬───────────┘
-       │                       │                           │
-       │               ┌───────┴───────┐                   │
-       │               │               │                   │
-       ▼               ▼               ▼                   ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│  Elasticsearch│ │  Redis Lock │ │   Primary    │ │   Payment    │
-│  (Search)    │ │  (Seat Hold)│ │   Database   │ │   Gateway    │
-└──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+```mermaid
+flowchart TB
+    Clients["Clients (Web, Mobile, Partners)"] --> GW["API Gateway (Rate limiting, Auth, Routing)"]
+    GW --> Search["Search Service"]
+    GW --> Booking["Booking Service"]
+    GW --> Payment["Payment Service"]
+    Search --> ES["Elasticsearch (Search)"]
+    Booking --> RL["Redis Lock (Seat Hold)"]
+    Booking --> DB["Primary Database"]
+    Payment --> PG["Payment Gateway"]
+    style GW fill:#dbeafe
+    style RL fill:#fef3c7
+    style DB fill:#dcfce7
 ```
 
 ---
@@ -245,35 +231,19 @@ Response:
 
 ### Distributed Lock with Redis
 
-```
-Seat Hold Process:
-
-1. User selects seats [A1, A2, A3]
-   │
-   ▼
-2. Try to acquire locks:
-   SETNX lock:show_123:A1 user_456 EX 600  // 10 min expiry
-   SETNX lock:show_123:A2 user_456 EX 600
-   SETNX lock:show_123:A3 user_456 EX 600
-   │
-   ├── All succeed → Seats held
-   │
-   └── Any fail → Release acquired locks, return error
-   │
-   ▼
-3. Store in database as HELD status
-   │
-   ▼
-4. Return hold_id to user (10 min to complete payment)
-   │
-   ▼
-5. On payment success:
-   - Update status to BOOKED
-   - Keep locks until show time
-
-6. On timeout/cancellation:
-   - Release locks
-   - Update status to CANCELLED
+```mermaid
+flowchart TB
+    S1["1. User selects seats #91;A1, A2, A3#93;"] --> S2["2. Try SETNX lock:show_123:A* user_456 EX 600 for each seat"]
+    S2 --> Check{All succeed?}
+    Check -->|Yes| S3["3. Store in DB as HELD"]
+    Check -->|No| Err["Release acquired locks, return error"]
+    S3 --> S4["4. Return hold_id (10 min to pay)"]
+    S4 --> Pay{Payment outcome}
+    Pay -->|Success| S5["5. Update to BOOKED, keep locks until show time"]
+    Pay -->|Timeout/Cancel| S6["6. Release locks, update to CANCELLED"]
+    style S5 fill:#dcfce7
+    style Err fill:#fee2e2
+    style S6 fill:#fee2e2
 ```
 
 ### Optimistic Locking Alternative
@@ -303,89 +273,46 @@ COMMIT;
 
 ## Handling High Traffic (Hot Shows)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Virtual Waiting Queue                             │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  For extremely popular events:                                       │
-│                                                                      │
-│  1. User joins queue                                                │
-│     GET /api/v1/shows/{show_id}/queue                               │
-│     Response: { "position": 1523, "estimated_wait": "5 min" }       │
-│                                                                      │
-│  2. Server processes queue in batches                               │
-│     - Allow 100 users at a time                                     │
-│     - Each user has 10 min to complete booking                      │
-│                                                                      │
-│  3. WebSocket updates                                               │
-│     - Notify when it's user's turn                                  │
-│     - Show queue position updates                                   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    VQ["Virtual Waiting Queue (for hot events)"]
+    VQ --> S1["1. User joins queue — GET /api/v1/shows/#123;id#125;/queue → position: 1523, wait: 5 min"]
+    S1 --> S2["2. Server processes queue in batches — 100 users at a time, 10 min each to book"]
+    S2 --> S3["3. WebSocket updates — notify when turn, show position"]
+    style VQ fill:#dbeafe
 ```
 
 ---
 
 ## Payment Integration
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                      Payment Flow                                   │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  1. Create Payment Intent                                          │
-│     - Amount, booking_id, user_id                                  │
-│     - Get payment_intent_id from gateway                           │
-│                                                                     │
-│  2. User completes payment (client-side)                           │
-│                                                                     │
-│  3. Payment Webhook receives confirmation                          │
-│     │                                                               │
-│     ├── Success:                                                   │
-│     │   - Update booking status to CONFIRMED                       │
-│     │   - Send confirmation email/SMS                              │
-│     │   - Generate QR code                                         │
-│     │                                                               │
-│     └── Failure:                                                   │
-│         - Release seat holds                                       │
-│         - Update booking status to FAILED                          │
-│         - Notify user                                              │
-│                                                                     │
-│  4. Timeout Handler (cron job)                                     │
-│     - Release holds older than 10 minutes without payment          │
-│                                                                     │
-└────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    S1["1. Create Payment Intent — amount, booking_id, user_id → payment_intent_id"]
+    S1 --> S2["2. User completes payment (client-side)"]
+    S2 --> S3["3. Payment Webhook receives confirmation"]
+    S3 --> R{Result}
+    R -->|Success| OK["Update booking to CONFIRMED, send email/SMS, generate QR code"]
+    R -->|Failure| Fail["Release seat holds, update to FAILED, notify user"]
+    S3 --> S4["4. Timeout Handler (cron): release holds older than 10 min without payment"]
+    style OK fill:#dcfce7
+    style Fail fill:#fee2e2
 ```
 
 ---
 
 ## Caching Strategy
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Cache Layers                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  CDN (Edge Cache):                                                  │
-│  - Movie posters, static assets                                     │
-│  - Theater information                                              │
-│                                                                      │
-│  Application Cache (Redis):                                         │
-│  - Movie details: TTL 1 hour                                        │
-│  - Show listings by city: TTL 5 minutes                            │
-│  - Seat availability: TTL 30 seconds (short!)                      │
-│                                                                      │
-│  Key patterns:                                                      │
-│  - movies:{city_id}:{date} → show listings                         │
-│  - shows:{show_id}:seats → seat availability map                   │
-│  - lock:show:{show_id}:{seat_id} → seat hold                       │
-│                                                                      │
-│  Cache Invalidation:                                                │
-│  - On booking: Invalidate seat availability cache                  │
-│  - On show creation: Invalidate listings cache                     │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    CDN["CDN (Edge Cache): movie posters, static assets, theater info"]
+    App["Application Cache (Redis): movie details TTL 1h, listings TTL 5m, seats TTL 30s"]
+    Keys["Key patterns: movies:#123;city#125;:#123;date#125;, shows:#123;id#125;:seats, lock:show:#123;id#125;:#123;seat#125;"]
+    Inv["Invalidation: on booking → seat cache, on show creation → listings cache"]
+    CDN --> App --> Keys --> Inv
+    style CDN fill:#dcfce7
+    style App fill:#dbeafe
+    style Inv fill:#fef3c7
 ```
 
 ---
@@ -423,29 +350,15 @@ Queries:
 
 ## Notification System
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Notification Types                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Booking Confirmed:                                                 │
-│  - Email with booking details + QR code                            │
-│  - SMS with booking ID                                              │
-│  - Push notification                                                │
-│                                                                      │
-│  Reminder:                                                          │
-│  - 24 hours before show                                             │
-│  - 2 hours before show                                              │
-│                                                                      │
-│  Cancellation:                                                      │
-│  - Confirmation of refund                                           │
-│  - Refund status updates                                            │
-│                                                                      │
-│  Offers/Recommendations:                                            │
-│  - New releases                                                     │
-│  - Personalized suggestions                                         │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    NT["Notification Types"]
+    NT --> BC["Booking Confirmed: email + QR, SMS with booking ID, push"]
+    NT --> R["Reminder: 24h before show, 2h before show"]
+    NT --> C["Cancellation: refund confirmation, refund status updates"]
+    NT --> O["Offers/Recommendations: new releases, personalized suggestions"]
+    style NT fill:#dbeafe
+    style BC fill:#dcfce7
 ```
 
 ---

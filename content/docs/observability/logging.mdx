@@ -55,36 +55,29 @@ description: Understanding logging best practices for distributed systems.
 
 ## Log Aggregation Architecture
 
-```
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-│  Service A  │ │  Service B  │ │  Service C  │
-└──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-       │               │               │
-       │    Log Shippers (Filebeat, Fluentd)
-       │               │               │
-       ▼               ▼               ▼
-┌─────────────────────────────────────────────┐
-│           Message Queue (Kafka)              │
-│              (Buffer & Decouple)             │
-└────────────────────┬────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│        Log Processing (Logstash)             │
-│         (Parse, Enrich, Transform)           │
-└────────────────────┬────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│         Storage (Elasticsearch)              │
-│           (Index & Search)                   │
-└────────────────────┬────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│         Visualization (Kibana)               │
-│          (Search, Dashboard)                 │
-└─────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    A[Service A]
+    B[Service B]
+    C[Service C]
+    Shippers["Log Shippers (Filebeat, Fluentd)"]
+    MQ["Message Queue (Kafka)<br/>Buffer and Decouple"]
+    Proc["Log Processing (Logstash)<br/>Parse, Enrich, Transform"]
+    Store["Storage (Elasticsearch)<br/>Index and Search"]
+    Viz["Visualization (Kibana)<br/>Search, Dashboard"]
+    A --> Shippers
+    B --> Shippers
+    C --> Shippers
+    Shippers --> MQ
+    MQ --> Proc
+    Proc --> Store
+    Store --> Viz
+    style A fill:#dbeafe
+    style B fill:#dbeafe
+    style C fill:#dbeafe
+    style MQ fill:#fef3c7
+    style Store fill:#dcfce7
+    style Viz fill:#fee2e2
 ```
 
 ---
@@ -104,25 +97,28 @@ F - Fluentd (instead of Logstash)
 
 ## Log Correlation
 
-```
-Request Flow with Trace ID:
+Request flow with trace_id: abc123
 
-┌──────────────────────────────────────────────────────┐
-│                    trace_id: abc123                   │
-├──────────────────────────────────────────────────────┤
-│                                                      │
-│  API Gateway ──► Auth Service ──► User Service       │
-│  span_id: 001    span_id: 002     span_id: 003      │
-│                                                      │
-└──────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    GW["API Gateway<br/>span_id: 001"]
+    Auth["Auth Service<br/>span_id: 002"]
+    User["User Service<br/>span_id: 003"]
+    GW --> Auth --> User
+    style GW fill:#dbeafe
+    style Auth fill:#dcfce7
+    style User fill:#fef3c7
+```
 
 All logs include trace_id for correlation:
-{"trace_id": "abc123", "service": "api-gateway", ...}
-{"trace_id": "abc123", "service": "auth-service", ...}
-{"trace_id": "abc123", "service": "user-service", ...}
 
-Query: trace_id = "abc123" → All related logs
+```json
+{"trace_id": "abc123", "service": "api-gateway"}
+{"trace_id": "abc123", "service": "auth-service"}
+{"trace_id": "abc123", "service": "user-service"}
 ```
+
+Query: `trace_id = "abc123"` returns all related logs.
 
 ---
 

@@ -11,18 +11,16 @@ A database **index** is a data structure that improves query speed by providing 
 
 ## How Indexes Work
 
-```
-Without Index:
-Query: WHERE user_id = 123
-┌─────────────────────────┐
-│ Scan all 1M rows        │ → O(n) - slow
-└─────────────────────────┘
-
-With Index:
-Query: WHERE user_id = 123
-┌─────────────────────────┐
-│ B-tree lookup           │ → O(log n) - fast
-└─────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Without["Without Index"]
+        Q1["Query: WHERE user_id = 123"] --> S1["Scan all 1M rows<br/>O(n) - slow"]
+    end
+    subgraph With["With Index"]
+        Q2["Query: WHERE user_id = 123"] --> S2["B-tree lookup<br/>O(log n) - fast"]
+    end
+    style S1 fill:#fee2e2
+    style S2 fill:#dcfce7
 ```
 
 ---

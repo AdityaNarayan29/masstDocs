@@ -52,107 +52,72 @@ Storage:
 
 ### Pull Model (Fan-out on Read)
 
+```mermaid
+flowchart TB
+    U["User A requests feed"] --> FS["Feed Service"]
+    FS --> S1["1. Get A's following list: #91;B, C, D, E, F...#93;"]
+    S1 --> S2["2. For each followed user, query recent posts from Posts DB"]
+    S2 --> S3["3. Merge and sort all posts"]
+    S3 --> S4["4. Apply ranking algorithm"]
+    S4 --> S5["5. Return top N posts"]
+    style FS fill:#dbeafe
+    style S5 fill:#dcfce7
 ```
-User requests feed:
-┌──────────┐
-│  User A  │ requests feed
-└────┬─────┘
-     │
-     ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                        Feed Service                               │
-│  1. Get A's following list: [B, C, D, E, F...]                   │
-│  2. For each followed user:                                      │
-│     - Query their recent posts from Posts DB                     │
-│  3. Merge and sort all posts                                     │
-│  4. Apply ranking algorithm                                      │
-│  5. Return top N posts                                           │
-└──────────────────────────────────────────────────────────────────┘
 
 Pros: Simple, storage efficient
 Cons: Slow for users following many people
-```
 
 ### Push Model (Fan-out on Write)
 
+```mermaid
+flowchart TB
+    U["User B creates post"] --> FS["Feed Service"]
+    FS --> S1["1. Get B's followers: #91;A, X, Y, Z...#93;"]
+    S1 --> S2["2. For each follower, add post to pre-computed feed cache"]
+    S2 --> S3["3. Done (async)"]
+    S3 --> R["When A requests feed: read from A's pre-computed cache"]
+    style FS fill:#dbeafe
+    style R fill:#dcfce7
 ```
-User B creates post:
-┌──────────┐
-│  User B  │ creates post
-└────┬─────┘
-     │
-     ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                        Feed Service                               │
-│  1. Get B's followers: [A, X, Y, Z...]                           │
-│  2. For each follower:                                           │
-│     - Add post to their pre-computed feed cache                  │
-│  3. Done (async)                                                 │
-└──────────────────────────────────────────────────────────────────┘
-
-When A requests feed:
-- Simply read from A's pre-computed feed cache
 
 Pros: Fast reads
 Cons: Celebrity problem (millions of followers)
-```
 
 ### Hybrid Approach (Recommended)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Hybrid Strategy                               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  Celebrity (>10K followers):                                        │
-│  └─ Pull model: Fetch posts on demand                               │
-│                                                                      │
-│  Regular users (<10K followers):                                    │
-│  └─ Push model: Pre-compute feeds                                   │
-│                                                                      │
-│  Feed Generation:                                                   │
-│  1. Get pre-computed feed (push)                                    │
-│  2. Fetch celebrity posts (pull)                                    │
-│  3. Merge, rank, return                                             │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    H["Hybrid Strategy"] --> C["Celebrity (>10K followers): Pull model — fetch posts on demand"]
+    H --> R["Regular users (<10K followers): Push model — pre-compute feeds"]
+    C --> FG["Feed Generation"]
+    R --> FG
+    FG --> S1["1. Get pre-computed feed (push)"]
+    S1 --> S2["2. Fetch celebrity posts (pull)"]
+    S2 --> S3["3. Merge, rank, return"]
+    style H fill:#dbeafe
+    style S3 fill:#dcfce7
 ```
 
 ---
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                              Clients                                 │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                           Load Balancer                              │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-              ▼                  ▼                  ▼
-       ┌───────────┐      ┌───────────┐      ┌───────────┐
-       │Post Service│      │Feed Service│      │User Service│
-       └─────┬─────┘      └─────┬─────┘      └─────┬─────┘
-             │                  │                  │
-             │                  │                  │
-      ┌──────┴──────┐    ┌──────┴──────┐   ┌──────┴──────┐
-      │             │    │             │   │             │
-      ▼             ▼    ▼             ▼   ▼             │
-┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐     │
-│Posts DB  │ │  Kafka   │ │Feed Cache│ │ Graph DB │     │
-│(Cassandra│ │(Events)  │ │ (Redis)  │ │(Follows) │     │
-└──────────┘ └──────────┘ └──────────┘ └──────────┘     │
-                  │                                      │
-                  ▼                                      │
-          ┌──────────────┐                              │
-          │Feed Generator│                              │
-          │  Workers     │                              │
-          └──────────────┘                              │
+```mermaid
+flowchart TB
+    Clients --> LB["Load Balancer"]
+    LB --> PostSvc["Post Service"]
+    LB --> FeedSvc["Feed Service"]
+    LB --> UserSvc["User Service"]
+    PostSvc --> PostsDB["Posts DB (Cassandra)"]
+    PostSvc --> Kafka["Kafka (Events)"]
+    FeedSvc --> FeedCache["Feed Cache (Redis)"]
+    FeedSvc --> Kafka
+    UserSvc --> GraphDB["Graph DB (Follows)"]
+    Kafka --> Workers["Feed Generator Workers"]
+    Workers --> FeedCache
+    style LB fill:#dbeafe
+    style FeedCache fill:#fef3c7
+    style Workers fill:#fef3c7
 ```
 
 ---
@@ -214,59 +179,33 @@ RETURN follower.id
 
 ### Publishing a Post
 
-```
-1. User creates post
-   │
-   ▼
-2. Post Service
-   - Validate content
-   - Store in Posts DB
-   - Publish to Kafka
-   │
-   ▼
-3. Fan-out Workers (consume from Kafka)
-   │
-   ├─── Check user type
-   │    │
-   │    ├─ Regular user (<10K followers)
-   │    │  │
-   │    │  └─ For each follower:
-   │    │     - Add post_id to follower's feed cache
-   │    │     - ZADD feed:{follower_id} {timestamp} {post_id}
-   │    │
-   │    └─ Celebrity (>10K followers)
-   │       │
-   │       └─ Only store in Posts DB
-   │          (Fetched on demand)
-   │
-   ▼
-4. Notify relevant users (optional real-time)
+```mermaid
+flowchart TB
+    U["1. User creates post"] --> PS["2. Post Service: validate, store in Posts DB, publish to Kafka"]
+    PS --> FW["3. Fan-out Workers (consume Kafka)"]
+    FW --> CT{"Check user type"}
+    CT -->|"Regular user (<10K followers)"| Reg["For each follower: ZADD feed:#123;follower_id#125; #123;ts#125; #123;post_id#125;"]
+    CT -->|"Celebrity (>10K followers)"| Cel["Only store in Posts DB (fetched on demand)"]
+    Reg --> Notify["4. Notify relevant users (optional real-time)"]
+    Cel --> Notify
+    style PS fill:#dbeafe
+    style FW fill:#fef3c7
 ```
 
 ### Reading Feed
 
-```
-1. User requests feed
-   │
-   ▼
-2. Feed Service
-   │
-   ├─ Get pre-computed feed from Redis
-   │  ZREVRANGE feed:{user_id} 0 19
-   │
-   ├─ Get list of celebrities user follows
-   │
-   ├─ Fetch recent posts from celebrities
-   │  (Pull model)
-   │
-   ├─ Merge all posts
-   │
-   ├─ Apply ranking algorithm
-   │
-   └─ Return top N posts with full content
-   │
-   ▼
-3. Return to client
+```mermaid
+flowchart TB
+    U["1. User requests feed"] --> FS["2. Feed Service"]
+    FS --> A["Get pre-computed feed from Redis: ZREVRANGE feed:#123;user_id#125; 0 19"]
+    A --> B["Get list of celebrities user follows"]
+    B --> C["Fetch recent posts from celebrities (pull model)"]
+    C --> D["Merge all posts"]
+    D --> E["Apply ranking algorithm"]
+    E --> F["Return top N posts with full content"]
+    F --> R["3. Return to client"]
+    style FS fill:#dbeafe
+    style R fill:#dcfce7
 ```
 
 ---
@@ -275,47 +214,34 @@ RETURN follower.id
 
 ```
 Score = Affinity × PostWeight × TimeDecay
+```
 
-Components:
-┌─────────────────────────────────────────────────────────────────────┐
-│  Affinity (How close is this friend?)                               │
-│  - Interaction frequency (likes, comments, messages)                │
-│  - Profile views                                                    │
-│  - Mutual friends                                                   │
-├─────────────────────────────────────────────────────────────────────┤
-│  PostWeight (How engaging is this post?)                            │
-│  - Likes count (normalized)                                         │
-│  - Comments count (weighted higher)                                 │
-│  - Shares count (weighted highest)                                  │
-│  - Media presence (photos/videos boost)                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  TimeDecay (How recent?)                                            │
-│  - decay = 1 / (1 + age_hours^1.5)                                 │
-│  - More recent = higher score                                       │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Score["Score = Affinity × PostWeight × TimeDecay"]
+    Score --> A["Affinity (how close is this friend?): interaction frequency, profile views, mutual friends"]
+    Score --> P["PostWeight (how engaging?): likes, comments (higher), shares (highest), media boost"]
+    Score --> T["TimeDecay (how recent?): decay = 1 / (1 + age_hours^1.5)"]
+    style Score fill:#dbeafe
+```
 
 ML-Based Ranking:
 - Use historical data to train model
 - Features: user interactions, post features, context
 - Predict: probability of engagement
-```
 
 ---
 
 ## Real-Time Updates
 
+```mermaid
+flowchart LR
+    Client <--> WS["WebSocket Server"]
+    WS <--> NS["Notification Service"]
+    NS --> Redis["Redis Pub/Sub"]
+    style WS fill:#dbeafe
+    style Redis fill:#fef3c7
 ```
-WebSocket / Server-Sent Events:
-
-┌────────┐         ┌───────────┐         ┌──────────────┐
-│ Client │◄───────►│ WebSocket │◄────────│ Notification │
-│        │         │  Server   │         │   Service    │
-└────────┘         └───────────┘         └──────┬───────┘
-                                                │
-                                         ┌──────┴───────┐
-                                         │    Redis     │
-                                         │   Pub/Sub    │
-                                         └──────────────┘
 
 Flow:
 1. User B posts
@@ -323,29 +249,22 @@ Flow:
 3. Publish notification to Redis Pub/Sub
 4. WebSocket server receives, pushes to connected clients
 5. Client shows "New posts available" or auto-refreshes
-```
 
 ---
 
 ## Caching Strategy
 
-```
-Multi-Level Caching:
-
-┌───────────────────────────────────────────────────────┐
-│  L1: CDN (Static assets, public posts)               │
-├───────────────────────────────────────────────────────┤
-│  L2: Application Cache (Hot posts, user sessions)    │
-├───────────────────────────────────────────────────────┤
-│  L3: Feed Cache - Redis Cluster                      │
-│      - Pre-computed feeds per user                   │
-│      - Last 500 posts per feed                       │
-│      - TTL: 24 hours (rebuild if missed)            │
-├───────────────────────────────────────────────────────┤
-│  L4: Database (Cassandra)                            │
-│      - Source of truth                               │
-│      - Historical posts                              │
-└───────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    L1["L1: CDN (Static assets, public posts)"]
+    L2["L2: Application Cache (Hot posts, user sessions)"]
+    L3["L3: Feed Cache — Redis Cluster (pre-computed feeds, last 500 posts, TTL 24h)"]
+    L4["L4: Database (Cassandra) — source of truth, historical posts"]
+    L1 --> L2 --> L3 --> L4
+    style L1 fill:#dcfce7
+    style L2 fill:#dbeafe
+    style L3 fill:#fef3c7
+    style L4 fill:#fee2e2
 ```
 
 ---

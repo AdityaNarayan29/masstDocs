@@ -11,26 +11,21 @@ APIs are the primary attack surface for modern applications. Proper security pre
 
 ## API Security Layers
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Transport Layer                       │
-│                      (HTTPS/TLS)                         │
-├─────────────────────────────────────────────────────────┤
-│                    Network Layer                         │
-│            (Firewall, WAF, DDoS Protection)             │
-├─────────────────────────────────────────────────────────┤
-│                 Authentication Layer                     │
-│              (OAuth, JWT, API Keys)                      │
-├─────────────────────────────────────────────────────────┤
-│                 Authorization Layer                      │
-│                  (RBAC, ABAC, ACL)                       │
-├─────────────────────────────────────────────────────────┤
-│                   Input Validation                       │
-│           (Sanitization, Schema Validation)              │
-├─────────────────────────────────────────────────────────┤
-│                    Rate Limiting                         │
-│              (Throttling, Quotas)                        │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    L1["Transport Layer (HTTPS/TLS)"]
+    L2["Network Layer (Firewall, WAF, DDoS Protection)"]
+    L3["Authentication Layer (OAuth, JWT, API Keys)"]
+    L4["Authorization Layer (RBAC, ABAC, ACL)"]
+    L5["Input Validation (Sanitization, Schema Validation)"]
+    L6["Rate Limiting (Throttling, Quotas)"]
+    L1 --> L2 --> L3 --> L4 --> L5 --> L6
+    style L1 fill:#dbeafe
+    style L2 fill:#dbeafe
+    style L3 fill:#dcfce7
+    style L4 fill:#dcfce7
+    style L5 fill:#fef3c7
+    style L6 fill:#fef3c7
 ```
 
 ---
@@ -151,26 +146,19 @@ const schema = {
 
 ## CORS (Cross-Origin Resource Sharing)
 
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant API as API Server
+    B->>API: "Preflight: OPTIONS /api/data (Origin: https://app.com)"
+    API-->>B: "Access-Control-Allow-Origin: https://app.com, Allow-Methods: GET, POST"
+    B->>API: "Actual: GET /api/data"
+    API-->>B: response
 ```
-Browser                          API Server
-   │                                  │
-   │  Preflight: OPTIONS /api/data    │
-   │  Origin: https://app.com         │
-   │─────────────────────────────────>│
-   │                                  │
-   │  Access-Control-Allow-Origin:    │
-   │    https://app.com               │
-   │  Access-Control-Allow-Methods:   │
-   │    GET, POST                     │
-   │<─────────────────────────────────│
-   │                                  │
-   │  Actual: GET /api/data           │
-   │─────────────────────────────────>│
 
 Configuration:
-✅ Specific origins: https://app.com
-❌ Wildcard in production: *
-```
+- Good: Specific origins (https://app.com)
+- Bad: Wildcard in production (*)
 
 ---
 
@@ -231,24 +219,19 @@ Referrer-Policy: no-referrer
 
 ## API Gateway Security
 
-```
-┌─────────────────────────────────────────────────┐
-│                  API Gateway                     │
-├─────────────────────────────────────────────────┤
-│  ✓ TLS Termination                              │
-│  ✓ Authentication                               │
-│  ✓ Rate Limiting                                │
-│  ✓ Request Validation                           │
-│  ✓ IP Whitelisting/Blacklisting                 │
-│  ✓ WAF Integration                              │
-│  ✓ Logging & Monitoring                         │
-└─────────────────────────────────────────────────┘
-                      │
-         ┌────────────┼────────────┐
-         ▼            ▼            ▼
-    ┌─────────┐  ┌─────────┐  ┌─────────┐
-    │Service A│  │Service B│  │Service C│
-    └─────────┘  └─────────┘  └─────────┘
+```mermaid
+flowchart TB
+    GW["API Gateway<br/>TLS Termination, Authentication,<br/>Rate Limiting, Request Validation,<br/>IP Whitelist/Blacklist, WAF, Logging"]
+    A[Service A]
+    B[Service B]
+    C[Service C]
+    GW --> A
+    GW --> B
+    GW --> C
+    style GW fill:#dbeafe
+    style A fill:#dcfce7
+    style B fill:#dcfce7
+    style C fill:#dcfce7
 ```
 
 ---
@@ -268,20 +251,23 @@ const API_KEY = process.env.API_KEY;
 ✅ Better: Secrets manager
 const secret = await secretsManager.get('api-key');
 
-Secret Rotation:
-┌──────────────┐     ┌──────────────┐
-│ Old Secret   │     │ New Secret   │
-│ (valid)      │────>│ (generated)  │
-└──────────────┘     └──────────────┘
-                           │
-                           ▼
-                     Both valid during
-                     transition period
-                           │
-                           ▼
-                     ┌──────────────┐
-                     │ Old revoked  │
-                     └──────────────┘
+```
+
+### Secret Rotation
+
+```mermaid
+flowchart TB
+    Old["Old Secret (valid)"]
+    New["New Secret (generated)"]
+    Both["Both valid during transition period"]
+    Revoke["Old revoked"]
+    Old --> New
+    New --> Both
+    Both --> Revoke
+    style Old fill:#fef3c7
+    style New fill:#dcfce7
+    style Both fill:#dbeafe
+    style Revoke fill:#fee2e2
 ```
 
 ---

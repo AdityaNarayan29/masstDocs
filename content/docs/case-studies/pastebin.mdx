@@ -52,45 +52,20 @@ Bandwidth:
 
 ## High-Level Design
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                           Clients                                 │
-└─────────────────────────────────┬────────────────────────────────┘
-                                  │
-                                  ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                         Load Balancer                             │
-└─────────────────────────────────┬────────────────────────────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    │                           │
-                    ▼                           ▼
-           ┌──────────────┐            ┌──────────────┐
-           │ Write Service │            │ Read Service │
-           │  (API Server) │            │  (API Server)│
-           └───────┬──────┘            └───────┬──────┘
-                   │                           │
-                   │                   ┌───────┴───────┐
-                   │                   │               │
-                   │                   ▼               │
-                   │           ┌─────────────┐        │
-                   │           │    Cache    │        │
-                   │           │   (Redis)   │        │
-                   │           └──────┬──────┘        │
-                   │                  │               │
-                   └──────────────────┼───────────────┘
-                                      │
-                                      ▼
-                          ┌───────────────────────┐
-                          │     Object Storage    │
-                          │    (S3 / MinIO)       │
-                          └───────────────────────┘
-                                      │
-                                      ▼
-                          ┌───────────────────────┐
-                          │     Metadata DB       │
-                          │    (PostgreSQL)       │
-                          └───────────────────────┘
+```mermaid
+flowchart TB
+    Clients --> LB["Load Balancer"]
+    LB --> Write["Write Service (API Server)"]
+    LB --> Read["Read Service (API Server)"]
+    Read --> Cache["Cache (Redis)"]
+    Write --> Storage["Object Storage (S3 / MinIO)"]
+    Cache --> Storage
+    Storage --> Meta["Metadata DB (PostgreSQL)"]
+    Write --> Meta
+    style LB fill:#dbeafe
+    style Cache fill:#fef3c7
+    style Storage fill:#dcfce7
+    style Meta fill:#dcfce7
 ```
 
 ---
@@ -145,11 +120,7 @@ Options for short URL:
    Store in separate table
    Mark as used when assigned
 
-Recommended: Counter-based with encoding
-┌─────────────────────────────────────────┐
-│  Counter Service (Atomic increment)     │
-│  ID: 1000001 → Base62 → "4c93"         │
-└─────────────────────────────────────────┘
+Recommended: Counter-based with encoding — Counter Service (atomic increment): ID 1000001 → Base62 → "4c93"
 ```
 
 ---
@@ -196,69 +167,54 @@ Response:
 
 ## Read Flow
 
-```
-GET /paste/abc12345
+`GET /paste/abc12345`
 
-┌────────┐     ┌───────────┐     ┌──────────┐
-│ Client │────>│ API Server│────>│  Cache   │
-└────────┘     └─────┬─────┘     └────┬─────┘
-                     │                │
-                     │  Cache Hit?    │
-                     │<───────────────┤
-                     │                │
-              ┌──────┴──────┐        │
-              │  Cache Miss │        │
-              └──────┬──────┘        │
-                     │               │
-                     ▼               │
-              ┌─────────────┐       │
-              │ Metadata DB │       │
-              └──────┬──────┘       │
-                     │              │
-                     ▼              │
-              ┌─────────────┐      │
-              │Object Storage│      │
-              └──────┬──────┘      │
-                     │             │
-                     │ Store in    │
-                     │ Cache       │
-                     │────────────>│
-                     │             │
-                     ▼             │
-              Return to Client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Cache as Cache (Redis)
+    participant DB as Metadata DB
+    participant S3 as Object Storage
+
+    Client->>API: GET /paste/abc12345
+    API->>Cache: lookup paste
+    alt cache hit
+        Cache-->>API: paste content
+    else cache miss
+        API->>DB: fetch metadata
+        DB-->>API: content_hash
+        API->>S3: fetch content
+        S3-->>API: paste content
+        API->>Cache: store in cache
+    end
+    API-->>Client: return paste
 ```
 
 ---
 
 ## Write Flow
 
-```
-POST /paste
+`POST /paste`
 
-┌────────┐     ┌───────────┐
-│ Client │────>│ API Server│
-└────────┘     └─────┬─────┘
-                     │
-         ┌───────────┴───────────┐
-         │                       │
-         ▼                       ▼
-   ┌───────────┐         ┌─────────────┐
-   │   Key     │         │   Object    │
-   │Generation │         │   Storage   │
-   │  Service  │         │  (S3)       │
-   └─────┬─────┘         └──────┬──────┘
-         │                      │
-         │    content_hash      │
-         │<─────────────────────│
-         │                      │
-         ▼                      │
-   ┌─────────────┐             │
-   │ Metadata DB │             │
-   │ (write meta)│             │
-   └─────────────┘             │
-         │                     │
-         ▼                     │
-   Return short_url to client
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Key as Key Generation Service
+    participant S3 as Object Storage
+    participant DB as Metadata DB
+
+    Client->>API: POST /paste
+    par
+        API->>Key: request short_url
+        Key-->>API: short_url
+    and
+        API->>S3: store content
+        S3-->>API: content_hash
+    end
+    API->>DB: write metadata (short_url, content_hash)
+    API-->>Client: return short_url
 ```
 
 ---
@@ -318,24 +274,19 @@ Hot Content Detection:
 
 ## Expiration Handling
 
-```
-Background Cleanup Job:
-
-┌─────────────────────────────────────────────────────┐
-│              Cleanup Service (Cron)                  │
-├─────────────────────────────────────────────────────┤
-│  Every hour:                                        │
-│  1. Query: SELECT * FROM pastes                     │
-│           WHERE expires_at < NOW()                  │
-│           LIMIT 1000                                │
-│                                                     │
-│  2. For each expired paste:                         │
-│     - Delete from object storage                    │
-│     - Delete from database                          │
-│     - Invalidate cache                              │
-│                                                     │
-│  3. Soft delete first, hard delete after 24h       │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Cron["Cleanup Service (Cron, hourly)"]
+    Cron --> Q["1. Query: SELECT * FROM pastes WHERE expires_at less than NOW() LIMIT 1000"]
+    Q --> Loop["2. For each expired paste"]
+    Loop --> D1["Delete from object storage"]
+    Loop --> D2["Delete from database"]
+    Loop --> D3["Invalidate cache"]
+    D1 --> Soft["3. Soft delete first, hard delete after 24h"]
+    D2 --> Soft
+    D3 --> Soft
+    style Cron fill:#dbeafe
+    style Soft fill:#fee2e2
 ```
 
 ---
@@ -353,17 +304,16 @@ Shard by short_url hash:
 
 ### CDN for Reads
 
+```mermaid
+flowchart LR
+    Client --> CDN["CDN (Cache)"] --> Origin["Origin (API)"]
+    style CDN fill:#fef3c7
 ```
-┌────────┐     ┌───────┐     ┌──────────┐
-│ Client │────>│  CDN  │────>│ Origin   │
-└────────┘     │(Cache)│     │ (API)    │
-               └───────┘     └──────────┘
 
 CDN caches:
 - Public pastes
 - Static assets (syntax highlighting)
 - Read-heavy traffic reduction
-```
 
 ---
 

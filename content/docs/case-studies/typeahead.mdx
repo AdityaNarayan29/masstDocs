@@ -49,37 +49,19 @@ Storage:
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                              Client                                  │
-│                    (Debounce: 100-150ms)                            │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                           API Gateway                                │
-│                    (Rate limiting, Routing)                          │
-└────────────────────────────────┬────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Suggestion Service Cluster                        │
-│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │
-│   │   Node 1    │  │   Node 2    │  │   Node 3    │                │
-│   │ (In-memory  │  │ (In-memory  │  │ (In-memory  │                │
-│   │   Trie)     │  │   Trie)     │  │   Trie)     │                │
-│   └─────────────┘  └─────────────┘  └─────────────┘                │
-└─────────────────────────────────────────────────────────────────────┘
-                                 │
-                                 │ Async updates
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     Data Collection Pipeline                         │
-│   ┌───────────┐    ┌───────────┐    ┌───────────┐                  │
-│   │  Kafka    │───>│  Spark    │───>│  Trie     │                  │
-│   │ (Queries) │    │ (Agg)     │    │ Builder   │                  │
-│   └───────────┘    └───────────┘    └───────────┘                  │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Client["Client (Debounce: 100-150ms)"] --> GW["API Gateway (Rate limiting, Routing)"]
+    GW --> SS["Suggestion Service Cluster"]
+    SS --> N1["Node 1 (In-memory Trie)"]
+    SS --> N2["Node 2 (In-memory Trie)"]
+    SS --> N3["Node 3 (In-memory Trie)"]
+    Kafka["Kafka (Queries)"] --> Spark["Spark (Agg)"]
+    Spark --> TB["Trie Builder"]
+    TB -.->|Async updates| SS
+    style GW fill:#dbeafe
+    style SS fill:#fef3c7
+    style TB fill:#dcfce7
 ```
 
 ---
@@ -134,24 +116,15 @@ Query time: O(prefix length) instead of O(all descendants)
 
 ## Scoring & Ranking
 
-```
-Score = w1 × frequency + w2 × recency + w3 × personalization
+`Score = w1 × frequency + w2 × recency + w3 × personalization`
 
-Components:
-┌─────────────────────────────────────────────────────────┐
-│  Frequency Score                                         │
-│  - Global search count                                  │
-│  - Normalized: log(count)                               │
-├─────────────────────────────────────────────────────────┤
-│  Recency Score                                          │
-│  - Decay factor for older queries                       │
-│  - score = base × e^(-λ × age_days)                    │
-├─────────────────────────────────────────────────────────┤
-│  Personalization Score (Optional)                        │
-│  - User's search history                                │
-│  - Location-based boosting                              │
-│  - Time-of-day patterns                                 │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Score["Score = w1·frequency + w2·recency + w3·personalization"]
+    Score --> F["Frequency Score: global search count, normalized log(count)"]
+    Score --> R["Recency Score: decay = base × e^(-λ × age_days)"]
+    Score --> P["Personalization (optional): search history, location, time-of-day"]
+    style Score fill:#dbeafe
 ```
 
 ---
@@ -218,120 +191,85 @@ function prefetchNext(prefix) {
 
 ## Data Collection Pipeline
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Data Collection Flow                            │
-└─────────────────────────────────────────────────────────────────────┘
-
-1. User searches "best restaurants"
-   │
-   ▼
-2. Log to Kafka
-   { query: "best restaurants", timestamp: T, user: U, location: L }
-   │
-   ▼
-3. Spark Streaming (5-minute windows)
-   - Aggregate counts per query
-   - Apply recency decay
-   - Filter spam/low-quality
-   │
-   ▼
-4. Batch Processing (Daily)
-   - Merge with historical data
-   - Rebuild complete trie
-   - Calculate new scores
-   │
-   ▼
-5. Trie Distribution
-   - Serialize trie to file
-   - Distribute to all nodes
-   - Atomic swap of trie in memory
+```mermaid
+flowchart TB
+    S1["1. User searches 'best restaurants'"]
+    S1 --> S2["2. Log to Kafka — #123;query, timestamp, user, location#125;"]
+    S2 --> S3["3. Spark Streaming (5-min windows): aggregate, recency decay, filter spam"]
+    S3 --> S4["4. Batch Processing (daily): merge history, rebuild trie, recalculate scores"]
+    S4 --> S5["5. Trie Distribution: serialize, distribute to nodes, atomic in-memory swap"]
+    style S1 fill:#dbeafe
+    style S5 fill:#dcfce7
 ```
 
 ### Trend Detection
 
-```
-Real-time trending topics:
-
-┌─────────────────────────────────────────────────────────┐
-│              Trend Detection                             │
-├─────────────────────────────────────────────────────────┤
-│  Compare:                                                │
-│  - Current 5-min count                                  │
-│  - Historical average for this time                     │
-│                                                          │
-│  If current >> historical:                              │
-│    → Mark as trending                                   │
-│    → Boost score temporarily                            │
-│    → Update trie more frequently                        │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    TD["Trend Detection (real-time)"]
+    TD --> C["Compare: current 5-min count vs historical average"]
+    C --> D{current much greater than historical?}
+    D -->|Yes| Mark["Mark as trending, boost score temporarily, update trie more frequently"]
+    style TD fill:#dbeafe
+    style Mark fill:#dcfce7
 ```
 
 ---
 
 ## Trie Sharding
 
-```
-For very large datasets:
-
 Strategy 1: Shard by First Character
-┌───────────┐  ┌───────────┐  ┌───────────┐
-│ Shard A-F │  │ Shard G-M │  │ Shard N-Z │
-│  "apple"  │  │  "google" │  │  "netflix"│
-│  "amazon" │  │  "hello"  │  │  "python" │
-└───────────┘  └───────────┘  └───────────┘
 
-Strategy 2: Shard by Hash (All replicas have full trie)
-┌───────────┐  ┌───────────┐  ┌───────────┐
-│ Replica 1 │  │ Replica 2 │  │ Replica 3 │
-│ (Full)    │  │ (Full)    │  │ (Full)    │
-└───────────┘  └───────────┘  └───────────┘
+```mermaid
+flowchart LR
+    SAF["Shard A-F: 'apple', 'amazon'"]
+    SGM["Shard G-M: 'google', 'hello'"]
+    SNZ["Shard N-Z: 'netflix', 'python'"]
+    style SAF fill:#dbeafe
+    style SGM fill:#fef3c7
+    style SNZ fill:#dcfce7
+```
+
+Strategy 2: Shard by Hash (all replicas have full trie)
+
+```mermaid
+flowchart LR
+    R1["Replica 1 (Full)"]
+    R2["Replica 2 (Full)"]
+    R3["Replica 3 (Full)"]
+    style R1 fill:#dbeafe
+    style R2 fill:#dbeafe
+    style R3 fill:#dbeafe
+```
+
 - Load balance across replicas
 - 50 GB fits in memory on modern servers
-```
 
 ---
 
 ## Handling Multi-Language
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Multi-Language Support                      │
-├─────────────────────────────────────────────────────────┤
-│  Separate tries per language:                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐               │
-│  │  English │ │ Spanish  │ │ Japanese │               │
-│  │   Trie   │ │   Trie   │ │   Trie   │               │
-│  └──────────┘ └──────────┘ └──────────┘               │
-│                                                          │
-│  Language Detection:                                    │
-│  - User locale setting                                  │
-│  - Character analysis (CJK, Cyrillic, etc.)           │
-│  - Query to appropriate trie                           │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    Q["Query"] --> LD["Language Detection: user locale, character analysis (CJK, Cyrillic, etc.)"]
+    LD --> EN["English Trie"]
+    LD --> ES["Spanish Trie"]
+    LD --> JA["Japanese Trie"]
+    style LD fill:#dbeafe
 ```
 
 ---
 
 ## Fault Tolerance
 
-```
-┌─────────────────────────────────────────────────────────┐
-│              Failure Handling                            │
-├─────────────────────────────────────────────────────────┤
-│  Trie Replication:                                      │
-│  - Each trie replicated 3x                             │
-│  - Spread across availability zones                    │
-│                                                          │
-│  Fallback Hierarchy:                                    │
-│  1. In-memory trie (fastest)                           │
-│  2. Redis cache (fast)                                 │
-│  3. Database query (slow, last resort)                 │
-│                                                          │
-│  Circuit Breaker:                                       │
-│  - If latency > 100ms for 5% requests                  │
-│  - Return cached/stale results                         │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    FH["Failure Handling"]
+    FH --> Rep["Trie Replication: 3x, across availability zones"]
+    FH --> FB["Fallback Hierarchy: 1) in-memory trie, 2) Redis cache, 3) database query"]
+    FH --> CB["Circuit Breaker: if latency over 100ms for 5% requests, return cached/stale results"]
+    style FH fill:#dbeafe
+    style CB fill:#fee2e2
 ```
 
 ---

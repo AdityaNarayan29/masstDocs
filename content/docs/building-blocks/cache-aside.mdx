@@ -13,36 +13,31 @@ description: Understanding the cache-aside pattern for application caching.
 
 ### Read Path
 
-```
-Application                Cache                Database
-     │                       │                     │
-     │─── Get(key) ─────────►│                     │
-     │                       │                     │
-     │◄── Cache Miss ────────│                     │
-     │                       │                     │
-     │─── Query ─────────────────────────────────►│
-     │                       │                     │
-     │◄── Data ───────────────────────────────────│
-     │                       │                     │
-     │─── Set(key, data) ───►│                     │
-     │                       │                     │
-     │◄── OK ────────────────│                     │
-     │                       │                     │
-     ▼ Return data
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+    App->>Cache: Get(key)
+    Cache-->>App: Cache Miss
+    App->>DB: Query
+    DB-->>App: Data
+    App->>Cache: Set(key, data)
+    Cache-->>App: OK
+    Note over App: Return data
 ```
 
 ### Write Path
 
-```
-Application                Cache                Database
-     │                       │                     │
-     │─── Write ─────────────────────────────────►│
-     │                       │                     │
-     │◄── OK ─────────────────────────────────────│
-     │                       │                     │
-     │─── Delete(key) ──────►│                     │
-     │                       │                     │
-     │◄── OK ────────────────│                     │
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+    App->>DB: Write
+    DB-->>App: OK
+    App->>Cache: Delete(key)
+    Cache-->>App: OK
 ```
 
 ---
@@ -99,16 +94,21 @@ def update_user(user_id, data):
 
 When cache expires, many requests hit DB simultaneously:
 
+```mermaid
+flowchart LR
+    Expire[Cache expires] --> R1[Request 1]
+    Expire --> R2[Request 2]
+    Expire --> R3[Request 3]
+    Expire --> RN[Request N]
+    R1 --> M1[Cache miss] --> DB[(Database)]
+    R2 --> M2[Cache miss] --> DB
+    R3 --> M3[Cache miss] --> DB
+    RN --> MN[Cache miss] --> DB
+    style DB fill:#fee2e2
+    style Expire fill:#fef3c7
 ```
-Cache expires
-     │
-     ├─► Request 1 ──► Cache miss ──► DB query
-     ├─► Request 2 ──► Cache miss ──► DB query
-     ├─► Request 3 ──► Cache miss ──► DB query
-     └─► Request N ──► Cache miss ──► DB query
 
-All hit DB at once! 💥
-```
+All hit DB at once!
 
 ### Solutions
 

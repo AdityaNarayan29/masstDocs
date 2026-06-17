@@ -93,22 +93,15 @@ end
 
 ### Lock Flow
 
-```
-┌──────────┐                    ┌──────────┐
-│ Client A │                    │  Redis   │
-└────┬─────┘                    └────┬─────┘
-     │                               │
-     │ SET lock:x "A" NX PX 30000    │
-     │──────────────────────────────>│
-     │              OK               │
-     │<──────────────────────────────│
-     │                               │
-     │        (Do work)              │
-     │                               │
-     │ DEL lock:x (if value="A")     │
-     │──────────────────────────────>│
-     │              1                │
-     │<──────────────────────────────│
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant R as Redis
+    A->>R: SET lock:x "A" NX PX 30000
+    R-->>A: OK
+    Note over A: Do work
+    A->>R: DEL lock:x (if value="A")
+    R-->>A: 1
 ```
 
 ---

@@ -15,24 +15,19 @@ description: Understanding failover strategies for high availability in distribu
 
 One server handles all traffic while others wait in standby.
 
-```
-Normal Operation:
-┌─────────┐         ┌─────────┐
-│ Primary │◄───────►│ Standby │ (idle)
-│ (active)│         │(passive)│
-└─────────┘         └─────────┘
-     ▲
-     │ All traffic
-     │
-┌─────────┐
-│ Clients │
-└─────────┘
-
-After Failover:
-┌─────────┐         ┌─────────┐
-│ Primary │         │ Standby │◄── All traffic
-│  (down) │   X     │ (active)│
-└─────────┘         └─────────┘
+```mermaid
+flowchart TB
+    subgraph Normal["Normal Operation"]
+        C1["Clients"] -->|"all traffic"| P1["Primary (active)"]
+        P1 <-->|"replicate"| S1["Standby (passive, idle)"]
+    end
+    subgraph After["After Failover"]
+        P2["Primary (down)"]
+        C2["Clients"] -->|"all traffic"| S2["Standby (active)"]
+    end
+    style P1 fill:#dbeafe
+    style S2 fill:#dcfce7
+    style P2 fill:#fecaca
 ```
 
 | **Variant** | **Description** | **Recovery Time** |
@@ -45,21 +40,13 @@ After Failover:
 
 Multiple servers handle traffic simultaneously.
 
-```
-┌─────────┐    ┌─────────┐
-│ Server A│    │ Server B│
-│ (active)│    │ (active)│
-└────┬────┘    └────┬────┘
-     │              │
-     └──────┬───────┘
-            │
-     ┌──────┴───────┐
-     │Load Balancer │
-     └──────┬───────┘
-            │
-     ┌──────┴──────┐
-     │   Clients   │
-     └─────────────┘
+```mermaid
+flowchart TB
+    Clients["Clients"] --> LB["Load Balancer"]
+    LB --> A["Server A (active)"]
+    LB --> B["Server B (active)"]
+    style A fill:#dcfce7
+    style B fill:#dcfce7
 ```
 
 | **Aspect** | **Active-Passive** | **Active-Active** |
@@ -78,16 +65,15 @@ Multiple servers handle traffic simultaneously.
 
 Detect when systems fail:
 
-```
-┌──────────────┐
-│Health Checker│
-└──────┬───────┘
-       │
-       ├──► HTTP GET /health → 200 OK ✓
-       │
-       ├──► TCP Connect → Success ✓
-       │
-       └──► Custom script → Exit 0 ✓
+```mermaid
+flowchart LR
+    HC["Health Checker"] --> H1["HTTP GET /health → 200 OK"]
+    HC --> H2["TCP Connect → Success"]
+    HC --> H3["Custom script → Exit 0"]
+    style HC fill:#dbeafe
+    style H1 fill:#dcfce7
+    style H2 fill:#dcfce7
+    style H3 fill:#dcfce7
 ```
 
 Types of health checks:
@@ -99,12 +85,15 @@ Types of health checks:
 
 Continuous signals indicating system health:
 
-```
-Primary ─────► Standby: "I'm alive" (every 1s)
-Primary ─────► Standby: "I'm alive" (every 1s)
-Primary ──X── Standby: (missed)
-Primary ──X── Standby: (missed)
-Primary ──X── Standby: (missed) → Trigger failover
+```mermaid
+sequenceDiagram
+    participant P as Primary
+    participant S as Standby
+    P->>S: "I'm alive (every 1s)"
+    P->>S: "I'm alive (every 1s)"
+    Note over P,S: "missed heartbeat"
+    Note over P,S: "missed heartbeat"
+    Note over P,S: "missed heartbeat — trigger failover"
 ```
 
 ### Leader Election
@@ -127,14 +116,17 @@ Determine which node takes over:
 
 Both nodes think they're primary:
 
-```
-Network partition:
-┌─────────┐         ┌─────────┐
-│ Node A  │    X    │ Node B  │
-│"I'm primary"│   │"I'm primary"│
-└─────────┘         └─────────┘
-
-Both accept writes → Data divergence!
+```mermaid
+flowchart LR
+    A["Node A: I'm primary"]
+    B["Node B: I'm primary"]
+    A -.->|"partition"| B
+    B -.->|"partition"| A
+    A --> R["Both accept writes — data divergence"]
+    B --> R
+    style A fill:#fef3c7
+    style B fill:#fef3c7
+    style R fill:#fecaca
 ```
 
 **Solutions**:
@@ -146,12 +138,17 @@ Both accept writes → Data divergence!
 
 Standby may not have latest data:
 
-```
-Primary: Write A, Write B, Write C
-         └── Replicated ──► Standby: Write A, Write B
-                                    (Write C not yet synced)
-Primary fails ──► Standby becomes primary
-                  Write C is lost!
+```mermaid
+sequenceDiagram
+    participant P as Primary
+    participant S as Standby
+    Note over P: "Write A"
+    P->>S: "Replicate A"
+    Note over P: "Write B"
+    P->>S: "Replicate B"
+    Note over P: "Write C"
+    Note over P,S: "Primary fails before C replicates"
+    Note over S: "Standby promoted — Write C lost"
 ```
 
 **Solutions**:
@@ -181,55 +178,40 @@ Considerations:
 
 ### Database Failover
 
+```mermaid
+flowchart LR
+    P["Primary (RW)"] -->|"sync"| R1["Replica 1 (RO)"]
+    R1 -->|"async"| R2["Replica 2 (RO)"]
+    style P fill:#dbeafe
 ```
-┌─────────┐       ┌─────────┐       ┌─────────┐
-│ Primary │──────►│Replica 1│──────►│Replica 2│
-│   (RW)  │ sync  │  (RO)   │ async │  (RO)   │
-└─────────┘       └─────────┘       └─────────┘
 
 On primary failure:
 - Replica 1 promoted to primary
 - Replica 2 follows new primary
 - Application reconnects
-```
 
 ### Load Balancer Failover
 
+```mermaid
+flowchart TB
+    VIP["Virtual IP"] --> LB1["LB1 (active)"]
+    VIP --> LB2["LB2 (standby)"]
+    LB1 --> S["Servers"]
+    LB2 --> S
+    style LB1 fill:#dcfce7
+    style LB2 fill:#fef3c7
 ```
-┌───────────────┐
-│  Virtual IP   │
-└───────┬───────┘
-        │
-   ┌────┴────┐
-   │         │
-┌──┴──┐  ┌──┴──┐
-│ LB1 │  │ LB2 │
-│(act)│  │(sby)│
-└──┬──┘  └──┬──┘
-   │        │
-   └────┬───┘
-        │
-    ┌───┴───┐
-    │Servers│
-    └───────┘
 
 LB1 fails → LB2 claims Virtual IP
-```
 
 ### Application Failover
 
-```
-┌─────────┐
-│  Client │
-└────┬────┘
-     │
-     ▼
-┌─────────────────┐
-│ Connection Pool │
-│  ┌───┐ ┌───┐   │
-│  │ A │ │ B │   │ Track healthy servers
-│  └───┘ └───┘   │ Route to available ones
-└─────────────────┘
+```mermaid
+flowchart TB
+    Client["Client"] --> Pool["Connection Pool — track healthy servers, route to available ones"]
+    Pool --> A["Server A"]
+    Pool --> B["Server B"]
+    style Pool fill:#dbeafe
 ```
 
 ---

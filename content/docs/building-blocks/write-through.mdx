@@ -11,16 +11,15 @@ description: Write-through caching writes to cache and database synchronously. S
 
 ## How It Works
 
-```
-Application                Cache                Database
-     │                       │                     │
-     │─── Write(key, data) ─►│                     │
-     │                       │                     │
-     │                       │─── Write ──────────►│
-     │                       │                     │
-     │                       │◄── OK ─────────────│
-     │                       │                     │
-     │◄── OK ────────────────│                     │
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+    App->>Cache: Write(key, data)
+    Cache->>DB: Write
+    DB-->>Cache: OK
+    Cache-->>App: OK
 ```
 
 Both cache and database are updated before returning success.
@@ -29,17 +28,19 @@ Both cache and database are updated before returning success.
 
 ## Read Flow
 
-```
-Application                Cache                Database
-     │                       │                     │
-     │─── Read(key) ────────►│                     │
-     │                       │                     │
-     │◄── Data (if cached) ──│                     │
-     │                       │                     │
-     │        OR if miss:    │                     │
-     │                       │─── Query ──────────►│
-     │                       │◄── Data ───────────│
-     │◄── Data ──────────────│                     │
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+    App->>Cache: Read(key)
+    alt cache hit
+        Cache-->>App: Data
+    else cache miss
+        Cache->>DB: Query
+        DB-->>Cache: Data
+        Cache-->>App: Data
+    end
 ```
 
 ---

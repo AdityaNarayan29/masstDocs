@@ -22,24 +22,22 @@ This means:
 
 ## How It Works
 
-```
-Time ──────────────────────────────────────────────►
+```mermaid
+sequenceDiagram
+    participant Client
+    participant A as Server A
+    participant B as Server B
+    participant C as Server C
 
-           Write X=1
-Client ────────┼─────────────────────────────────────
-               │
-               ▼
-Server A    [X=1]──────────────────────────────────
-               │
-               └──── propagate ────►
-                                    │
-Server B    [X=0]────────────────[X=1]─────────────
-               │                    │
-               └──── propagate ──────────►
-                                          │
-Server C    [X=0]──────────────────────[X=1]───────
-
-            ◄── Inconsistent window ──►  ◄── Consistent ──►
+    Client->>A: "Write X=1"
+    Note over A: "X=1"
+    Note over B,C: "X=0 (stale)"
+    A->>B: propagate
+    Note over B: "X=1"
+    Note over C: "X=0 (still stale)"
+    B->>C: propagate
+    Note over C: "X=1 (converged)"
+    Note over A,C: "All replicas consistent"
 ```
 
 ---

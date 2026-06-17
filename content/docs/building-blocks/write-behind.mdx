@@ -11,16 +11,16 @@ description: Understanding the write-behind (write-back) caching pattern.
 
 ## How It Works
 
-```
-Application                Cache                Database
-     │                       │                     │
-     │─── Write(key, data) ─►│                     │
-     │                       │                     │
-     │◄── OK (immediate) ────│                     │
-     │                       │                     │
-     │                       │    (async later)    │
-     │                       │─── Write ──────────►│
-     │                       │◄── OK ─────────────│
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+    App->>Cache: Write(key, data)
+    Cache-->>App: OK (immediate)
+    Note over Cache,DB: async later
+    Cache->>DB: Write
+    DB-->>Cache: OK
 ```
 
 ---

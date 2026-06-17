@@ -125,7 +125,7 @@ These are two different things that solve two different problems. You need both.
 
 - **What:** sample 1-10% of live production requests, run LLM-as-judge on the outputs (or compute lightweight metrics: refusal rate, output length, tool-call success rate), emit time-series metrics.
 - **Pro:** catches drift, catches new failure modes, gives you per-feature/per-user quality signals.
-- **Con:** lags real-time (judge calls take seconds), can't block bad deploys (only detects them after the fact), costs money per sampled request.
+- **Con:** lags real-time (judge calls take seconds), can't block bad deploys (only detects them after the fact), costs money per sampled request. A 500-example golden set × 3 rubric dims × Claude Sonnet judge is ~$5-15/run; multiply by your CI frequency. See [Cost engineering](/ai/cost) for batch-API discounts and caching patterns that bring this down 5×.
 
 ```mermaid
 flowchart TB

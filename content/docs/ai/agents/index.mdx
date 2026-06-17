@@ -115,7 +115,7 @@ If any of those is false, you want a workflow, not an agent. The autonomy is the
 
 The model emits a tool call for a tool that doesn't exist, or with arguments that violate the schema. With strict mode (OpenAI structured outputs, Anthropic's recent tool API improvements), schema violations have dropped from ~5% to under 0.5% in our measurements. **Tool name hallucination still happens at ~1-2% even on frontier models**, especially when you have more than 20 tools in the toolset or use unclear tool names.
 
-Mitigation: keep your toolset small (target ≤15 tools per prompt), use clear and distinctive names, validate every tool call against the schema before execution, and feed validation errors back as observations so the model can self-correct. Full treatment in [Tool use & function calling](/ai/agents/tool-use).
+Mitigation: keep your toolset small (target ≤15 tools per prompt), use clear and distinctive names, validate every tool call against the schema before execution, and feed validation errors back as observations so the model can self-correct. Tool hallucination is also an attack surface — a malicious prompt can coerce the model into calling tools with forged arguments, so couple this with the input/output defenses in [Prompt injection](/ai/safety/prompt-injection). Full treatment in [Tool use & function calling](/ai/agents/tool-use).
 
 ### Failure mode 2: infinite loops
 

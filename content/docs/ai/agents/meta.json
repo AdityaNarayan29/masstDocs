@@ -3,7 +3,6 @@
   "description": "Tool use, loops, planning, memory — the patterns that make LLMs into agents that act",
   "defaultOpen": true,
   "pages": [
-    "index",
     "tool-use",
     "loops-planning",
     "memory-state"

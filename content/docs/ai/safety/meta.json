@@ -3,7 +3,6 @@
   "description": "Prompt injection, output validation, PII redaction, jailbreak resistance — the OWASP top-10 of LLMs",
   "defaultOpen": true,
   "pages": [
-    "index",
     "prompt-injection",
     "output-validation"
   ]

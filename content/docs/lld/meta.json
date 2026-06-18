@@ -1,5 +1,6 @@
 {
   "title": "Low-Level Design",
+  "defaultOpen": true,
   "pages": [
     "index",
     "foundations",

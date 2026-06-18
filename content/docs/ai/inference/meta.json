@@ -3,7 +3,6 @@
   "description": "Why your tokens-per-second is what it is: sampling, KV cache, batching, quantization, serving",
   "defaultOpen": true,
   "pages": [
-    "index",
     "sampling",
     "kv-cache-batching",
     "quantization-serving"

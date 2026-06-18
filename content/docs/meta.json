@@ -1,13 +1,18 @@
 {
   "title": "System Design",
+  "defaultOpen": true,
   "pages": [
     "index",
+    "---Foundations---",
     "fundamentals",
     "building-blocks",
-    "communication",
+    "---Architecture & communication---",
     "architecture",
+    "communication",
+    "---Patterns & components---",
     "design-patterns",
     "system-components",
+    "---Production concerns---",
     "observability",
     "security"
   ]

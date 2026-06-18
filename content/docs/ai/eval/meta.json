@@ -3,7 +3,6 @@
   "description": "How you know your LLM system works: golden sets, LLM-as-judge, traces, regression suites",
   "defaultOpen": true,
   "pages": [
-    "index",
     "llm-as-judge",
     "observability"
   ]

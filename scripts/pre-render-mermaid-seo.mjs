@@ -172,17 +172,38 @@ async function extractDiagramsWithContext(filePath) {
   const diagrams = [];
   const frontmatter = extractFrontmatter(content);
 
-  // Get page URL from file path
-  // content/docs/case-studies/uber.mdx -> /sd/case-studies/uber (SD docs)
-  // content/docs/xyz/abc.mdx -> /sd/xyz/abc
+  // Get page URL from file path. Surfaces (see lib/source.ts):
+  //   content/docs/case-studies/<slug>  -> /hld/<slug>            (case-studies subtree)
+  //   content/docs/lld/...               -> /lld/...
+  //   content/docs/dsa/...               -> /dsa/...
+  //   content/docs/ai/...                -> /ai/...
+  //   content/docs/<everything else>     -> /sd/<rest>            (the curriculum)
   const relativePath = path.relative(CONTENT_DIR, filePath);
   const pathWithoutDocs = relativePath
     .replace(/^docs\//, '')
     .replace(/\.mdx?$/, '')
     .replace(/\/index$/, '');
 
-  // All docs are under /sd/ prefix based on lib/source.ts baseUrl
-  const pageUrl = '/sd/' + pathWithoutDocs;
+  let pageUrl;
+  if (pathWithoutDocs === 'case-studies' || pathWithoutDocs.startsWith('case-studies/')) {
+    // Strip the case-studies/ prefix — /hld is flat (e.g. /hld/netflix)
+    pageUrl = '/hld/' + pathWithoutDocs.replace(/^case-studies\/?/, '');
+    if (pageUrl === '/hld/') pageUrl = '/hld';
+  } else if (pathWithoutDocs === 'lld' || pathWithoutDocs.startsWith('lld/')) {
+    pageUrl = '/lld/' + pathWithoutDocs.replace(/^lld\/?/, '');
+    if (pageUrl === '/lld/') pageUrl = '/lld';
+  } else if (pathWithoutDocs === 'dsa' || pathWithoutDocs.startsWith('dsa/')) {
+    pageUrl = '/dsa/' + pathWithoutDocs.replace(/^dsa\/?/, '');
+    if (pageUrl === '/dsa/') pageUrl = '/dsa';
+  } else if (pathWithoutDocs === 'ai' || pathWithoutDocs.startsWith('ai/')) {
+    pageUrl = '/ai/' + pathWithoutDocs.replace(/^ai\/?/, '');
+    if (pageUrl === '/ai/') pageUrl = '/ai';
+  } else if (pathWithoutDocs === '') {
+    // Root docs/index.mdx -> /sd
+    pageUrl = '/sd';
+  } else {
+    pageUrl = '/sd/' + pathWithoutDocs;
+  }
 
   // Extract from ```mermaid code blocks
   let match;
@@ -318,9 +339,12 @@ let tempFileCounter = 0;
  * Render a diagram to SVG and PNG
  */
 async function renderDiagram(code, hash, theme) {
+  // mmdc's "default" theme is what we expose as "light" on disk so the
+  // file naming matches /lib/remark-mermaid-inline.mjs and the manifest.
+  const themeSuffix = theme === 'default' ? 'light' : theme;
   const tempInput = path.join(CACHE_DIR, `temp-${Date.now()}-${tempFileCounter++}-${theme}.mmd`);
-  const svgOutput = path.join(CACHE_DIR, `${hash}-${theme}.svg`);
-  const pngOutput = path.join(CACHE_DIR, `${hash}-${theme}.png`);
+  const svgOutput = path.join(CACHE_DIR, `${hash}-${themeSuffix}.svg`);
+  const pngOutput = path.join(CACHE_DIR, `${hash}-${themeSuffix}.png`);
 
   await fs.writeFile(tempInput, code);
 

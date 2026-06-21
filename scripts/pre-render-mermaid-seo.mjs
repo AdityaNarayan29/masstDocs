@@ -113,31 +113,49 @@ function findNearestHeading(content, position) {
 }
 
 /**
- * Extract diagram description from its content
+ * Strip Mermaid / HTML noise from a label so it reads like natural text.
  */
-function extractDiagramDescription(code) {
-  // Extract meaningful text from the diagram
+function cleanLabel(raw) {
+  return raw
+    .replace(/<br\s*\/?>/gi, ' ')        // <br/> -> space
+    .replace(/&#?\w+;/g, ' ')             // HTML entities -> space
+    .replace(/[#"\\]/g, '')               // syntax junk
+    .replace(/\s+/g, ' ')                 // collapse whitespace
+    .trim();
+}
+
+/**
+ * Extract the most descriptive labels from a Mermaid diagram.
+ * Returns an array of clean phrases (not joined yet — the caller decides).
+ */
+function extractDiagramLabels(code) {
   const labels = [];
 
-  // Match node labels like [Label], (Label), {Label}
-  const labelMatches = code.matchAll(/[\[\(\{]([^\]\)\}]+)[\]\)\}]/g);
+  // 1. subgraph titles ("Before:", "After:") — most descriptive, surface first
+  const subgraphMatches = code.matchAll(/subgraph\s+(?:"([^"]+)"|(\S+))(?:\s*\["([^"]+)"\])?/g);
+  for (const match of subgraphMatches) {
+    const label = match[3] || match[1] || match[2];
+    if (label) labels.unshift(cleanLabel(label));
+  }
+
+  // 2. node labels like [text], (text), {text}, including quoted variants
+  const labelMatches = code.matchAll(/[\[\(\{]"?([^\]\)\}"]+)"?[\]\)\}]/g);
   for (const match of labelMatches) {
-    const label = match[1].trim();
-    // Skip technical syntax
-    if (label && !label.includes('<br>') && label.length > 2 && label.length < 50) {
+    const label = cleanLabel(match[1]);
+    if (label && label.length > 2 && label.length < 60 && !/^[a-z]+\d*$/i.test(label)) {
       labels.push(label);
     }
   }
 
-  // Match subgraph titles
-  const subgraphMatches = code.matchAll(/subgraph\s+"([^"]+)"/g);
-  for (const match of subgraphMatches) {
-    labels.unshift(match[1].trim()); // Add to beginning as they're more descriptive
-  }
+  // Dedup, preserve order
+  return [...new Set(labels)];
+}
 
-  // Get unique labels
-  const uniqueLabels = [...new Set(labels)].slice(0, 5);
-  return uniqueLabels.join(', ');
+/**
+ * Extract diagram description from its content (back-compat shim).
+ */
+function extractDiagramDescription(code) {
+  return extractDiagramLabels(code).slice(0, 5).join(', ');
 }
 
 /**
@@ -267,69 +285,117 @@ function detectDiagramType(code) {
 }
 
 /**
- * Generate SEO-friendly alt text optimized for Google Image search
- * Target keywords: "system design", "architecture diagram", company names
+ * Surface inferred from page URL. Drives which topical label to emit.
+ */
+function surfaceFromUrl(pageUrl) {
+  if (!pageUrl) return 'sd';
+  if (pageUrl.startsWith('/hld')) return 'hld';
+  if (pageUrl.startsWith('/lld')) return 'lld';
+  if (pageUrl.startsWith('/dsa')) return 'dsa';
+  if (pageUrl.startsWith('/ai'))  return 'ai';
+  return 'sd';
+}
+
+const SURFACE_LABEL = {
+  sd:  'System Design',
+  hld: 'HLD Case Study',
+  lld: 'Low-Level Design',
+  dsa: 'DSA Pattern',
+  ai:  'AI Engineering',
+};
+
+const TYPE_LABELS = {
+  flowchart: 'flowchart',
+  sequence:  'sequence diagram',
+  class:     'class diagram',
+  state:     'state machine',
+  er:        'ER diagram',
+  gantt:     'timeline',
+  pie:       'distribution chart',
+  journey:   'user-flow diagram',
+  architecture: 'architecture diagram',
+};
+
+/**
+ * Build a natural-language alt text under ~125 chars suitable for both
+ * screen readers and Google Image alt-text ranking. Format:
+ *   "<PageTitle> — <SectionHeading>: <typeLabel> showing <a>, <b>, <c>."
+ * Falls back gracefully when section heading is missing.
  */
 function generateAltText(diagram) {
-  const parts = [];
+  const typeLabel = TYPE_LABELS[diagram.diagramType] || 'diagram';
+  const pageTitle = diagram.pageTitle || '';
+  const sectionHeading = diagram.sectionHeading && diagram.sectionHeading !== pageTitle
+    ? diagram.sectionHeading
+    : '';
 
-  // Add page title first (most important for SEO - e.g., "Uber", "Netflix")
-  if (diagram.pageTitle) {
-    parts.push(diagram.pageTitle);
+  // Top 3 labels — enough context, doesn't blow the char budget.
+  const labels = extractDiagramLabels(diagram.code || '').slice(0, 3);
+
+  const lead = sectionHeading
+    ? `${pageTitle} — ${sectionHeading}`
+    : pageTitle;
+
+  // Compose the body
+  let body = `${lead}: ${typeLabel}`;
+  if (labels.length) body += ` showing ${labels.join(', ')}`;
+  body += '.';
+
+  // Hard cap at 130 chars (Google's recommended 80-125 window with a bit of slack).
+  if (body.length > 130) {
+    body = body.slice(0, 127).replace(/[,;:\s][^,;:\s]*$/, '') + '…';
   }
-
-  // Add section context
-  if (diagram.sectionHeading) {
-    parts.push(diagram.sectionHeading);
-  }
-
-  // Add diagram type with SEO keywords
-  const typeNames = {
-    flowchart: 'system architecture diagram',
-    sequence: 'sequence diagram',
-    class: 'class diagram',
-    state: 'state machine diagram',
-    er: 'database schema diagram',
-    gantt: 'project timeline',
-    pie: 'distribution chart',
-    journey: 'user flow diagram',
-    architecture: 'system design diagram',
-  };
-
-  parts.push(typeNames[diagram.diagramType] || 'architecture diagram');
-
-  // Add key components if available
-  if (diagram.diagramDescription) {
-    parts.push(`- ${diagram.diagramDescription}`);
-  }
-
-  // Add brand suffix for SEO
-  parts.push('| MASST Docs System Design');
-
-  return parts.join(' ');
+  return body;
 }
 
 /**
- * Generate SEO title for image (appears in Google Image results)
+ * Slugify a string for use in a URL path: lowercase, alphanumeric and
+ * dashes only, collapse runs of non-alphanumeric, trim leading/trailing
+ * dashes.
+ */
+function slugify(s) {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')      // strip accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);                          // hard cap
+}
+
+/**
+ * SEO-friendly Cloudinary public_id. Format:
+ *   masst-docs/<surface>/<page-slug>/<section-slug>-<short-hash>
+ * The short hash keeps uniqueness across collisions (two diagrams on the
+ * same page with identical sections), and Google reads the descriptive
+ * path segments as ranking signal.
+ */
+function buildSeoSlug(diagram, hash) {
+  const surface = surfaceFromUrl(diagram.pageUrl);
+  const pageSlug = slugify(diagram.pageTitle) || 'diagram';
+  const sectionSlug = slugify(diagram.sectionHeading);
+  const shortHash = hash.slice(0, 6);
+  const tail = sectionSlug ? `${sectionSlug}-${shortHash}` : `${pageSlug}-${shortHash}`;
+  return `masst-docs/${surface}/${pageSlug}/${tail}`;
+}
+
+/**
+ * Generate the schema.org `name` / HTML `title` attribute for the image.
+ * Short, surface-correct, brand suffix at the end.
+ * Format:  "<PageTitle> · <SectionHeading> · <Surface Label> | MASST Docs"
  */
 function generateTitle(diagram) {
+  const surface = surfaceFromUrl(diagram.pageUrl);
+  const surfaceLabel = SURFACE_LABEL[surface];
   const parts = [];
 
-  // Page title (company/system name) first
-  if (diagram.pageTitle) {
-    parts.push(diagram.pageTitle);
-  }
-
-  // Section heading
-  if (diagram.sectionHeading) {
+  if (diagram.pageTitle) parts.push(diagram.pageTitle);
+  if (diagram.sectionHeading && diagram.sectionHeading !== diagram.pageTitle) {
     parts.push(diagram.sectionHeading);
   }
+  parts.push(surfaceLabel);
 
-  // SEO keywords
-  parts.push('System Design');
-  parts.push('MASST Docs');
-
-  return parts.join(' - ');
+  return parts.join(' · ') + ' | MASST Docs';
 }
 
 // Counter for unique temp file names
@@ -408,7 +474,11 @@ async function processSvg(svgPath) {
 }
 
 /**
- * Upload image to Cloudinary
+ * Upload image to Cloudinary.
+ *
+ * `publicId` is the full path under the Cloudinary account (no leading
+ * slash, no extension), e.g. `masst-docs/ai/agents/agents-vs-chains-abc123`.
+ * Google reads this path segment-by-segment, so use it for SEO signal.
  */
 async function uploadToCloudinary(imagePath, publicId, metadata) {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
@@ -416,13 +486,11 @@ async function uploadToCloudinary(imagePath, publicId, metadata) {
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const folder = 'masst-docs/diagrams';
-  const fullPublicId = `${folder}/${publicId}`;
 
-  // Create signature
+  // Create signature. We pass `public_id` only — the folder is encoded
+  // into the public_id itself (Cloudinary auto-creates folders).
   const paramsToSign = {
     context: `alt=${encodeURIComponent(metadata.alt)}|caption=${encodeURIComponent(metadata.title)}`,
-    folder,
     public_id: publicId,
     timestamp,
   };
@@ -448,7 +516,6 @@ async function uploadToCloudinary(imagePath, publicId, metadata) {
   formData.append('timestamp', timestamp.toString());
   formData.append('signature', signature);
   formData.append('public_id', publicId);
-  formData.append('folder', folder);
   formData.append('context', paramsToSign.context);
 
   try {
@@ -608,14 +675,44 @@ async function main() {
     const hasSeo = seoManifest[hash];
     const hasCloudinary = hasSeo?.cloudinaryUrl;
 
-    // If fully cached (SVGs exist + Cloudinary uploaded), skip
+    // Always regenerate alt/title/keywords from current generators so
+    // metadata stays in sync with the code (cheap; just string ops).
+    const freshAlt = generateAltText(diagram);
+    const freshTitle = generateTitle(diagram);
+
+    // If fully cached (SVGs exist + Cloudinary uploaded), refresh metadata
+    // in place and skip re-rendering.
     if (hasSvg && hasSeo && hasCloudinary) {
       try {
         await fs.access(path.join(CACHE_DIR, `${hash}-light.svg`));
         await fs.access(path.join(CACHE_DIR, `${hash}-dark.svg`));
+        seoManifest[hash] = {
+          ...hasSeo,
+          alt: freshAlt,
+          title: freshTitle,
+          pageTitle: diagram.pageTitle,
+          pageUrl: diagram.pageUrl,
+          sectionHeading: diagram.sectionHeading,
+          diagramType: diagram.diagramType,
+        };
         cached++;
         continue;
       } catch {}
+    }
+
+    // SVGs exist but no Cloudinary URL — refresh metadata, optionally upload.
+    if (hasSvg && hasSeo && !hasCloudinary) {
+      // Update metadata first so the manifest is always correct, even if
+      // upload is skipped or fails.
+      seoManifest[hash] = {
+        ...hasSeo,
+        alt: freshAlt,
+        title: freshTitle,
+        pageTitle: diagram.pageTitle,
+        pageUrl: diagram.pageUrl,
+        sectionHeading: diagram.sectionHeading,
+        diagramType: diagram.diagramType,
+      };
     }
 
     // If SVGs exist but no Cloudinary URL, just upload (don't re-render)
@@ -625,7 +722,8 @@ async function main() {
         await fs.access(pngPath);
         process.stdout.write(`  Uploading ${hash} to Cloudinary... `);
 
-        const cloudinaryResult = await uploadToCloudinary(pngPath, hash, {
+        const seoSlug = buildSeoSlug(diagram, hash);
+        const cloudinaryResult = await uploadToCloudinary(pngPath, seoSlug, {
           alt: hasSeo.alt,
           title: hasSeo.title,
         });
@@ -683,9 +781,10 @@ async function main() {
 
       // Upload to Cloudinary if configured and not skipped
       if (!skipUpload && CLOUDINARY_CLOUD_NAME) {
+        const seoSlug = buildSeoSlug(diagram, hash);
         const cloudinaryResult = await uploadToCloudinary(
           lightResult.pngOutput,
-          hash,
+          seoSlug,
           { alt, title }
         );
 

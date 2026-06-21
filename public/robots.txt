@@ -75,3 +75,4 @@ Crawl-delay: 10
 
 # Sitemaps
 Sitemap: https://docs.masst.dev/sitemap.xml
+Sitemap: https://docs.masst.dev/image-sitemap.xml

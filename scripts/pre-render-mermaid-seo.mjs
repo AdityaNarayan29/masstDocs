@@ -921,7 +921,9 @@ async function main() {
       };
     }
 
-    // If SVGs exist but no Cloudinary URL, just upload (don't re-render)
+    // If SVGs exist but no Cloudinary URL, just upload (don't re-render).
+    // Use the freshly-regenerated alt/title from the refresh block above,
+    // not the stale `hasSeo` snapshot.
     if (hasSvg && hasSeo && !hasCloudinary && !skipUpload && CLOUDINARY_CLOUD_NAME) {
       const pngPath = path.join(CACHE_DIR, `${hash}-light.png`);
       try {
@@ -930,8 +932,8 @@ async function main() {
 
         const seoSlug = buildSeoSlug(diagram, hash);
         const cloudinaryResult = await uploadToCloudinary(pngPath, seoSlug, {
-          alt: hasSeo.alt,
-          title: hasSeo.title,
+          alt: freshAlt,
+          title: freshTitle,
         });
 
         if (cloudinaryResult) {

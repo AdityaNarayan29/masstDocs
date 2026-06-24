@@ -117,35 +117,73 @@ function findNearestHeading(content, position) {
  * Strip Mermaid / HTML noise from a label so it reads like natural text.
  */
 function cleanLabel(raw) {
-  return raw
+  let s = raw
     .replace(/<br\s*\/?>/gi, ' ')        // <br/> -> space
     .replace(/&#?\w+;/g, ' ')             // HTML entities -> space
     .replace(/[#"\\]/g, '')               // syntax junk
     .replace(/\s+/g, ' ')                 // collapse whitespace
     .trim();
+  // Strip stray opening / closing brackets that snuck in when a quoted
+  // label contained brackets the regex couldn't fully balance
+  // (e.g. "messages = [task]" -> raw match "messages = [task").
+  // We trim trailing/leading bracket-y noise but preserve internal ones.
+  s = s.replace(/[\[\(\{]+\s*$/, '').replace(/^\s*[\]\)\}]+/, '').trim();
+  // If the label has unmatched open brackets, append a "…" to signal
+  // truncation. This keeps it readable instead of leaving "= [task".
+  const opens = (s.match(/[\[\(\{]/g) || []).length;
+  const closes = (s.match(/[\]\)\}]/g) || []).length;
+  if (opens > closes) {
+    // strip back to the last balanced bracket + trim trailing punctuation
+    s = s.replace(/[\s,;:=\-]*[\[\(\{][^\[\(\{\]\)\}]*$/, '').trim() + '…';
+  }
+  return s.trim();
 }
 
 /**
  * Extract the most descriptive labels from a Mermaid diagram.
  * Returns an array of clean phrases (not joined yet — the caller decides).
+ *
+ * Three Mermaid syntaxes to handle for subgraphs:
+ *   subgraph "Quoted Title"
+ *   subgraph IdOnly                           (no display name, fall back to id)
+ *   subgraph Id["Display Name"]               (id + display name in brackets)
+ * The third form is the common one in this repo.
  */
 function extractDiagramLabels(code) {
   const labels = [];
+  // Track the byte ranges already consumed by subgraph-title matches so
+  // the node-label pass doesn't re-extract a half-truncated version of
+  // the same string (Mermaid quoted labels containing parens get
+  // partially re-matched by the node regex otherwise).
+  const consumed = [];
 
-  // 1. subgraph titles ("Before:", "After:") — most descriptive, surface first
-  const subgraphMatches = code.matchAll(/subgraph\s+(?:"([^"]+)"|(\S+))(?:\s*\["([^"]+)"\])?/g);
-  for (const match of subgraphMatches) {
-    const label = match[3] || match[1] || match[2];
-    if (label) labels.unshift(cleanLabel(label));
+  // 1. subgraph titles. Match each form separately to avoid \S+ greedily
+  //    swallowing the `[` that opens the display-name bracket.
+  // Form A: subgraph Id["Display"]
+  for (const m of code.matchAll(/^\s*subgraph\s+\S+\s*\["([^"]+)"\]/gm)) {
+    labels.unshift(cleanLabel(m[1]));
+    consumed.push([m.index, m.index + m[0].length]);
+  }
+  // Form B: subgraph "Quoted Title"   (no brackets after)
+  for (const m of code.matchAll(/^\s*subgraph\s+"([^"]+)"\s*$/gm)) {
+    labels.unshift(cleanLabel(m[1]));
+    consumed.push([m.index, m.index + m[0].length]);
   }
 
-  // 2. node labels like [text], (text), {text}, including quoted variants
+  const insideConsumed = (offset) =>
+    consumed.some(([s, e]) => offset >= s && offset < e);
+
+  // 2. Node labels: [text], (text), {text}, ["text"], etc.
   const labelMatches = code.matchAll(/[\[\(\{]"?([^\]\)\}"]+)"?[\]\)\}]/g);
   for (const match of labelMatches) {
+    if (insideConsumed(match.index)) continue;
     const label = cleanLabel(match[1]);
-    if (label && label.length > 2 && label.length < 60 && !/^[a-z]+\d*$/i.test(label)) {
-      labels.push(label);
-    }
+    if (!label) continue;
+    if (label.length < 3 || label.length > 60) continue;
+    // Reject single-word lowercase ids like "abc123" but accept proper
+    // labels like "Hashing", "Two Pointers", "DP — Linear".
+    if (/^[a-z]+\d*$/.test(label)) continue;
+    labels.push(label);
   }
 
   // Dedup, preserve order
@@ -323,30 +361,147 @@ const TYPE_LABELS = {
  *   "<PageTitle> — <SectionHeading>: <typeLabel> showing <a>, <b>, <c>."
  * Falls back gracefully when section heading is missing.
  */
+/**
+ * Strip noisy prefixes/suffixes from a section heading so it reads as a
+ * self-contained label, not a section-name in a TOC.
+ *   "1. Product Catalog Service"  -> "Product Catalog Service"
+ *   "Visual: the canonical agent loop" -> "the canonical agent loop"
+ *   "The core insight"           -> "Core insight"
+ *   "How it actually works"      -> "How it actually works"  (unchanged)
+ */
+function cleanSectionHeading(s) {
+  if (!s) return '';
+  return s
+    .replace(/^\d+\.\s+/, '')                  // "1. "
+    .replace(/^Visual(\s*[:—-]\s*)/i, '')      // "Visual:" / "Visual —"
+    .replace(/^Pattern(\s+\d+)?\s*[:—-]\s*/i, '') // "Pattern 3:"
+    .replace(/^Variant(\s+\d+)?\s*[:—-]\s*/i, '')
+    .replace(/^Phase\s+\d+\s*[:—-]\s*/i, '')
+    .replace(/^The\s+/, '')                    // "The core insight" -> "core insight"
+    .replace(/^[a-z]/, c => c.toUpperCase())   // re-capitalize first letter
+    .trim();
+}
+
+/**
+ * Pull a short, human-readable "what this diagram is about" string from
+ * the Mermaid source. Returns 30-80 chars; empty string if nothing useful.
+ *
+ * Strategy by diagram type:
+ *   flowchart / state: top 3 node labels joined with " → "
+ *   sequence:          first 2-3 participants joined with " ↔ "
+ *   class:             top 3 class names joined with ", "
+ *   er:                top 3 entities joined with ", "
+ *   pie:               "<n>-slice distribution"
+ */
+function extractDiagramIntent(diagram) {
+  const code = diagram.code || '';
+  const type = diagram.diagramType;
+  const lines = code.split('\n').map(l => l.trim());
+
+  if (type === 'sequence') {
+    const participants = [];
+    for (const l of lines) {
+      const m = l.match(/^participant\s+(?:\w+\s+as\s+)?([A-Za-z0-9 _-]+)/);
+      if (m) participants.push(cleanLabel(m[1]));
+      if (participants.length >= 3) break;
+    }
+    if (participants.length >= 2) return participants.join(' ↔ ');
+  }
+
+  if (type === 'class' || type === 'er') {
+    const classes = [];
+    for (const l of lines) {
+      const m = l.match(/^class\s+([A-Z][A-Za-z0-9_]+)/) || l.match(/^([A-Z][A-Za-z0-9_]+)\s*\{/);
+      if (m) classes.push(m[1]);
+      if (classes.length >= 3) break;
+    }
+    if (classes.length) return classes.join(', ');
+  }
+
+  if (type === 'pie') {
+    let n = 0;
+    for (const l of lines) if (/^\s*"[^"]+"\s*:\s*\d/.test(l)) n++;
+    if (n) return `${n}-slice distribution`;
+  }
+
+  // flowchart / state / fallback: use the most descriptive node labels
+  // chained with arrows for a "flow" feel.
+  const labels = extractDiagramLabels(code);
+  if (!labels.length) return '';
+  const top = labels.slice(0, 3);
+  const joiner = (type === 'state') ? ' → ' : ' → ';
+  let intent = top.join(joiner);
+  if (labels.length > 3) intent += ' …';
+
+  // Trim to a tight budget for the on-image header (50-65 chars).
+  if (intent.length > 65) intent = intent.slice(0, 62).trimEnd() + '…';
+  return intent;
+}
+
+/**
+ * Return the two-line header layout for the visual brand strip.
+ *   line1 (page title + surface)  — strong/bold
+ *   line2 (cleaned section + intent) — smaller/muted
+ *
+ * If there's no useful section or intent, return only line1.
+ */
+function generateHeaderLines(diagram) {
+  const surface = surfaceFromUrl(diagram.pageUrl);
+  const surfaceLabel = SURFACE_LABEL[surface];
+  const pageTitle = truncate(diagram.pageTitle || 'Diagram', 60);
+  const sectionRaw = cleanSectionHeading(diagram.sectionHeading);
+  const section = sectionRaw && sectionRaw !== diagram.pageTitle ? sectionRaw : '';
+  const intent = extractDiagramIntent(diagram);
+
+  let subtitle = '';
+  if (section && intent) subtitle = `${section} — ${intent}`;
+  else if (section)       subtitle = section;
+  else if (intent)        subtitle = intent;
+
+  return {
+    titleLeft: pageTitle,
+    titleRight: surfaceLabel,
+    subtitle: truncate(subtitle, 90),
+  };
+}
+
+/**
+ * Long-form alt text (Google rewards descriptive image alts for diagrams).
+ * Target: 120-220 chars, natural sentence, no HTML or Mermaid syntax.
+ * Format:
+ *   "<PageTitle> — <Section>: <typeLabel> covering <a>, <b>, <c>, <d>.
+ *    Part of the <Surface Label> series on MASST Docs."
+ */
 function generateAltText(diagram) {
   const typeLabel = TYPE_LABELS[diagram.diagramType] || 'diagram';
   const pageTitle = diagram.pageTitle || '';
-  const sectionHeading = diagram.sectionHeading && diagram.sectionHeading !== pageTitle
-    ? diagram.sectionHeading
-    : '';
+  const sectionRaw = cleanSectionHeading(diagram.sectionHeading);
+  const sectionHeading = sectionRaw && sectionRaw !== pageTitle ? sectionRaw : '';
+  const surface = surfaceFromUrl(diagram.pageUrl);
+  const surfaceLabel = SURFACE_LABEL[surface];
 
-  // Top 3 labels — enough context, doesn't blow the char budget.
-  const labels = extractDiagramLabels(diagram.code || '').slice(0, 3);
+  // Up to 5 labels for a richer description (Google parses this).
+  const labels = extractDiagramLabels(diagram.code || '').slice(0, 5);
 
   const lead = sectionHeading
     ? `${pageTitle} — ${sectionHeading}`
     : pageTitle;
 
-  // Compose the body
   let body = `${lead}: ${typeLabel}`;
-  if (labels.length) body += ` showing ${labels.join(', ')}`;
+  if (labels.length) body += ` covering ${labels.join(', ')}`;
   body += '.';
 
-  // Hard cap at 130 chars (Google's recommended 80-125 window with a bit of slack).
-  if (body.length > 130) {
-    body = body.slice(0, 127).replace(/[,;:\s][^,;:\s]*$/, '') + '…';
+  // Append surface anchor (helps disambiguate at search time)
+  const suffix = ` Part of the ${surfaceLabel} series on MASST Docs.`;
+
+  // Soft cap at ~220 chars total — Google has no hard limit but truncates
+  // around 250 in result snippets.
+  let combined = body + suffix;
+  if (combined.length > 230) {
+    body = body.slice(0, 230 - suffix.length - 1).replace(/[,;:\s][^,;:\s]*$/, '') + '…';
+    combined = body + suffix;
   }
-  return body;
+  return combined;
 }
 
 /**
@@ -448,9 +603,11 @@ async function brandImage(pngPath, diagram, theme) {
     if (w < 400) return true;
 
     const surface = surfaceFromUrl(diagram.pageUrl);
-    const surfaceLabel = SURFACE_LABEL[surface];
-    const pageTitle = truncate(diagram.pageTitle || 'Diagram', 60);
-    const sectionHeading = truncate(diagram.sectionHeading || surfaceLabel, 48);
+
+    // 2-line header: page title + surface label on top, cleaned section
+    // heading + diagram intent on bottom (smaller, muted).
+    const { titleLeft, titleRight, subtitle } = generateHeaderLines(diagram);
+    const hasSubtitle = subtitle && subtitle.length > 0;
 
     // Theme palette
     const isDark = theme === 'dark';
@@ -458,6 +615,7 @@ async function brandImage(pngPath, diagram, theme) {
     const stripBorder = isDark ? '#1f2937' : '#e5e7eb';
     const stripTitle = isDark ? '#f3f4f6' : '#111827';
     const stripMuted = isDark ? '#9ca3af' : '#6b7280';
+    const canvasBg = isDark ? '#0f1419' : '#ffffff';
     const surfaceColor = {
       sd: '#10b981',   // emerald
       hld: '#3b82f6',  // blue
@@ -467,37 +625,47 @@ async function brandImage(pngPath, diagram, theme) {
     }[surface] || '#6b7280';
     const wmColor = isDark ? '#ffffff' : '#000000';
 
-    // Header height scales with diagram width to keep proportions ok
-    const headerH = 50;
-    const padX = 16;
+    // Header sizing — two lines if we have a subtitle, one line otherwise
+    const headerH = hasSubtitle ? 76 : 50;
+    const padX = 18;
     const dotR = 5;
-    const titleFontSize = 16;
-    const metaFontSize = 13;
+    const titleFontSize = 17;
+    const subtitleFontSize = 13;
+    const rightFontSize = 13;
     const wmFontSize = 12;
 
-    // Build the overlay SVG
+    // y-coords inside the strip
+    const titleY = hasSubtitle ? 26 : (headerH / 2 + 5);
+    const subtitleY = hasSubtitle ? 54 : 0;
+
+    // Build the overlay SVG (full canvas: header + diagram area)
     const overlayW = w;
     const overlayH = h + headerH;
 
     const headerSvg = `
       <rect x="0" y="0" width="${overlayW}" height="${headerH}" fill="${stripBg}" />
       <rect x="0" y="${headerH - 1}" width="${overlayW}" height="1" fill="${stripBorder}" />
-      <circle cx="${padX + dotR}" cy="${headerH / 2}" r="${dotR}" fill="${surfaceColor}" />
-      <text x="${padX + dotR * 2 + 10}" y="${headerH / 2 + titleFontSize / 3}"
+      <circle cx="${padX + dotR}" cy="${titleY - 6}" r="${dotR}" fill="${surfaceColor}" />
+      <text x="${padX + dotR * 2 + 10}" y="${titleY}"
             font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-            font-size="${titleFontSize}" font-weight="600" fill="${stripTitle}">
-        ${escapeSvgText(pageTitle)}
+            font-size="${titleFontSize}" font-weight="700" fill="${stripTitle}">
+        ${escapeSvgText(titleLeft)}
       </text>
-      <text x="${overlayW - padX}" y="${headerH / 2 + metaFontSize / 3}"
+      <text x="${overlayW - padX}" y="${titleY}"
             text-anchor="end"
             font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-            font-size="${metaFontSize}" fill="${stripMuted}">
-        ${escapeSvgText(sectionHeading)} · ${escapeSvgText(surfaceLabel)}
+            font-size="${rightFontSize}" font-weight="500" fill="${surfaceColor}">
+        ${escapeSvgText(titleRight)}
       </text>
+      ${hasSubtitle ? `
+      <text x="${padX}" y="${subtitleY}"
+            font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+            font-size="${subtitleFontSize}" font-weight="400" fill="${stripMuted}">
+        ${escapeSvgText(subtitle)}
+      </text>` : ''}
     `;
 
-    // Bottom-right wordmark — rendered in its own SVG that we composite
-    // separately so it always pins to the bottom regardless of header.
+    // Bottom-right wordmark — pinned with gravity:'southeast'
     const wmText = 'docs.masst.dev';
     const wmW = 200;
     const wmH = 22;
@@ -514,13 +682,12 @@ async function brandImage(pngPath, diagram, theme) {
       </svg>
     `;
 
-    // First: add the header strip on top by creating a larger canvas
-    // (original height + headerH) and pasting the original below the
-    // header.
+    // Full overlay canvas — header on top, theme-matched background below
+    // (so dark-theme diagrams don't show a white strip behind their content).
     const headerSvgFull = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${overlayW}" height="${overlayH}">
         ${headerSvg}
-        <rect x="0" y="${headerH}" width="${overlayW}" height="${h}" fill="white" />
+        <rect x="0" y="${headerH}" width="${overlayW}" height="${h}" fill="${canvasBg}" />
       </svg>
     `;
 

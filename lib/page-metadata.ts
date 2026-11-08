@@ -4,7 +4,7 @@ const SITE_URL = "https://docs.masst.dev";
 // Generated at build time by app/opengraph-image.tsx and served at /opengraph-image
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
-type Surface = "sd" | "hld" | "lld" | "dsa" | "ai";
+type Surface = "sd" | "hld" | "lld" | "dsa" | "ai" | "reels";
 
 /**
  * Each surface owns a disjoint slice of the MDX collection (see

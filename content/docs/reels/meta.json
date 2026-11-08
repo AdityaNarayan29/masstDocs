@@ -1,0 +1,14 @@
+{
+  "title": "Reel Notes",
+  "description": "Notes for every @masstdev Instagram reel",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "---Case studies---",
+    "39-aws-dns-outage",
+    "38-crowdstrike-outage",
+    "---How it works---",
+    "37-whatsapp-ticks",
+    "36-cloudflare-free-cdn"
+  ]
+}

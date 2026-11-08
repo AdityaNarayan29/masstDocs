@@ -15,6 +15,7 @@ import { loader, type VirtualFile } from "fumadocs-core/source";
  *   /lld — only the `lld/` subtree, paths flattened
  *   /dsa — only the `dsa/` subtree, paths flattened
  *   /ai  — only the `ai/` subtree, paths flattened
+ *   /reels — only the `reels/` subtree: notes for @masstdev Instagram reels
  *
  * URL rewriting is done by materializing the source's VirtualFile array
  * and rewriting `path` for the scoped subtrees so the loader serves
@@ -31,12 +32,13 @@ const matchesPrefix = (path: string, prefix: string) =>
 const isLldFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "lld");
 const isDsaFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "dsa");
 const isAiFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "ai");
+const isReelsFile = (f: VirtualFile) => matchesPrefix(f.path.replace(/\\/g, "/"), "reels");
 const isCaseStudyFile = (f: VirtualFile) =>
   matchesPrefix(f.path.replace(/\\/g, "/"), "case-studies");
 
 // Files for /sd — the curriculum, minus case-studies/lld/dsa/ai subtrees.
 const sdFiles: VirtualFile[] = allFiles.filter(
-  (f) => !isLldFile(f) && !isDsaFile(f) && !isAiFile(f) && !isCaseStudyFile(f),
+  (f) => !isLldFile(f) && !isDsaFile(f) && !isAiFile(f) && !isCaseStudyFile(f) && !isReelsFile(f),
 );
 
 // Strip a top-level folder prefix from a VirtualFile path so the loader
@@ -54,6 +56,7 @@ const hldFiles: VirtualFile[] = allFiles
 const lldFiles: VirtualFile[] = allFiles.filter(isLldFile).map(stripPrefix("lld"));
 const dsaFiles: VirtualFile[] = allFiles.filter(isDsaFile).map(stripPrefix("dsa"));
 const aiFiles: VirtualFile[] = allFiles.filter(isAiFile).map(stripPrefix("ai"));
+const reelsFiles: VirtualFile[] = allFiles.filter(isReelsFile).map(stripPrefix("reels"));
 
 // Scoped Source objects sharing the same type as fullSource so downstream
 // consumers (DocsRenderer, etc.) see the same `pageData` shape with
@@ -63,6 +66,7 @@ const hldSourceConfig = { files: hldFiles } as typeof fullSource;
 const lldSourceConfig = { files: lldFiles } as typeof fullSource;
 const dsaSourceConfig = { files: dsaFiles } as typeof fullSource;
 const aiSourceConfig = { files: aiFiles } as typeof fullSource;
+const reelsSourceConfig = { files: reelsFiles } as typeof fullSource;
 
 /**
  * /sd — the curriculum view.
@@ -105,4 +109,13 @@ export const dsaSource = loader({
 export const aiSource = loader({
   baseUrl: "/ai",
   source: aiSourceConfig,
+});
+
+/**
+ * /reels — notes for each @masstdev Instagram reel, linked from DMs and the bio.
+ * Every page points back into the curriculum ("Go deeper") to turn reel viewers into readers.
+ */
+export const reelsSource = loader({
+  baseUrl: "/reels",
+  source: reelsSourceConfig,
 });

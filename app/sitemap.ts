@@ -1,4 +1,4 @@
-import { source, hldSource, lldSource, dsaSource, aiSource } from '@/lib/source';
+import { source, hldSource, lldSource, dsaSource, aiSource, reelsSource } from '@/lib/source';
 
 type SitemapEntry = {
   url: string;
@@ -63,5 +63,13 @@ export default function sitemap(): SitemapEntry[] {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...sdPages, ...hldPages, ...lldPages, ...dsaPages, ...aiPages];
+  // Reel notes pages
+  const reelsPages: SitemapEntry[] = reelsSource.getPages().map((page) => ({
+    url: `${baseUrl}/reels/${page.slugs.join('/')}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...sdPages, ...hldPages, ...lldPages, ...dsaPages, ...aiPages, ...reelsPages];
 }

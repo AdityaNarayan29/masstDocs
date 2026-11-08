@@ -93,4 +93,9 @@ export const sidebarTabs = [
     description: "Retrieval, inference, agents, eval, safety, cost",
     url: "/ai",
   },
+  {
+    title: "Reel Notes",
+    description: "Notes for every @masstdev reel",
+    url: "/reels",
+  },
 ];

@@ -8,6 +8,8 @@
     "39-aws-dns-outage",
     "38-crowdstrike-outage",
     "---How it works---",
+    "41-swiggy-message-queue",
+    "40-instagram-fanout",
     "37-whatsapp-ticks",
     "36-cloudflare-free-cdn"
   ]

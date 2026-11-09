@@ -1,6 +1,12 @@
 ---
 title: "#37 · WhatsApp: 1 tick → 2 ticks"
 description: Your friend's phone was off all night — where did the message wait? Store and forward, per-user message queues, delivery acks and end-to-end encryption.
+reel: 37
+related:
+  - /hld/whatsapp
+  - /sd/building-blocks/message-queues
+  - /sd/communication/websockets
+  - /sd/design-patterns/idempotency
 ---
 
 > **Ek line yaad rakho:** ek tick server ka, do tick dost ka.
@@ -63,10 +69,3 @@ One message goes into 200 queues. This is **fan-out**, and its cost on big group
 
 **The app is closed and there is no connection. How did the notification arrive?**
 The server asks the phone's OS to send a **push notification** (FCM on Android, APNs on iPhone). It wakes the app, the app opens the connection, and it downloads the queue.
-
-## Go deeper
-
-- [WhatsApp case study](/hld/whatsapp): full high-level design
-- [Message queues](/sd/building-blocks/message-queues)
-- [WebSockets](/sd/communication/websockets)
-- [Idempotency](/sd/design-patterns/idempotency)

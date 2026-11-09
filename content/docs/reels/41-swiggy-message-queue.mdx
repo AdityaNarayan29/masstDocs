@@ -1,6 +1,13 @@
 ---
 title: "#41 · Swiggy on IPL final night"
 description: 6,200 orders at the peak, yet "order placed" came instantly. Message queues, async workers, absorbing peaks and surviving a crashed worker.
+reel: 41
+related:
+  - /sd/building-blocks/message-queues
+  - /sd/building-blocks/task-queues
+  - /sd/building-blocks/pub-sub
+  - /sd/design-patterns/idempotency
+  - /hld/notification-system
 ---
 
 > **Ek line yaad rakho:** jawab turant do, kaam baad mein karo.
@@ -55,11 +62,3 @@ Watch **consumer lag**. Auto-scale workers on lag, and shed or delay non-urgent 
 
 **What should never go through the queue?**
 Anything the user must see right now to decide, like payment authorisation. That stays synchronous.
-
-## Go deeper
-
-- [Message queues](/sd/building-blocks/message-queues)
-- [Task queues](/sd/building-blocks/task-queues)
-- [Pub/sub](/sd/building-blocks/pub-sub)
-- [Idempotency](/sd/design-patterns/idempotency)
-- [Notification system](/hld/notification-system)

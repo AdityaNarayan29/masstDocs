@@ -1,6 +1,12 @@
 ---
 title: "#39 · AWS outage: one empty DNS record"
 description: Case study of the October 2025 AWS us-east-1 outage — a race between redundant DNS automation left DynamoDB's endpoint with an empty record. Race conditions and version checks.
+reel: 39
+related:
+  - /sd/building-blocks/dns
+  - /sd/building-blocks/distributed-locking
+  - /sd/building-blocks/leader-election
+  - /sd/fundamentals/vector-clocks
 ---
 
 > **Ek line yaad rakho:** robot pe bhi pehra lagao.
@@ -72,12 +78,5 @@ Redundant workers acting on shared state without coordination can conflict. Redu
 
 **How would you limit the damage next time?**
 Validate before publishing (never publish an empty record), keep the last known-good record to fall back on, and make sure dependent systems can run on cached DNS answers for a while.
-
-## Go deeper
-
-- [DNS](/sd/building-blocks/dns)
-- [Distributed locking](/sd/building-blocks/distributed-locking)
-- [Leader election](/sd/building-blocks/leader-election)
-- [Vector clocks](/sd/fundamentals/vector-clocks)
 
 *Source: AWS post-event summary for the October 2025 us-east-1 disruption; affected apps as reported by ThousandEyes.*

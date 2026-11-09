@@ -1,6 +1,11 @@
 ---
 title: "#36 · Free CDN with Cloudflare"
 description: Make your website fast worldwide on Cloudflare's free plan, and understand how a CDN works inside — edge, cache hit and miss, TTL, purge.
+reel: 36
+related:
+  - /sd/building-blocks/cdn
+  - /sd/building-blocks/cache-strategies
+  - /sd/building-blocks/dns
 ---
 
 > **Ek line yaad rakho:** copy paas rakho, server bachao.
@@ -56,9 +61,3 @@ No. Static files (images, CSS, JS, video) yes. User-specific data (cart, profile
 
 **What if every edge misses at the same time?**
 The origin gets a sudden spike. An **origin shield**, a central cache layer between the edges and the origin, absorbs it so fewer requests reach the origin.
-
-## Go deeper
-
-- [CDN](/sd/building-blocks/cdn): pull vs push, invalidation, content types
-- [Caching strategies](/sd/building-blocks/cache-strategies)
-- [DNS](/sd/building-blocks/dns): what the nameserver switch actually changes

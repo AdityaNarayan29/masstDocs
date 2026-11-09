@@ -1,6 +1,11 @@
 ---
 title: "#38 · CrowdStrike outage: one file, 8.5M PCs"
 description: Case study of the 19 July 2024 CrowdStrike outage — a 21-vs-20 field mismatch, an out-of-bounds read, a boot loop, and why canary rollouts exist.
+reel: 38
+related:
+  - /sd/design-patterns/circuit-breaker
+  - /sd/fundamentals/failover
+  - /sd/architecture/service-mesh
 ---
 
 > **Ek line yaad rakho:** update sabko ek saath kabhi mat bhejo.
@@ -60,11 +65,5 @@ Yes. Config, data and rules files change behaviour just like code, so they need 
 
 **How do you pick the canary group?**
 A small, representative slice: different hardware, OS versions and regions, plus internal machines first. It should be large enough to show a problem quickly and small enough that a failure stays contained.
-
-## Go deeper
-
-- [Circuit breaker](/sd/design-patterns/circuit-breaker): limiting the blast radius at runtime
-- [Failover](/sd/fundamentals/failover)
-- [Service mesh](/sd/architecture/service-mesh): traffic-shifting for canary releases
 
 *Source: CrowdStrike's root cause analysis (Aug 2024) and reporting by TechTarget and Help Net Security. The 8.5M figure is Microsoft's estimate.*

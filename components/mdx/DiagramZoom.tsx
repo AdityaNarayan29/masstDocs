@@ -11,9 +11,37 @@ const PAD_Y = 88;
 
 type View = { html: string; label: string; w: number; h: number };
 
+// Start fetching a diagram this far before it scrolls into view.
+const AHEAD = "1200px 0px";
+
+// One request per SVG file per visit, shared by every copy on the page.
+const svgCache = new Map<string, Promise<string>>();
+function fetchSvg(src: string) {
+  let p = svgCache.get(src);
+  if (!p) {
+    p = fetch(src).then((r) => {
+      if (!r.ok) throw new Error(`diagram ${r.status}`);
+      return r.text();
+    });
+    p.catch(() => svgCache.delete(src)); // allow a retry later
+    svgCache.set(src, p);
+  }
+  return p;
+}
+
+/** Inline a placeholder's SVG (no-op once loaded). */
+async function loadDiagram(canvas: HTMLElement) {
+  const src = canvas.dataset.src;
+  if (!src || canvas.firstElementChild) return;
+  const svg = await fetchSvg(src);
+  if (!canvas.firstElementChild) canvas.innerHTML = svg;
+}
+
 /**
- * Site-wide behaviour for diagrams, which are inlined as plain HTML at build
- * time (lib/remark-mermaid-inline.mjs):
+ * Site-wide behaviour for diagrams. Pages carry sized placeholders
+ * (lib/remark-mermaid-inline.mjs); this:
+ * - fetches each SVG from public/mermaid-cache/ shortly before it scrolls
+ *   into view and inlines it, so the theme's CSS variables apply;
  * - marks frames that overflow sideways, so CSS can fade the edge and show
  *   a scroll hint;
  * - one dialog that enlarges any diagram: opens fitted to the screen, click
@@ -24,6 +52,38 @@ export function DiagramZoom() {
   const [view, setView] = useState<View | null>(null);
   const [full, setFull] = useState(false);
   const pathname = usePathname();
+
+  // Lazy loading. A MutationObserver also catches content that streams in
+  // after client-side navigation.
+  useEffect(() => {
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          io.unobserve(e.target);
+          loadDiagram(e.target as HTMLElement).catch(() => io.observe(e.target));
+        }),
+      { rootMargin: AHEAD },
+    );
+    const seen = new WeakSet<Element>();
+    const scan = () =>
+      document.querySelectorAll<HTMLElement>(".dg-canvas[data-src]").forEach((c) => {
+        if (seen.has(c) || c.firstElementChild) return;
+        seen.add(c);
+        io.observe(c);
+      });
+    scan();
+    const mo = new MutationObserver(scan);
+    mo.observe(document.body, { childList: true, subtree: true });
+    // Printing shows every diagram.
+    const onPrint = () => document.querySelectorAll<HTMLElement>(".dg-canvas[data-src]").forEach((c) => void loadDiagram(c));
+    window.addEventListener("beforeprint", onPrint);
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+      window.removeEventListener("beforeprint", onPrint);
+    };
+  }, []);
 
   // Overflow hints, re-applied after client-side navigation and on resize.
   useEffect(() => {
@@ -48,13 +108,18 @@ export function DiagramZoom() {
 
   // Open the dialog from a diagram's canvas or enlarge button.
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
+    const onClick = async (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target || target.closest(".dg-dialog")) return;
       const trigger = target.closest(".dg-zoom, .dg .dg-canvas");
       const figure = trigger?.closest<HTMLElement>(".dg");
       const canvas = figure?.querySelector<HTMLElement>(".dg-canvas");
       if (!figure || !canvas) return;
+      try {
+        await loadDiagram(canvas);
+      } catch {
+        return;
+      }
       setFull(false);
       setView({
         html: canvas.innerHTML,

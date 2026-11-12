@@ -168,6 +168,17 @@ const config = {
         ],
       },
       {
+        // Diagram SVGs: the page links them with ?v=<file hash>, so a URL
+        // never changes content and browsers can keep it for a year.
+        source: '/mermaid-cache/:file*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // Prevent bots from hitting sitemaps too frequently
         source: '/:path(sitemap\\.xml|image-sitemap\\.xml)',
         headers: [

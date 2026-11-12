@@ -90,6 +90,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   // Run on all page routes, skip static assets and API routes
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons/|manifest.json|sw.js|workbox-).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icons/|mermaid-cache/|manifest.json|sw.js|workbox-).*)",
   ],
 };

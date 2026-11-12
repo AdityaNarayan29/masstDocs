@@ -54,22 +54,24 @@ pnpm new-reel 42 kafka-ordering --title "Why Kafka keeps order" --kind how \
 
 ## Diagrams
 
-Diagrams are Mermaid code blocks in MDX. Each one is pre-rendered once into a theme-aware SVG and inlined into the page, so it shows instantly with no client JavaScript.
+Diagrams are Mermaid code blocks in MDX. Each one is pre-rendered once into a theme-aware SVG file. The page carries only a sized placeholder with a caption; the SVG is fetched from the CDN shortly before it scrolls into view and inlined, so the theme's CSS variables apply. Keeping SVGs out of the HTML keeps pages small (Netflix went from 2.2 MB to 0.4 MB) and cuts ISR reads, and each SVG is cached by the browser across pages.
 
 ```mermaid
 flowchart LR
-    MDX["```mermaid in MDX"] --> PR["scripts/pre-render-mermaid.mjs<br/>Chrome + Inter, site theme"]
+    MDX["```mermaid in MDX"] --> PR["scripts/pre-render-mermaid.mjs<br/>Chrome + Nunito, site theme"]
     PR --> SVG["public/mermaid-cache/&lt;hash&gt;.svg<br/>colours = CSS variables"]
     PR --> MAN["manifest.json<br/>natural width, height"]
-    SVG --> RM["lib/remark-mermaid-inline.mjs<br/>inlines figure.dg"]
-    MAN --> RM
-    RM --> PAGE["Page: one SVG, follows light/dark"]
+    MAN --> RM["lib/remark-mermaid-inline.mjs<br/>figure.dg placeholder + caption"]
+    RM --> PAGE["Page HTML"]
+    SVG -->|"fetched near the viewport<br/>DiagramZoom.tsx"| PAGE
 ```
 
 - **Theme:** `lib/diagram-theme.mjs` is the single source. Diagrams render with Mermaid's `base` theme using placeholder colours; `lib/diagram-svg.mjs` then turns every colour into `var(--dg-*)` (designed tokens, including the pastel `style` fills used in content) or an automatic light/dark pair scoped to that SVG. Token values are injected in `app/layout.tsx`. Change the look there, then run `pnpm pre-render-mermaid --force`.
 - **Font:** rendered with Nunito (`scripts/fonts/`), displayed with the site's Nunito via `--font-nunito`, so labels fit their boxes.
 - **Unique ids:** each SVG uses `dg-<hash>`, so styles and arrowheads never leak between diagrams.
 - **Sizing** (`.dg` in `app/global.css`): natural size (14px text) when it fits; otherwise shrunk to fit the column and `--dg-max-h`, but never below `--dg-min-scale` (0.62 desktop, 0.55 mobile). Beyond that it scrolls, with a faded edge and a "Scroll" hint. Text never grows past 14px or drops below about 8px.
+- **Loading:** the figure links `/mermaid-cache/<hash>.svg?v=<file hash>`; the URL changes whenever the file does, so it is served with a one-year immutable cache header (`next.config.mjs`) and skipped by the middleware. `components/mdx/DiagramZoom.tsx` fetches each one about 1,200px before it is visible. The placeholder has the diagram's exact aspect ratio, so nothing shifts when it arrives.
+- **Caption and SEO:** a visible caption (section heading plus diagram type) gives search engines text for every figure. Diagrams with a Cloudinary PNG also get a `<noscript>` image and schema.org `ImageObject` data; the rest get neither, rather than a broken link.
 - **Zoom:** click a diagram (or its enlarge button) to open it fitted to the screen; click again for full size. `components/mdx/DiagramZoom.tsx`, mounted once in the root layout, handles this and the scroll hints.
 - **Fallback:** a diagram missing from the cache renders in the browser with the same theme and processing (`components/mdx/mermaid.tsx`). Run `pnpm pre-render-mermaid` to cache it.
 

@@ -132,6 +132,42 @@
     min(100%, var(--dg-w), calc(var(--dg-w) * var(--dg-max-h) / var(--dg-h)))
   );
 }
+/* The SVG is fetched on demand (components/mdx/DiagramZoom.tsx); the
+   placeholder keeps its exact shape so nothing jumps when it arrives. */
+.dg-canvas[data-src] {
+  aspect-ratio: var(--dg-ar);
+}
+.dg-canvas[data-src] > svg {
+  animation: dg-in 0.25s ease-out;
+}
+@keyframes dg-in {
+  from { opacity: 0; }
+}
+.dg-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  padding: 0.7rem 1.25rem 0.8rem;
+  border-top: 1px solid var(--color-fd-border);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--m-ink-2, var(--color-fd-muted-foreground));
+}
+/* With a caption, the scroll hint sits at the end of the caption row. */
+.dg:has(.dg-caption)::after {
+  display: none;
+}
+.dg:has(.dg-frame[data-overflow="start"]) .dg-caption::after {
+  content: "Scroll →";
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--color-fd-muted-foreground);
+}
+.dg-caption-type {
+  font-weight: 600;
+  color: var(--color-fd-muted-foreground);
+}
 .dg-svg {
   display: block;
   width: 100%;

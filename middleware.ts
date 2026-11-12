@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Known AI/aggressive bot user agents (lowercase for matching)
+// Abusive scrapers (lowercase for matching). AI answer-engine crawlers
+// (GPTBot, ClaudeBot, PerplexityBot, ...) are allowed on purpose so the
+// docs can be read and cited by AI search.
 const BLOCKED_BOTS = [
-  "gptbot",
-  "chatgpt-user",
-  "claudebot",
-  "ccbot",
   "bytespider",
-  "anthropic-ai",
-  "google-extended",
-  "facebookbot",
-  "applebot-extended",
-  "perplexitybot",
-  "cohere-ai",
   "mj12bot",
   "dotbot",
   "petalbot",
   "sogou",
   "dataforseobot",
-  "amazonbot",
-  "youbot",
 ];
 
 // Simple in-memory rate limiting per IP (edge runtime compatible)
@@ -94,12 +84,7 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  const response = NextResponse.next();
-
-  // Add security headers
-  response.headers.set("X-Robots-Tag", "noai, noimageai");
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

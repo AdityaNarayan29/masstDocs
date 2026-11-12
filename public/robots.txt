@@ -1,6 +1,6 @@
 # https://www.robotstxt.org/robotstxt.html
 
-# Allow legitimate search engines
+# Search engines
 User-agent: Googlebot
 Allow: /
 
@@ -12,7 +12,7 @@ User-agent: Yandex
 Allow: /
 Crawl-delay: 10
 
-# Allow SEO tools (with rate limiting so they don't hammer the site)
+# SEO tools (rate limited so they don't hammer the site)
 User-agent: AhrefsBot
 Allow: /
 Crawl-delay: 15
@@ -21,41 +21,41 @@ User-agent: SemrushBot
 Allow: /
 Crawl-delay: 15
 
-# Block AI training crawlers
+# AI search and answer engines: allowed so the docs can be read and cited
 User-agent: GPTBot
-Disallow: /
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
 
 User-agent: ChatGPT-User
-Disallow: /
+Allow: /
 
 User-agent: ClaudeBot
-Disallow: /
+Allow: /
 
-User-agent: CCBot
-Disallow: /
+User-agent: Claude-SearchBot
+Allow: /
 
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Abusive crawlers
 User-agent: Bytespider
 Disallow: /
 
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Google-Extended
-Disallow: /
-
-User-agent: FacebookBot
-Disallow: /
-
-User-agent: Applebot-Extended
-Disallow: /
-
-User-agent: PerplexityBot
-Disallow: /
-
-User-agent: Cohere-ai
-Disallow: /
-
-# Block abusive crawlers
 User-agent: MJ12bot
 Disallow: /
 
@@ -66,6 +66,9 @@ User-agent: PetalBot
 Disallow: /
 
 User-agent: Sogou
+Disallow: /
+
+User-agent: DataForSeoBot
 Disallow: /
 
 # Default: allow with rate limit

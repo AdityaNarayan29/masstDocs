@@ -69,53 +69,82 @@ const aiSourceConfig = { files: aiFiles } as typeof fullSource;
 const reelsSourceConfig = { files: reelsFiles } as typeof fullSource;
 
 /**
+ * Every loader's page tree root gets $id "root" by default. Fumadocs caches
+ * each tree's prev/next footer list by root.$id in a module-level map, so on
+ * the server all six sections shared one list: wrong footer links and
+ * hydration errors. A unique id per section keeps them apart.
+ */
+function withRootId<T extends { pageTree: { $id?: string } }>(l: T, id: string): T {
+  l.pageTree.$id = `root-${id}`;
+  return l;
+}
+
+/**
  * /sd — the curriculum view.
  */
-export const source = loader({
-  baseUrl: "/sd",
-  source: sdSourceConfig,
-});
+export const source = withRootId(
+  loader({
+    baseUrl: "/sd",
+    source: sdSourceConfig,
+  }),
+  "sd",
+);
 
 /**
  * /hld — real-world case studies only. /hld lands on the case-studies
  * index page; individual pages are reachable at /hld/netflix etc.
  */
-export const hldSource = loader({
-  baseUrl: "/hld",
-  source: hldSourceConfig,
-});
+export const hldSource = withRootId(
+  loader({
+    baseUrl: "/hld",
+    source: hldSourceConfig,
+  }),
+  "hld",
+);
 
 /**
  * /lld — only the lld/ subtree, paths flattened.
  */
-export const lldSource = loader({
-  baseUrl: "/lld",
-  source: lldSourceConfig,
-});
+export const lldSource = withRootId(
+  loader({
+    baseUrl: "/lld",
+    source: lldSourceConfig,
+  }),
+  "lld",
+);
 
 /**
  * /dsa — only the dsa/ subtree, paths flattened.
  */
-export const dsaSource = loader({
-  baseUrl: "/dsa",
-  source: dsaSourceConfig,
-});
+export const dsaSource = withRootId(
+  loader({
+    baseUrl: "/dsa",
+    source: dsaSourceConfig,
+  }),
+  "dsa",
+);
 
 /**
  * /ai — only the ai/ subtree, paths flattened. Covers retrieval,
  * inference internals, agents, eval/observability, safety, cost,
  * and 2026 edges.
  */
-export const aiSource = loader({
-  baseUrl: "/ai",
-  source: aiSourceConfig,
-});
+export const aiSource = withRootId(
+  loader({
+    baseUrl: "/ai",
+    source: aiSourceConfig,
+  }),
+  "ai",
+);
 
 /**
  * /reels — notes for each @masstdev Instagram reel, linked from DMs and the bio.
  * Every page points back into the curriculum ("Go deeper") to turn reel viewers into readers.
  */
-export const reelsSource = loader({
-  baseUrl: "/reels",
-  source: reelsSourceConfig,
-});
+export const reelsSource = withRootId(
+  loader({
+    baseUrl: "/reels",
+    source: reelsSourceConfig,
+  }),
+  "reels",
+);

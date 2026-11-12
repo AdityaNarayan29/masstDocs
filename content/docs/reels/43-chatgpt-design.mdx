@@ -1,6 +1,11 @@
 ---
 title: "#43 · Let's design ChatGPT"
 description: Why does the answer arrive word by word? Gateway, tokenizer, GPU cluster with batching, KV cache and streaming — the LLM serving stack interviewers ask about.
+reel: 43
+related:
+  - /sd/building-blocks/rate-limiting
+  - /sd/communication/sse
+  - /sd/building-blocks/load-balancer
 ---
 
 > **Ek line yaad rakho:** ek token, ek kadam.
@@ -51,9 +56,3 @@ Rate limits at the gateway, queueing, autoscaling GPU workers, and smaller/faste
 
 **Why not just return the full answer at once?**
 Users would wait for the slowest part. Streaming makes the first token show up in well under a second.
-
-## Go deeper
-
-- [Rate limiting](/sd/building-blocks/rate-limiting)
-- [Server-Sent Events](/sd/communication/sse)
-- [Load balancer](/sd/building-blocks/load-balancer)

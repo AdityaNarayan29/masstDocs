@@ -70,16 +70,6 @@ export const INTERVIEW_FRAMEWORK = [
   { title: 'Back-of-envelope estimates', url: '/sd/fundamentals/estimate' },
 ];
 
-/** Literal class names so Tailwind picks them up. */
-export const SECTION_COLORS: Record<SectionId, { bg: string; ring: string; text: string }> = {
-  sd: { bg: 'bg-emerald-500', ring: 'ring-emerald-500/40', text: 'text-emerald-600 dark:text-emerald-400' },
-  ai: { bg: 'bg-pink-500', ring: 'ring-pink-500/40', text: 'text-pink-600 dark:text-pink-400' },
-  hld: { bg: 'bg-blue-500', ring: 'ring-blue-500/40', text: 'text-blue-600 dark:text-blue-400' },
-  lld: { bg: 'bg-violet-500', ring: 'ring-violet-500/40', text: 'text-violet-600 dark:text-violet-400' },
-  dsa: { bg: 'bg-orange-500', ring: 'ring-orange-500/40', text: 'text-orange-600 dark:text-orange-400' },
-  reels: { bg: 'bg-amber-500', ring: 'ring-amber-500/40', text: 'text-amber-600 dark:text-amber-400' },
-};
-
 export const getSection = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;
 export const getTrack = (id: TrackId) => TRACKS.find((t) => t.id === id)!;
 export const sectionsInTrack = (id: TrackId) => SECTIONS.filter((s) => s.track === id);
@@ -89,4 +79,12 @@ export function nextSection(id: SectionId): Section {
   if (id === 'reels') return SECTIONS[0]!;
   const i = SECTIONS.findIndex((s) => s.id === id);
   return SECTIONS[i + 1]!;
+}
+
+/** The section a page URL belongs to (longest matching section URL). */
+export function sectionForUrl(url: string): Section | null {
+  return (
+    SECTIONS.filter((s) => url === s.url || url.startsWith(`${s.url}/`)).sort((a, b) => b.url.length - a.url.length)[0] ??
+    null
+  );
 }

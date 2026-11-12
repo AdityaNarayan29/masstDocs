@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useEffect, useId, useState, useRef } from "react";
-import { useTheme } from "next-themes";
+import type React from "react";
+import { memo, useEffect, useId, useState } from "react";
 
 /**
  * Loading skeleton for mermaid diagrams
@@ -29,56 +29,41 @@ const MermaidSkeleton = memo(function MermaidSkeleton() {
 });
 
 /**
- * Mermaid component - Client-side fallback renderer
+ * Mermaid component - client-side fallback renderer.
  *
- * This component is only used when pre-rendered SVGs are not available.
- * Most diagrams will be inlined at build time by the remarkMermaidInline plugin.
+ * Only used for diagrams that are not pre-rendered yet (run
+ * `pnpm pre-render-mermaid`). It renders with the same theme and
+ * post-processing as the build (lib/diagram-theme.mjs, lib/diagram-svg.mjs),
+ * so the result looks the same and follows light/dark mode via CSS.
  */
 export const Mermaid = memo(function Mermaid({ chart }: { chart: string }) {
   const id = useId();
-  const { resolvedTheme } = useTheme();
-  const [svg, setSvg] = useState<string | null>(null);
+  const [diagram, setDiagram] = useState<{ svg: string; width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  // Capture theme at mount time to avoid re-renders on theme change
-  const initialThemeRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    initialThemeRef.current = resolvedTheme;
-    setMounted(true);
-  }, [resolvedTheme]);
-
-  useEffect(() => {
-    if (!mounted) return;
-
     let cancelled = false;
-    const renderId = `mermaid-${id.replace(/:/g, "-")}`;
+    const renderId = `dg-c${id.replace(/[^a-zA-Z0-9]/g, "")}`;
 
     async function render() {
       try {
-        const mermaid = (await import("mermaid")).default;
-
+        const [{ default: mermaid }, { MERMAID_CONFIG }, { processSvg }] = await Promise.all([
+          import("mermaid"),
+          import("@/lib/diagram-theme.mjs"),
+          import("@/lib/diagram-svg.mjs"),
+        ]);
+        // Measure text with the font the page actually uses.
+        const font = getComputedStyle(document.body).fontFamily.split(",")[0].replace(/["']/g, "").trim();
         mermaid.initialize({
           startOnLoad: false,
-          securityLevel: "loose",
-          fontFamily: "inherit",
-          theme: initialThemeRef.current === "dark" ? "dark" : "default",
-        });
-
-        const { svg } = await mermaid.render(
-          renderId,
-          chart.replace(/\\n/g, "\n")
-        );
-
-        if (!cancelled) {
-          setSvg(svg);
-        }
+          ...MERMAID_CONFIG,
+          fontFamily: font,
+          themeVariables: { ...MERMAID_CONFIG.themeVariables, fontFamily: font },
+        } as Parameters<typeof mermaid.initialize>[0]);
+        const { svg } = await mermaid.render(renderId, chart.replace(/\\n/g, "\n"));
+        if (!cancelled) setDiagram(processSvg(svg, renderId, font));
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to render diagram"
-          );
-        }
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to render diagram");
       }
     }
 
@@ -86,36 +71,31 @@ export const Mermaid = memo(function Mermaid({ chart }: { chart: string }) {
 
     return () => {
       cancelled = true;
-      // Clean up mermaid's internal DOM element to prevent memory leaks
-      const el = document.getElementById(renderId);
-      if (el) {
-        el.remove();
-      }
-      // Also clean up any wrapper elements mermaid may have created
-      const wrapper = document.getElementById(`d${renderId}`);
-      if (wrapper) {
-        wrapper.remove();
-      }
+      // Clean up mermaid's temporary render elements
+      document.getElementById(renderId)?.remove();
+      document.getElementById(`d${renderId}`)?.remove();
     };
-  }, [chart, id, mounted]);
-
-  if (!mounted || (!svg && !error)) {
-    return <MermaidSkeleton />;
-  }
+  }, [chart, id]);
 
   if (error) {
     return (
-      <div className="mermaid-error p-4 rounded-lg bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 my-6">
+      <div className="mermaid-error p-4 rounded-lg border border-[color-mix(in_srgb,var(--m-fail)_40%,transparent)] bg-[color-mix(in_srgb,var(--m-fail)_10%,transparent)] text-[var(--m-fail)] my-6">
         <p className="font-medium">Failed to render diagram</p>
         <p className="text-sm mt-1 opacity-75">{error}</p>
       </div>
     );
   }
 
+  if (!diagram) return <MermaidSkeleton />;
+
   return (
-    <div
-      className="mermaid-container my-6 overflow-x-auto [&>svg]:max-w-full [&>svg]:h-auto"
-      dangerouslySetInnerHTML={{ __html: svg! }}
-    />
+    <figure
+      className="dg not-prose"
+      style={{ "--dg-w": `${diagram.width}px`, "--dg-h": diagram.height } as React.CSSProperties}
+    >
+      <div className="dg-frame">
+        <div className="dg-canvas" role="img" aria-label="Diagram" dangerouslySetInnerHTML={{ __html: diagram.svg }} />
+      </div>
+    </figure>
   );
 });

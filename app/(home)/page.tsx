@@ -1,338 +1,213 @@
-"use client";
-
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { HeroDiagram } from "@/components/home/HeroDiagram";
+import { FeatureDiagram } from "@/components/home/FeatureDiagram";
+import { ContinueCard, SectionProgress, TodaysPractice } from "@/components/home/HomeCards";
+import { LOADERS, latestReels, pageCount } from "@/lib/roadmap";
+import { HLD_PRACTICE } from "@/lib/practice/hld";
+import { LLD_PRACTICE } from "@/lib/practice/lld";
+import { INTERVIEW_FRAMEWORK, SECTIONS, TRACKS, sectionsInTrack } from "@/lib/tracks";
+import { socialLinks } from "@/app/layout.config";
 
-const SystemDesignRoadmap = dynamic(
-  () => import("@/components/ui/SystemDesignRoadmap"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-[700px] rounded-xl border border-fd-border bg-fd-card/50 animate-pulse flex items-center justify-center">
-        <span className="text-fd-muted-foreground">Loading roadmap...</span>
-      </div>
-    ),
-  }
-);
+const INSTAGRAM = "https://www.instagram.com/masstdev/";
+
+const POPULAR_TOPICS = [
+  { title: "CAP Theorem", url: "/sd/fundamentals/cap-theorem" },
+  { title: "Load Balancers", url: "/sd/building-blocks/load-balancer" },
+  { title: "Caching Strategies", url: "/sd/building-blocks/cache-strategies" },
+  { title: "Database Sharding", url: "/sd/building-blocks/sharding" },
+  { title: "Message Queues", url: "/sd/building-blocks/message-queues" },
+  { title: "Microservices", url: "/sd/fundamentals/microservices" },
+  { title: "Netflix design", url: "/hld/netflix" },
+  { title: "Uber design", url: "/hld/uber" },
+  { title: "WhatsApp design", url: "/hld/whatsapp" },
+  { title: "Parking lot (LLD)", url: "/lld/case-studies/parking-lot" },
+  { title: "SOLID Principles", url: "/lld/foundations/solid" },
+  { title: "Sliding Window", url: "/dsa/patterns/arrays-strings/sliding-window" },
+  { title: "RAG retrieval", url: "/ai/retrieval" },
+  { title: "LLM agents", url: "/ai/agents" },
+];
+
+/** "Design a URL shortener like bit.ly that …" → "Design a URL shortener". */
+function shortPrompt(prompt: string) {
+  const cut = [":", " like ", " that ", " with ", ", ", "."]
+    .map((sep) => prompt.indexOf(sep))
+    .filter((i) => i > 0);
+  return cut.length ? prompt.slice(0, Math.min(...cut)) : prompt;
+}
+
+/** Cover-style headline for a reel card: the title without its "#43 · " prefix. */
+const reelHeadline = (title: string) => title.replace(/^#\d+\s*·\s*/, "");
 
 export default function HomePage() {
+  const reels = latestReels(4);
+  const newest = reels[0];
+  const totalPages = SECTIONS.reduce((sum, s) => sum + pageCount(s.id), 0);
+  const practice = Object.entries(HLD_PRACTICE).map(([url, p]) => ({ url, title: shortPrompt(p.prompt) }));
+  const pagesOf = (id: (typeof SECTIONS)[number]["id"]) => LOADERS[id].getPages().map((p) => p.url);
+  const learnTracks = TRACKS.filter((t) => t.id !== "reels");
+
   return (
-    <main className="flex flex-1 flex-col px-4 py-8 md:px-8 lg:px-16 max-w-7xl mx-auto w-full">
-      {/* Hero Section */}
-      <div className="text-center mb-8">
-        <Link href="/sd">
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 pb-1 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-400 dark:from-gray-300 dark:via-gray-400 dark:to-gray-500 bg-clip-text text-transparent hover:from-gray-600 hover:via-gray-500 hover:to-gray-300 dark:hover:from-gray-200 dark:hover:via-gray-300 dark:hover:to-gray-400 transition-all cursor-pointer">
-            System Design Roadmap
+    <main className="mx-auto w-full max-w-[1200px] px-4 pb-16 md:px-6">
+      {/* Hero */}
+      <section className="flex flex-wrap items-center gap-12 pt-14 pb-12 md:pt-[72px]">
+        <div className="min-w-0 flex-[1_1_520px]">
+          {newest && (
+            <Link
+              href={newest.url}
+              className="inline-flex max-w-full items-center gap-2.5 rounded-full border bg-fd-card py-1.5 pr-3.5 pl-1.5 text-[13px] font-bold text-[var(--m-ink-2)] hover:bg-fd-accent"
+            >
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-[var(--m-tint)] px-2.5 py-0.5 text-[11px] font-extrabold tracking-[0.12em] text-[var(--m-info)]">NEW REEL</span>
+              <span className="truncate">{newest.title}</span>
+              <span aria-hidden="true" className="text-fd-muted-foreground">→</span>
+            </Link>
+          )}
+          <h1 className="mt-6 text-[40px] leading-[1.04] font-extrabold tracking-[-0.035em] sm:text-[52px] lg:text-[60px]">
+            System design and AI engineering, <span className="text-fd-muted-foreground">explained in diagrams.</span>
           </h1>
-        </Link>
-        <p className="text-fd-muted-foreground text-lg max-w-2xl mx-auto">
-          Free system design course with HLD and LLD tutorials. Learn how Netflix, Uber, and WhatsApp
-          are designed. Perfect for system design interviews.
-        </p>
-        {/* SEO content - visually hidden but accessible to search engines */}
-        <p className="sr-only">
-          Master the art of designing scalable distributed systems with our comprehensive documentation.
-          Whether you are preparing for technical interviews at top tech companies or building production-grade
-          applications, our guides cover everything from fundamental concepts like CAP theorem and database
-          sharding to real-world architecture patterns used by industry leaders.
-        </p>
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap justify-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded text-xs font-bold bg-emerald-500 text-white">HLD</span>
-          <span className="text-sm text-fd-muted-foreground">High-Level Design</span>
+          <p className="mt-5 max-w-[540px] text-lg leading-relaxed font-medium text-[var(--m-ink-2)] sm:text-[19px]">
+            Free, from the basics to real designs like Netflix, UPI and ChatGPT. A new reel every day at 9:30 PM IST, with notes here.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href={TRACKS[0]!.start.url} className="inline-flex h-12 items-center gap-2 rounded-[14px] bg-fd-primary px-[22px] text-[15px] font-extrabold text-fd-primary-foreground hover:opacity-90">
+              Start learning <span aria-hidden="true">→</span>
+            </Link>
+            <Link href="/reels" className="inline-flex h-12 items-center gap-2 rounded-[14px] border bg-fd-card px-[22px] text-[15px] font-extrabold hover:bg-fd-accent">
+              <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              Watch the reels
+            </Link>
+          </div>
+          <p className="mt-7 text-[13px] font-bold tracking-[0.12em] text-fd-muted-foreground">
+            {Math.floor(totalPages / 10) * 10}+ PAGES · 900+ DIAGRAMS · {practice.length + Object.keys(LLD_PRACTICE).length} PRACTICE QUESTIONS
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded text-xs font-bold bg-blue-500 text-white">LLD</span>
-          <span className="text-sm text-fd-muted-foreground">Low-Level Design</span>
+        <div className="min-w-0 flex-[1_1_420px]">
+          <HeroDiagram />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded text-xs font-bold bg-violet-500 text-white">BOTH</span>
-          <span className="text-sm text-fd-muted-foreground">HLD + LLD</span>
+      </section>
+
+      {/* Personal row */}
+      <section aria-label="Your progress" className="grid gap-4 md:grid-cols-2">
+        <ContinueCard fallback={TRACKS[0]!.start} />
+        <TodaysPractice items={practice} />
+      </section>
+
+      {/* Tracks */}
+      <section aria-labelledby="tracks" className="mt-[72px]">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 id="tracks" className="text-[32px] font-extrabold tracking-[-0.03em]">Three tracks</h2>
+            <p className="mt-2 font-medium text-fd-muted-foreground">Learn how systems work, study real designs, then practise for the interview.</p>
+          </div>
+          <Link href="/roadmap" className="text-sm font-extrabold text-[var(--m-info)] hover:underline">
+            See the full roadmap →
+          </Link>
         </div>
-      </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {learnTracks.map((track, i) => (
+            <div key={track.id} className="flex flex-col rounded-3xl border bg-fd-card p-6">
+              <span className="m-label">Track {i + 1}</span>
+              <h3 className="mt-1.5 text-2xl font-extrabold tracking-[-0.02em]">{track.title}</h3>
+              <p className="mt-1.5 mb-5 text-sm font-semibold text-fd-muted-foreground">{track.blurb}</p>
+              <div className="flex flex-1 flex-col gap-3.5">
+                {sectionsInTrack(track.id).map((s) => (
+                  <SectionProgress key={s.id} title={s.title} url={s.url} pages={pagesOf(s.id)} />
+                ))}
+                {track.id === "interview" &&
+                  INTERVIEW_FRAMEWORK.map((p) => (
+                    <Link key={p.url} href={p.url} className="flex justify-between gap-3 text-[15px] font-extrabold hover:underline hover:underline-offset-4">
+                      <span>{p.title}</span>
+                      <span aria-hidden="true" className="text-fd-muted-foreground">→</span>
+                    </Link>
+                  ))}
+              </div>
+              <Link href={track.start.url} className="mt-6 text-sm font-extrabold hover:underline hover:underline-offset-4">
+                Start: {track.start.title} →
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Roadmap */}
-      <SystemDesignRoadmap />
+      {/* Latest reels, as 9:16 covers */}
+      {reels.length > 0 && (
+        <section aria-labelledby="reels" className="mt-[72px]">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 id="reels" className="text-[32px] font-extrabold tracking-[-0.03em]">Latest reels</h2>
+              <p className="mt-2 font-medium text-fd-muted-foreground">Every reel has a notes page: the diagram, the interview words and the follow-up questions.</p>
+            </div>
+            <div className="flex gap-5 text-sm font-extrabold">
+              <Link href="/reels" className="text-[var(--m-info)] hover:underline">All reel notes →</Link>
+              <a href={INSTAGRAM} className="text-[var(--m-info)] hover:underline">Instagram →</a>
+            </div>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {reels.map((r) => {
+              const number = r.url.split("/").pop()?.split("-")[0];
+              return (
+                <Link key={r.url} href={r.url} className="group flex flex-col">
+                  {/* Covers are always the reel look (dark), whatever the site theme. */}
+                  <span className="flex aspect-[9/13] flex-col justify-between rounded-[22px] border border-[#2c2c33] bg-[#060607] bg-[radial-gradient(420px_260px_at_50%_-40px,rgba(255,255,255,0.16),transparent_70%)] p-5 text-[#f5f5f7] transition-transform group-hover:-translate-y-0.5">
+                    <span className="text-[10px] font-extrabold tracking-[0.2em] text-[#8e8e93]">SYSTEM DESIGN · #{number}</span>
+                    <span className="text-[22px] leading-[1.08] font-extrabold tracking-[-0.03em] sm:text-[26px]">{reelHeadline(r.title)}</span>
+                    <span className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-[#8e8e93]">@masstdev</span>
+                      <span className="grid size-[34px] place-items-center rounded-full bg-white/10">
+                        <svg viewBox="0 0 24 24" className="size-3.5" fill="#f5f5f7" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="mt-3 line-clamp-2 px-0.5 text-sm font-semibold text-fd-muted-foreground">{r.description}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      {/* Quick Links */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-8 mb-4 text-center">
-        Explore Learning Paths
-      </h2>
-      <p className="text-fd-muted-foreground text-center mb-6 max-w-2xl mx-auto">
-        Our structured curriculum takes you from basic concepts to advanced system architecture.
-        Each section builds upon the previous, ensuring a solid foundation for designing complex systems.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link
-          href="/sd/fundamentals"
-          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-lg transition-all"
-        >
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-green-500 transition-colors">
-            Start with Fundamentals
-          </h3>
-          <p className="text-sm text-fd-muted-foreground">
-            Learn CAP theorem, consistency models, scalability patterns, and essential distributed systems concepts that form the foundation of system design.
+      {/* Design of the week */}
+      <section aria-labelledby="featured" className="mt-[72px] flex flex-wrap items-stretch gap-6 rounded-[28px] border bg-[var(--m-raised)] p-6 sm:p-8">
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col justify-center">
+          <span className="m-label">Design of the week</span>
+          <h2 id="featured" className="mt-2 text-[32px] leading-tight font-extrabold tracking-[-0.03em]">How Netflix streams to every screen</h2>
+          <p className="mt-3 leading-relaxed font-medium text-[var(--m-ink-2)]">
+            Encoding, the Open Connect CDN, recommendations and staying up when parts fail. 28 diagrams, then a practice question to try it yourself.
           </p>
-        </Link>
-        <Link
-          href="/sd/system-components"
-          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-lg transition-all"
-        >
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-orange-500 transition-colors">
-            System Components
-          </h3>
-          <p className="text-sm text-fd-muted-foreground">
-            Deep dive into databases, caching strategies, load balancers, message queues, and other building blocks used in modern architectures.
-          </p>
-        </Link>
-        <Link
-          href="/hld"
-          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:shadow-lg transition-all"
-        >
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-emerald-500 transition-colors">
-            HLD Case Studies
-          </h3>
-          <p className="text-sm text-fd-muted-foreground">
-            Explore real-world system designs of Netflix, Uber, WhatsApp, Instagram, Stripe, and 20+ other applications used by millions.
-          </p>
-        </Link>
-        <Link
-          href="/lld"
-          className="group p-6 rounded-xl border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-lg transition-all"
-        >
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-blue-500 transition-colors">
-            LLD &amp; Patterns
-          </h3>
-          <p className="text-sm text-fd-muted-foreground">
-            OOP, SOLID, 22 Gang-of-Four design patterns, concurrency, and 24 machine-coding case studies (Splitwise, parking lot, elevator, ...).
-          </p>
-        </Link>
-      </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/hld/netflix" className="inline-flex h-11 items-center rounded-xl bg-fd-primary px-[18px] text-sm font-extrabold text-fd-primary-foreground hover:opacity-90">Read the case study</Link>
+            <Link href="/hld/netflix#practice" className="inline-flex h-11 items-center rounded-xl border px-[18px] text-sm font-extrabold hover:bg-fd-accent">Practise it</Link>
+          </div>
+        </div>
+        <div className="min-w-0 flex-[1_1_420px] rounded-[20px] border bg-fd-card p-5 [background-image:radial-gradient(circle_at_1px_1px,var(--m-dots)_1px,transparent_0)] [background-size:18px_18px]">
+          <FeatureDiagram />
+        </div>
+      </section>
 
-      {/* Company HLD Section */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-12 mb-4 text-center">
-        Company System Design Case Studies
-      </h2>
-      <p className="text-fd-muted-foreground text-center mb-4 max-w-2xl mx-auto">
-        Learn high-level design (HLD) of real-world systems used by top tech companies
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Link href="/hld/netflix" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-red-500">Netflix HLD</span>
-        </Link>
-        <Link href="/hld/uber" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-gray-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-gray-500">Uber HLD</span>
-        </Link>
-        <Link href="/hld/whatsapp" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-green-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-green-500">WhatsApp HLD</span>
-        </Link>
-        <Link href="/hld/instagram" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Instagram HLD</span>
-        </Link>
-        <Link href="/hld/youtube" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-red-600/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-red-600">YouTube HLD</span>
-        </Link>
-        <Link href="/hld/twitter" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-400/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-400">Twitter HLD</span>
-        </Link>
-        <Link href="/hld/amazon" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-orange-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-orange-500">Amazon HLD</span>
-        </Link>
-        <Link href="/hld/slack" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-purple-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-purple-500">Slack HLD</span>
-        </Link>
-      </div>
+      {/* Popular topics: quick jumps (and internal links for search engines) */}
+      <section aria-labelledby="popular" className="mt-[72px]">
+        <h2 id="popular" className="m-label">Popular topics</h2>
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          {POPULAR_TOPICS.map((t) => (
+            <Link key={t.url} href={t.url} className="rounded-full border bg-fd-card px-4 py-2 text-sm font-bold hover:bg-fd-accent">
+              {t.title}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-      {/* LLD Machine-Coding Section */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
-        LLD Machine-Coding Case Studies
-      </h2>
-      <p className="text-fd-muted-foreground text-center mb-4 max-w-2xl mx-auto">
-        Practice low-level design with class diagrams, code, and pattern walkthroughs
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Link href="/lld/case-studies/parking-lot" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Parking Lot</span>
-        </Link>
-        <Link href="/lld/case-studies/elevator-system" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Elevator</span>
-        </Link>
-        <Link href="/lld/case-studies/splitwise" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Splitwise</span>
-        </Link>
-        <Link href="/lld/case-studies/movie-booking" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Movie Booking</span>
-        </Link>
-        <Link href="/lld/case-studies/chess-game" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Chess Game</span>
-        </Link>
-        <Link href="/lld/case-studies/cache-lru-lfu" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">LRU/LFU Cache</span>
-        </Link>
-        <Link href="/lld/case-studies/logger" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">Logger</span>
-        </Link>
-        <Link href="/lld/patterns" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-blue-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-blue-500">22 Patterns →</span>
-        </Link>
-      </div>
-
-      {/* AI Engineering Section */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
-        AI Engineering
-      </h2>
-      <p className="text-fd-muted-foreground text-center mb-4 max-w-2xl mx-auto">
-        Production patterns for building LLM systems — retrieval, inference, agents, eval, safety, cost
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Link href="/ai/retrieval" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Retrieval (RAG)</span>
-        </Link>
-        <Link href="/ai/inference" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Inference Internals</span>
-        </Link>
-        <Link href="/ai/agents" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Agents</span>
-        </Link>
-        <Link href="/ai/eval" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Eval & Observability</span>
-        </Link>
-        <Link href="/ai/safety" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Safety & Guardrails</span>
-        </Link>
-        <Link href="/ai/cost" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">Cost Engineering</span>
-        </Link>
-        <Link href="/ai/edges/voice" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">2026 Edges</span>
-        </Link>
-        <Link href="/ai" className="group p-4 rounded-lg border border-fd-border bg-fd-card hover:border-pink-500/50 hover:shadow-md transition-all text-center">
-          <span className="font-medium group-hover:text-pink-500">26 Pages →</span>
-        </Link>
-      </div>
-
-      {/* Popular Topics */}
-      <h2 className="text-2xl md:text-3xl font-bold mt-4 mb-4 text-center">
-        System Design Topics
-      </h2>
-      <div className="flex flex-wrap justify-center gap-3">
-        <Link href="/sd/fundamentals/cap-theorem" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          CAP Theorem
-        </Link>
-        <Link href="/sd/building-blocks/load-balancer" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Load Balancers
-        </Link>
-        <Link href="/sd/building-blocks/cache-strategies" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Caching Strategies
-        </Link>
-        <Link href="/sd/building-blocks/sharding" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Database Sharding
-        </Link>
-        <Link href="/sd/design-patterns" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-green-500/50 hover:bg-green-500/10 transition-all text-sm">
-          Design Patterns
-        </Link>
-        <Link href="/sd/communication" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-green-500/50 hover:bg-green-500/10 transition-all text-sm">
-          API Design
-        </Link>
-        <Link href="/sd/fundamentals/microservices" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-green-500/50 hover:bg-green-500/10 transition-all text-sm">
-          Microservices
-        </Link>
-        <Link href="/sd/building-blocks/message-queues" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Message Queues
-        </Link>
-        <Link href="/hld" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-sm">
-          HLD Guide
-        </Link>
-        <Link href="/lld/foundations/solid" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          SOLID Principles
-        </Link>
-        <Link href="/lld/patterns/creational/singleton" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Singleton Pattern
-        </Link>
-        <Link href="/lld/patterns/behavioral/strategy" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Strategy Pattern
-        </Link>
-        <Link href="/lld/concurrency/thread-safety" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          Thread Safety
-        </Link>
-        <Link href="/lld" className="px-4 py-2 rounded-full border border-fd-border bg-fd-card hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-sm">
-          LLD Guide
-        </Link>
-      </div>
-
-      {/* Why Learn System Design */}
-      <div className="mt-12 p-6 rounded-xl border border-fd-border bg-fd-card/50">
-        <h2 className="text-xl md:text-2xl font-bold mb-4">Why Learn System Design?</h2>
-        <p className="text-fd-muted-foreground mb-4">
-          System design is a critical skill for software engineers at all levels. Understanding how to architect
-          scalable, reliable, and maintainable systems is essential for building successful applications that
-          can handle millions of users.
-        </p>
-        <p className="text-fd-muted-foreground mb-4">
-          Whether you are interviewing at companies like Google, Amazon, Meta, or Microsoft, or leading
-          architecture decisions at your current company, system design knowledge helps you make better
-          technical decisions and communicate effectively with stakeholders.
-        </p>
-        <p className="text-fd-muted-foreground">
-          Our documentation covers both High-Level Design (HLD) for understanding overall system architecture
-          and Low-Level Design (LLD) for implementing specific components with clean, maintainable code.
-        </p>
-      </div>
-
-      {/* Footer note */}
-      <p className="text-center text-fd-muted-foreground text-sm mt-8">
-        Click sections to expand/collapse. Click colored topic cards to navigate.
-      </p>
-
-      {/* Footer Links */}
-      <div className="flex justify-center gap-6 mt-8 pt-8 border-t border-fd-border">
-        <Link
-          href="/ai-architecture"
-          className="text-fd-muted-foreground hover:text-fd-foreground transition-colors text-sm font-medium"
-        >
-          AI Architecture
-        </Link>
-      </div>
-
-      {/* Social Links */}
-      <div className="flex justify-center gap-6 mt-4">
-        <a
-          href="https://x.com/Adityanaraynn29"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-fd-muted-foreground hover:text-fd-foreground transition-colors"
-          aria-label="Follow us on Twitter"
-        >
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-          </svg>
-        </a>
-        <a
-          href="https://github.com/AdityaNarayan29"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-fd-muted-foreground hover:text-fd-foreground transition-colors"
-          aria-label="View our GitHub"
-        >
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-          </svg>
-        </a>
-        <a
-          href="https://www.linkedin.com/company/masstdev"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-fd-muted-foreground hover:text-fd-foreground transition-colors"
-          aria-label="Connect on LinkedIn"
-        >
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-          </svg>
-        </a>
-      </div>
+      <footer className="mt-[72px] flex flex-wrap items-center justify-between gap-4 border-t pt-7 text-sm font-bold text-fd-muted-foreground">
+        <span>Masst Docs · free forever</span>
+        <div className="flex flex-wrap items-center gap-5">
+          <Link href="/ai-architecture" className="hover:text-fd-foreground">How the AI chat works</Link>
+          {socialLinks.map((l) =>
+            l.type === "icon" ? (
+              <a key={l.url} href={l.url} aria-label={l.label} className="hover:text-fd-foreground">
+                {l.icon}
+              </a>
+            ) : null,
+          )}
+        </div>
+      </footer>
     </main>
   );
 }

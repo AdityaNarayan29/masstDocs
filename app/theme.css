@@ -1,0 +1,181 @@
+/*
+ * Masst theme, from the Masst Reels v2 design system (claude.ai artifact
+ * "Masst Reels v2"). Dark is the reels look; light is derived from the same
+ * greys and state colours. Replaces fumadocs-ui/css/neutral.css: the
+ * --color-fd-* names are what Fumadocs components read.
+ *
+ * Colour means something, never decoration:
+ *   --m-info  selected, current, the thing moving, links
+ *   --m-ok    done, healthy
+ *   --m-warn  waiting, degraded
+ *   --m-fail  broken, failed
+ */
+
+@theme {
+  --color-fd-background: #f6f6f8;
+  --color-fd-foreground: #111114;
+  --color-fd-muted: #f0f0f3;
+  --color-fd-muted-foreground: #66666d;
+  --color-fd-popover: #ffffff;
+  --color-fd-popover-foreground: #111114;
+  --color-fd-card: #ffffff;
+  --color-fd-card-foreground: #111114;
+  --color-fd-border: #e3e3e8;
+  --color-fd-primary: #111114;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-secondary: #f0f0f3;
+  --color-fd-secondary-foreground: #111114;
+  --color-fd-accent: rgba(17, 17, 20, 0.05);
+  --color-fd-accent-foreground: #111114;
+  --color-fd-ring: #1764c9;
+
+  --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+:root {
+  --m-raised: #ffffff;
+  --m-ink-2: #36363c;
+  --m-faint: #c4c4ca;
+  --m-info: #1764c9;
+  --m-ok: #0a7d4e;
+  --m-warn: #9a6400;
+  --m-fail: #c8372a;
+  --m-chip: rgba(17, 17, 20, 0.05);
+  --m-tint: rgba(23, 100, 201, 0.08);
+  --m-dots: rgba(17, 17, 20, 0.08);
+  --m-lift: 0 16px 48px rgba(17, 17, 20, 0.08);
+  --m-spot: radial-gradient(1200px 520px at 50% -160px, rgba(23, 100, 201, 0.06), transparent 70%);
+}
+
+.dark {
+  --color-fd-background: #060607;
+  --color-fd-foreground: #f5f5f7;
+  --color-fd-muted: #15151a;
+  --color-fd-muted-foreground: #8e8e93;
+  --color-fd-popover: #0e0e11;
+  --color-fd-popover-foreground: #f5f5f7;
+  --color-fd-card: #15151a;
+  --color-fd-card-foreground: #f5f5f7;
+  --color-fd-border: #2c2c33;
+  --color-fd-primary: #f5f5f7;
+  --color-fd-primary-foreground: #060607;
+  --color-fd-secondary: #1d1d23;
+  --color-fd-secondary-foreground: #f5f5f7;
+  --color-fd-accent: rgba(255, 255, 255, 0.06);
+  --color-fd-accent-foreground: #f5f5f7;
+  --color-fd-ring: #6cb6ff;
+
+  --m-raised: #0e0e11;
+  --m-ink-2: #d1d1d6;
+  --m-faint: #5c5c63;
+  --m-info: #6cb6ff;
+  --m-ok: #5fe3a1;
+  --m-warn: #ffcc66;
+  --m-fail: #ff6b5e;
+  --m-chip: rgba(255, 255, 255, 0.06);
+  --m-tint: rgba(108, 182, 255, 0.12);
+  --m-dots: rgba(255, 255, 255, 0.07);
+  --m-lift: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --m-spot: radial-gradient(1200px 520px at 50% -160px, rgba(255, 255, 255, 0.08), transparent 70%);
+}
+
+/* The soft top spotlight from the reel frames. */
+body {
+  background-color: var(--color-fd-background);
+  background-image: var(--m-spot);
+  background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings: Nunito 800 with tight tracking, as on the reels. */
+.prose :where(h1, h2, h3, h4),
+h1,
+h2 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Body copy reads better a touch heavier in a rounded face. */
+.prose {
+  --tw-prose-body: var(--m-ink-2);
+  font-weight: 500;
+}
+.prose :where(strong) {
+  font-weight: 800;
+}
+.prose :where(a):not(:where(.not-prose, .not-prose *)) {
+  color: var(--color-fd-foreground);
+  text-decoration-color: var(--m-info);
+  text-underline-offset: 3px;
+}
+
+/* Small uppercase labels (track numbers, section headings in rails). */
+.m-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-fd-muted-foreground);
+}
+
+/* ── Docs chrome (notebook layout, components/layout/SectionLayout.tsx) ── */
+
+/* Track links live in the top bar; the layout also renders them in the
+   sidebar header, where they would duplicate it. */
+#nd-sidebar nav[aria-label="Tracks"],
+#nd-sidebar-mobile nav[aria-label="Tracks"] {
+  display: none;
+}
+
+/* Current page in the sidebar: the "selected" colour, as in the reels. */
+#nd-sidebar a[data-active="true"],
+#nd-sidebar-mobile a[data-active="true"] {
+  color: var(--m-info);
+  background: var(--m-tint);
+  font-weight: 800;
+}
+#nd-sidebar a,
+#nd-sidebar-mobile a {
+  font-weight: 600;
+}
+
+/* Section tabs under the top bar. */
+#nd-subnav a[data-active="true"] {
+  font-weight: 800;
+}
+
+/* Homepage hero diagram: a request travels Client → Load balancer → Server 1. */
+.hero-request {
+  offset-path: path("M102 120 H302 C352 120 350 54 400 54");
+  offset-rotate: 0deg;
+  animation: hero-request 2.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@keyframes hero-request {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-request {
+    animation: none;
+    offset-distance: 30%;
+  }
+}
+
+/* Phones: room for the bottom tab bar (components/layout/MobileTabBar.tsx),
+   and floating buttons lifted above it. */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 72px;
+  }
+  .m-above-tabbar {
+    bottom: calc(1rem + 72px) !important;
+  }
+}

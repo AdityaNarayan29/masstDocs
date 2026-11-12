@@ -3,573 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type DesignType = "HLD" | "LLD" | "BOTH" | null;
+import type { TreeNode } from "@/lib/roadmap";
+import { LEGACY_ROADMAP_IDS } from "@/lib/roadmap-legacy";
+import { getSection } from "@/lib/tracks";
 
-interface TreeNode {
-  id: string;
-  label: string;
-  href?: string;
-  designType?: DesignType;
-  children?: TreeNode[];
-  isSection?: boolean;
-}
-
-// The complete learning tree structure
-const learningTree: TreeNode = {
-  id: "start",
-  label: "System Design",
-  href: "/sd",
-  children: [
-    {
-      id: "fundamentals",
-      label: "1. Fundamentals",
-      isSection: true,
-      children: [
-        {
-          id: "what-is-sd",
-          label: "What is System Design?",
-          href: "/sd/fundamentals/what-is-system-design",
-          designType: "HLD",
-        },
-        {
-          id: "how-to-approach",
-          label: "How to Approach SD?",
-          href: "/sd/fundamentals/solve",
-          designType: "HLD",
-        },
-        {
-          id: "core-concepts",
-          label: "Core Concepts",
-          isSection: true,
-          children: [
-            {
-              id: "scalability",
-              label: "Scalability",
-              href: "/sd/fundamentals/scalability",
-              designType: "HLD",
-            },
-            {
-              id: "latency-throughput",
-              label: "Latency vs Throughput",
-              href: "/sd/fundamentals/latency-throughput",
-              designType: "HLD",
-            },
-            { id: "availability", label: "Availability", href: "/sd/fundamentals/availability", designType: "HLD" },
-            { id: "consistency", label: "Consistency", href: "/sd/fundamentals/consistency", designType: "HLD" },
-          ],
-        },
-        {
-          id: "theorems",
-          label: "Theorems",
-          isSection: true,
-          children: [
-            {
-              id: "cap",
-              label: "CAP Theorem",
-              href: "/sd/fundamentals/cap-theorem",
-              designType: "HLD",
-            },
-            {
-              id: "pacelc",
-              label: "PACELC Theorem",
-              href: "/sd/fundamentals/pacelc-theorem",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "consistency-patterns",
-          label: "Consistency Patterns",
-          isSection: true,
-          children: [
-            {
-              id: "weak-consistency",
-              label: "Weak Consistency",
-              href: "/sd/fundamentals/weak-consistency",
-              designType: "HLD",
-            },
-            {
-              id: "eventual-consistency",
-              label: "Eventual Consistency",
-              href: "/sd/fundamentals/eventual-consistency",
-              designType: "HLD",
-            },
-            {
-              id: "strong-consistency",
-              label: "Strong Consistency",
-              href: "/sd/fundamentals/strong-consistency",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "availability-patterns",
-          label: "Availability Patterns",
-          isSection: true,
-          children: [
-            { id: "failover", label: "Fail-Over", href: "/sd/fundamentals/failover", designType: "HLD" },
-            { id: "replication", label: "Replication", href: "/sd/fundamentals/replication", designType: "HLD" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "building-blocks",
-      label: "2. Building Blocks",
-      isSection: true,
-      children: [
-        {
-          id: "networking",
-          label: "Networking",
-          isSection: true,
-          children: [
-            { id: "dns", label: "DNS", href: "/sd/building-blocks/dns", designType: "HLD" },
-            { id: "cdn", label: "CDN", href: "/sd/building-blocks/cdn", designType: "HLD" },
-            { id: "load-balancer", label: "Load Balancer", href: "/sd/building-blocks/load-balancer", designType: "HLD" },
-            { id: "reverse-proxy", label: "Reverse Proxy", href: "/sd/building-blocks/reverse-proxy", designType: "HLD" },
-          ],
-        },
-        {
-          id: "databases",
-          label: "Databases",
-          isSection: true,
-          children: [
-            {
-              id: "sql-nosql",
-              label: "SQL vs NoSQL",
-              href: "/sd/system-components/db",
-              designType: "HLD",
-            },
-            { id: "sharding", label: "Sharding", href: "/sd/building-blocks/sharding", designType: "HLD" },
-            { id: "replication-db", label: "Replication", href: "/sd/fundamentals/replication", designType: "HLD" },
-            { id: "indexing", label: "Indexing", href: "/sd/building-blocks/indexing", designType: "BOTH" },
-          ],
-        },
-        {
-          id: "caching",
-          label: "Caching",
-          isSection: true,
-          children: [
-            {
-              id: "cache-strategies",
-              label: "Cache Strategies",
-              href: "/sd/building-blocks/cache-strategies",
-              designType: "HLD",
-            },
-            { id: "cache-aside", label: "Cache-Aside", href: "/sd/building-blocks/cache-aside", designType: "HLD" },
-            { id: "write-through", label: "Write-Through", href: "/sd/building-blocks/write-through", designType: "HLD" },
-            { id: "write-behind", label: "Write-Behind", href: "/sd/building-blocks/write-behind", designType: "HLD" },
-          ],
-        },
-        {
-          id: "async",
-          label: "Asynchronism",
-          isSection: true,
-          children: [
-            {
-              id: "message-queues",
-              label: "Message Queues",
-              href: "/sd/building-blocks/message-queues",
-              designType: "HLD",
-            },
-            { id: "task-queues", label: "Task Queues", href: "/sd/building-blocks/task-queues", designType: "HLD" },
-            { id: "pub-sub", label: "Pub/Sub", href: "/sd/building-blocks/pub-sub", designType: "HLD" },
-          ],
-        },
-        {
-          id: "distributed-systems",
-          label: "Distributed Systems",
-          isSection: true,
-          children: [
-            { id: "consistent-hashing", label: "Consistent Hashing", href: "/sd/building-blocks/consistent-hashing", designType: "HLD" },
-            { id: "bloom-filters", label: "Bloom Filters", href: "/sd/building-blocks/bloom-filters", designType: "HLD" },
-            { id: "leader-election", label: "Leader Election", href: "/sd/building-blocks/leader-election", designType: "HLD" },
-            { id: "distributed-locking", label: "Distributed Locking", href: "/sd/building-blocks/distributed-locking", designType: "HLD" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "communication",
-      label: "3. Communication",
-      isSection: true,
-      children: [
-        { id: "http", label: "HTTP", href: "/sd/communication/http", designType: "BOTH" },
-        { id: "rest", label: "REST", href: "/sd/communication/rest", designType: "BOTH" },
-        { id: "grpc", label: "gRPC", href: "/sd/communication/grpc", designType: "BOTH" },
-        { id: "graphql", label: "GraphQL", href: "/sd/communication/graphql", designType: "BOTH" },
-        { id: "websockets", label: "WebSockets", href: "/sd/communication/websockets", designType: "HLD" },
-        { id: "sse", label: "Server-Sent Events", href: "/sd/communication/sse", designType: "HLD" },
-      ],
-    },
-    {
-      id: "architecture",
-      label: "4. Architecture",
-      isSection: true,
-      children: [
-        {
-          id: "microservices",
-          label: "Microservices",
-          href: "/sd/fundamentals/microservices",
-          designType: "BOTH",
-        },
-        {
-          id: "service-discovery",
-          label: "Service Discovery",
-          href: "/sd/architecture/service-discovery",
-          designType: "HLD",
-        },
-        { id: "api-gateway", label: "API Gateway", href: "/sd/architecture/api-gateway", designType: "HLD" },
-        {
-          id: "micro-frontends",
-          label: "Micro Frontends",
-          href: "/sd/fundamentals/micro-frontends",
-          designType: "BOTH",
-        },
-      ],
-    },
-    {
-      id: "design-patterns",
-      label: "5. Design Patterns",
-      isSection: true,
-      children: [
-        { id: "circuit-breaker", label: "Circuit Breaker", href: "/sd/design-patterns/circuit-breaker", designType: "HLD" },
-        { id: "bulkhead", label: "Bulkhead", href: "/sd/design-patterns/bulkhead", designType: "HLD" },
-        { id: "cqrs", label: "CQRS", href: "/sd/design-patterns/cqrs", designType: "BOTH" },
-        { id: "event-sourcing", label: "Event Sourcing", href: "/sd/design-patterns/event-sourcing", designType: "BOTH" },
-        { id: "saga", label: "Saga Pattern", href: "/sd/design-patterns/saga", designType: "HLD" },
-        { id: "strangler-fig", label: "Strangler Fig", href: "/sd/design-patterns/strangler-fig", designType: "HLD" },
-      ],
-    },
-    {
-      id: "security",
-      label: "6. Security",
-      isSection: true,
-      children: [
-        { id: "authentication", label: "Authentication", href: "/sd/security/authentication", designType: "HLD" },
-        { id: "authorization", label: "Authorization", href: "/sd/security/authorization", designType: "HLD" },
-        { id: "api-security", label: "API Security", href: "/sd/security/api-security", designType: "HLD" },
-        { id: "encryption", label: "Encryption", href: "/sd/security/encryption", designType: "HLD" },
-      ],
-    },
-    {
-      id: "observability",
-      label: "7. Observability",
-      isSection: true,
-      children: [
-        { id: "logging", label: "Logging", href: "/sd/observability/logging", designType: "HLD" },
-        { id: "monitoring", label: "Monitoring & Metrics", href: "/sd/observability/monitoring", designType: "HLD" },
-        { id: "tracing", label: "Distributed Tracing", href: "/sd/observability/tracing", designType: "HLD" },
-      ],
-    },
-    {
-      id: "lld-concepts",
-      label: "8. LLD Concepts",
-      isSection: true,
-      children: [
-        {
-          id: "lld-foundations",
-          label: "Foundations",
-          isSection: true,
-          children: [
-            { id: "oop-principles", label: "OOP Principles", href: "/lld/foundations/oop-principles", designType: "LLD" },
-            { id: "solid", label: "SOLID Principles", href: "/lld/foundations/solid", designType: "LLD" },
-            { id: "design-patterns-lld", label: "Design Patterns (OOP)", href: "/lld/foundations/design-patterns", designType: "LLD" },
-            { id: "uml-diagrams", label: "UML Diagrams", href: "/lld/foundations/uml-diagrams", designType: "LLD" },
-            { id: "dry-kiss-yagni", label: "DRY, KISS, YAGNI", href: "/lld/foundations/dry-kiss-yagni", designType: "LLD" },
-            { id: "composition-vs-inheritance", label: "Composition vs Inheritance", href: "/lld/foundations/composition-vs-inheritance", designType: "LLD" },
-            { id: "coupling-cohesion", label: "Coupling & Cohesion", href: "/lld/foundations/coupling-cohesion", designType: "LLD" },
-          ],
-        },
-        {
-          id: "lld-creational",
-          label: "Creational Patterns",
-          isSection: true,
-          children: [
-            { id: "singleton", label: "Singleton", href: "/lld/patterns/creational/singleton", designType: "LLD" },
-            { id: "factory", label: "Factory Method", href: "/lld/patterns/creational/factory", designType: "LLD" },
-            { id: "abstract-factory", label: "Abstract Factory", href: "/lld/patterns/creational/abstract-factory", designType: "LLD" },
-            { id: "builder", label: "Builder", href: "/lld/patterns/creational/builder", designType: "LLD" },
-            { id: "prototype", label: "Prototype", href: "/lld/patterns/creational/prototype", designType: "LLD" },
-          ],
-        },
-        {
-          id: "lld-structural",
-          label: "Structural Patterns",
-          isSection: true,
-          children: [
-            { id: "adapter", label: "Adapter", href: "/lld/patterns/structural/adapter", designType: "LLD" },
-            { id: "decorator", label: "Decorator", href: "/lld/patterns/structural/decorator", designType: "LLD" },
-            { id: "facade", label: "Facade", href: "/lld/patterns/structural/facade", designType: "LLD" },
-            { id: "proxy", label: "Proxy", href: "/lld/patterns/structural/proxy", designType: "LLD" },
-            { id: "composite", label: "Composite", href: "/lld/patterns/structural/composite", designType: "LLD" },
-            { id: "bridge", label: "Bridge", href: "/lld/patterns/structural/bridge", designType: "LLD" },
-            { id: "flyweight", label: "Flyweight", href: "/lld/patterns/structural/flyweight", designType: "LLD" },
-          ],
-        },
-        {
-          id: "lld-behavioral",
-          label: "Behavioral Patterns",
-          isSection: true,
-          children: [
-            { id: "strategy", label: "Strategy", href: "/lld/patterns/behavioral/strategy", designType: "LLD" },
-            { id: "observer", label: "Observer", href: "/lld/patterns/behavioral/observer", designType: "LLD" },
-            { id: "command", label: "Command", href: "/lld/patterns/behavioral/command", designType: "LLD" },
-            { id: "state", label: "State", href: "/lld/patterns/behavioral/state", designType: "LLD" },
-            { id: "chain-of-responsibility", label: "Chain of Responsibility", href: "/lld/patterns/behavioral/chain-of-responsibility", designType: "LLD" },
-            { id: "template-method", label: "Template Method", href: "/lld/patterns/behavioral/template-method", designType: "LLD" },
-            { id: "iterator", label: "Iterator", href: "/lld/patterns/behavioral/iterator", designType: "LLD" },
-            { id: "mediator", label: "Mediator", href: "/lld/patterns/behavioral/mediator", designType: "LLD" },
-            { id: "visitor", label: "Visitor", href: "/lld/patterns/behavioral/visitor", designType: "LLD" },
-            { id: "memento", label: "Memento", href: "/lld/patterns/behavioral/memento", designType: "LLD" },
-          ],
-        },
-        {
-          id: "lld-concurrency",
-          label: "Concurrency",
-          isSection: true,
-          children: [
-            { id: "thread-safety", label: "Thread Safety", href: "/lld/concurrency/thread-safety", designType: "LLD" },
-            { id: "producer-consumer", label: "Producer-Consumer", href: "/lld/concurrency/producer-consumer", designType: "LLD" },
-            { id: "read-write-lock", label: "Read-Write Lock", href: "/lld/concurrency/read-write-lock", designType: "LLD" },
-            { id: "thread-pool", label: "Thread Pool", href: "/lld/concurrency/thread-pool", designType: "LLD" },
-          ],
-        },
-        {
-          id: "lld-case-studies",
-          label: "LLD Case Studies",
-          isSection: true,
-          children: [
-            { id: "lld-games", label: "Games", isSection: true, children: [
-              { id: "tic-tac-toe", label: "Tic-Tac-Toe", href: "/lld/case-studies/tic-tac-toe", designType: "LLD" },
-              { id: "snake-and-ladder", label: "Snake & Ladder", href: "/lld/case-studies/snake-and-ladder", designType: "LLD" },
-              { id: "chess-game", label: "Chess Game", href: "/lld/case-studies/chess-game", designType: "LLD" },
-            ]},
-            { id: "lld-booking", label: "Booking", isSection: true, children: [
-              { id: "movie-booking", label: "Movie Booking", href: "/lld/case-studies/movie-booking", designType: "LLD" },
-              { id: "hotel-booking", label: "Hotel Booking", href: "/lld/case-studies/hotel-booking", designType: "LLD" },
-              { id: "car-rental", label: "Car Rental", href: "/lld/case-studies/car-rental", designType: "LLD" },
-              { id: "meeting-scheduler", label: "Meeting Scheduler", href: "/lld/case-studies/meeting-scheduler", designType: "LLD" },
-              { id: "airline-management", label: "Airline Management", href: "/lld/case-studies/airline-management", designType: "LLD" },
-            ]},
-            { id: "lld-devices", label: "Devices", isSection: true, children: [
-              { id: "lld-parking-lot", label: "Parking Lot", href: "/lld/case-studies/parking-lot", designType: "LLD" },
-              { id: "elevator-system", label: "Elevator", href: "/lld/case-studies/elevator-system", designType: "LLD" },
-              { id: "vending-machine", label: "Vending Machine", href: "/lld/case-studies/vending-machine", designType: "LLD" },
-              { id: "lld-atm", label: "ATM System", href: "/lld/case-studies/atm-system", designType: "LLD" },
-              { id: "traffic-signal", label: "Traffic Signal", href: "/lld/case-studies/traffic-signal", designType: "LLD" },
-            ]},
-            { id: "lld-apps", label: "Apps", isSection: true, children: [
-              { id: "splitwise", label: "Splitwise", href: "/lld/case-studies/splitwise", designType: "LLD" },
-              { id: "food-delivery", label: "Food Delivery", href: "/lld/case-studies/food-delivery", designType: "LLD" },
-              { id: "linkedin-connections", label: "LinkedIn Connections", href: "/lld/case-studies/linkedin-connections", designType: "LLD" },
-              { id: "stack-overflow", label: "Stack Overflow", href: "/lld/case-studies/stack-overflow", designType: "LLD" },
-              { id: "online-shopping-cart", label: "Shopping Cart", href: "/lld/case-studies/online-shopping-cart", designType: "LLD" },
-              { id: "library-management", label: "Library Management", href: "/lld/case-studies/library-management", designType: "LLD" },
-            ]},
-            { id: "lld-infra", label: "Infrastructure", isSection: true, children: [
-              { id: "logger", label: "Logger Utility", href: "/lld/case-studies/logger", designType: "LLD" },
-              { id: "cache-lru-lfu", label: "LRU/LFU Cache", href: "/lld/case-studies/cache-lru-lfu", designType: "LLD" },
-              { id: "rate-limiter-lld", label: "Rate Limiter (LLD)", href: "/lld/case-studies/rate-limiter-lld", designType: "LLD" },
-              { id: "file-system", label: "File System", href: "/lld/case-studies/file-system", designType: "LLD" },
-              { id: "inventory-management", label: "Inventory Management", href: "/lld/case-studies/inventory-management", designType: "LLD" },
-            ]},
-          ],
-        },
-      ],
-    },
-    {
-      id: "estimation",
-      label: "9. Estimation",
-      isSection: true,
-      children: [
-        {
-          id: "back-envelope",
-          label: "Back of Envelope",
-          href: "/sd/fundamentals/estimate",
-          designType: "HLD",
-        },
-        {
-          id: "capacity-planning",
-          label: "Capacity Planning",
-          href: "/sd/fundamentals/capacity-planning",
-          designType: "HLD",
-        },
-      ],
-    },
-    {
-      id: "case-studies",
-      label: "10. Case Studies",
-      isSection: true,
-      children: [
-        {
-          id: "streaming",
-          label: "Streaming",
-          isSection: true,
-          children: [
-            {
-              id: "netflix",
-              label: "Netflix",
-              href: "/hld/netflix",
-              designType: "HLD",
-            },
-            {
-              id: "youtube",
-              label: "YouTube",
-              href: "/hld/youtube",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "social",
-          label: "Social Media",
-          isSection: true,
-          children: [
-            {
-              id: "instagram",
-              label: "Instagram",
-              href: "/hld/instagram",
-              designType: "HLD",
-            },
-            {
-              id: "twitter",
-              label: "Twitter",
-              href: "/hld/twitter",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "messaging",
-          label: "Messaging",
-          isSection: true,
-          children: [
-            {
-              id: "whatsapp",
-              label: "WhatsApp",
-              href: "/hld/whatsapp",
-              designType: "HLD",
-            },
-            {
-              id: "slack",
-              label: "Slack",
-              href: "/hld/slack",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "ridesharing",
-          label: "Ride Sharing",
-          isSection: true,
-          children: [
-            {
-              id: "uber",
-              label: "Uber",
-              href: "/hld/uber",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "ecommerce",
-          label: "E-Commerce",
-          isSection: true,
-          children: [
-            {
-              id: "amazon",
-              label: "Amazon",
-              href: "/hld/amazon",
-              designType: "HLD",
-            },
-            {
-              id: "stripe",
-              label: "Stripe",
-              href: "/hld/stripe",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "productivity",
-          label: "Productivity",
-          isSection: true,
-          children: [
-            {
-              id: "google-docs",
-              label: "Google Docs",
-              href: "/hld/google-docs",
-              designType: "HLD",
-            },
-            {
-              id: "google-drive",
-              label: "Google Drive",
-              href: "/hld/google-drive",
-              designType: "HLD",
-            },
-            {
-              id: "dropbox-sign",
-              label: "Dropbox Sign",
-              href: "/hld/dropbox-sign",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "coding",
-          label: "Coding Platforms",
-          isSection: true,
-          children: [
-            {
-              id: "leetcode",
-              label: "LeetCode",
-              href: "/hld/leetcode",
-              designType: "HLD",
-            },
-            {
-              id: "chess",
-              label: "Chess.com",
-              href: "/hld/chess-com",
-              designType: "HLD",
-            },
-          ],
-        },
-        {
-          id: "search-feed",
-          label: "Search & Feed",
-          isSection: true,
-          children: [
-            { id: "typeahead", label: "Typeahead/Autocomplete", href: "/hld/typeahead", designType: "HLD" },
-            { id: "web-crawler", label: "Web Crawler", href: "/hld/web-crawler", designType: "HLD" },
-            { id: "news-feed", label: "News Feed", href: "/hld/news-feed", designType: "HLD" },
-          ],
-        },
-        {
-          id: "booking-systems",
-          label: "Booking Systems",
-          isSection: true,
-          children: [
-            { id: "ticket-booking", label: "Ticket Booking", href: "/hld/ticket-booking", designType: "HLD" },
-            { id: "parking-lot", label: "Parking Lot", href: "/lld/case-studies/parking-lot", designType: "LLD" },
-          ],
-        },
-        {
-          id: "other-cases",
-          label: "Other Systems",
-          isSection: true,
-          children: [
-            { id: "url-shortener", label: "URL Shortener", href: "/hld/url-shortener", designType: "HLD" },
-            { id: "pastebin", label: "Pastebin", href: "/hld/pastebin", designType: "HLD" },
-            { id: "rate-limiter", label: "Rate Limiter", href: "/hld/rate-limiter", designType: "HLD" },
-            { id: "notification", label: "Notification System", href: "/hld/notification-system", designType: "HLD" },
-            { id: "atm", label: "ATM System", href: "/lld/case-studies/atm-system", designType: "LLD" },
-          ],
-        },
-      ],
-    },
-  ],
-};
 
 // Helper to count descendants
 const countDescendants = (node: TreeNode): number => {
@@ -615,51 +52,22 @@ function TopicNode({
   }, [hasChildren, node.id, node.href, onToggle, onNavigate, onUncheck, isVisited]);
 
   // Color schemes based on type (light and dark theme support)
-  const getColors = () => {
-    if (isSection) {
-      return {
-        bg: "bg-slate-100 dark:bg-slate-800/80",
-        border: "border-slate-300 dark:border-slate-600",
-        hover:
-          "hover:border-slate-400 hover:bg-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-700",
-        text: "text-slate-700 dark:text-slate-200",
-      };
-    }
-    switch (node.designType) {
-      case "HLD":
-        return {
-          bg: "bg-emerald-500 dark:bg-emerald-600",
-          border: "border-emerald-600 dark:border-emerald-500",
-          hover:
-            "hover:border-emerald-700 hover:bg-emerald-400 dark:hover:border-emerald-300 dark:hover:bg-emerald-500",
-          text: "text-white",
+  // Neutral cards (Masst Reels v2: colour only means something). Done
+  // pages get the "ok" ring below; sections read as headers.
+  const getColors = () =>
+    isSection
+      ? {
+          bg: "bg-fd-secondary",
+          border: "border-fd-border",
+          hover: "hover:bg-fd-accent",
+          text: "text-fd-foreground font-extrabold",
+        }
+      : {
+          bg: "bg-fd-card",
+          border: "border-fd-border",
+          hover: "hover:border-[var(--m-info)] hover:bg-fd-accent",
+          text: "text-fd-foreground",
         };
-      case "LLD":
-        return {
-          bg: "bg-blue-500 dark:bg-blue-600",
-          border: "border-blue-600 dark:border-blue-500",
-          hover:
-            "hover:border-blue-700 hover:bg-blue-400 dark:hover:border-blue-300 dark:hover:bg-blue-500",
-          text: "text-white",
-        };
-      case "BOTH":
-        return {
-          bg: "bg-violet-500 dark:bg-violet-600",
-          border: "border-violet-600 dark:border-violet-500",
-          hover:
-            "hover:border-violet-700 hover:bg-violet-400 dark:hover:border-violet-300 dark:hover:bg-violet-500",
-          text: "text-white",
-        };
-      default:
-        return {
-          bg: "bg-gray-500 dark:bg-gray-600",
-          border: "border-gray-600 dark:border-gray-500",
-          hover:
-            "hover:border-gray-700 hover:bg-gray-400 dark:hover:border-gray-300 dark:hover:bg-gray-500",
-          text: "text-white",
-        };
-    }
-  };
 
   const colors = getColors();
 
@@ -671,7 +79,7 @@ function TopicNode({
         ${colors.bg} ${colors.border} ${colors.hover} ${colors.text}
         ${hasChildren || node.href ? "cursor-pointer" : "cursor-default"}
         shadow-lg hover:shadow-xl hover:scale-105 active:scale-100
-        ${isVisited && !isSection ? "opacity-60 ring-2 ring-emerald-400 ring-offset-1 dark:ring-offset-slate-900" : ""}
+        ${isVisited && !isSection ? "opacity-60 ring-2 ring-[var(--m-ok)] ring-offset-2 ring-offset-fd-background" : ""}
       `}
     >
       <div className='flex items-center gap-2'>
@@ -689,13 +97,6 @@ function TopicNode({
         <span className='font-medium text-sm whitespace-nowrap'>
           {node.label}
         </span>
-
-        {/* Type badge */}
-        {node.designType && !isSection && (
-          <span className='px-1.5 py-0.5 text-[10px] font-bold bg-white/20 rounded'>
-            {node.designType}
-          </span>
-        )}
 
         {/* Child count when collapsed */}
         {hasChildren && !isExpanded && childCount > 0 && (
@@ -724,7 +125,7 @@ function TopicNode({
 function ConnectorLine({ className = "" }: { className?: string }) {
   return (
     <div className={`flex justify-center ${className}`}>
-      <svg width='3' height='32' className='text-slate-400 dark:text-slate-500' style={{ marginTop: "-1px", marginBottom: "-1px" }}>
+      <svg width='3' height='32' className='text-fd-border' style={{ marginTop: "-1px", marginBottom: "-1px" }}>
         {/* Base line (static) */}
         <line
           x1='1.5'
@@ -798,7 +199,7 @@ function ChildrenBox({ children }: { children: React.ReactNode }) {
       />
       {/* Static border underneath */}
       <div
-        className='absolute inset-0 rounded-xl pointer-events-none border-2 border-slate-300 dark:border-slate-600'
+        className='absolute inset-0 rounded-xl pointer-events-none border-2 border-fd-border'
         style={{
           borderWidth: "2px",
           borderRadius: "12px",
@@ -813,7 +214,7 @@ function ChildrenBox({ children }: { children: React.ReactNode }) {
 function SmallConnector() {
   return (
     <svg
-      className='text-slate-400 dark:text-slate-500'
+      className='text-fd-border'
       width='3'
       height='16'
       style={{ marginTop: "-1px", marginBottom: "-1px" }}
@@ -971,7 +372,7 @@ function RoadmapSection({
 
 const STORAGE_KEY = "sd-roadmap-visited";
 
-export default function SystemDesignRoadmap() {
+export default function SystemDesignRoadmap({ tree }: { tree: TreeNode }) {
   const router = useRouter();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
     return new Set(["start"]);
@@ -1023,7 +424,9 @@ export default function SystemDesignRoadmap() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setVisitedNodes(new Set(JSON.parse(stored)));
+        // Old roadmap ids are mapped to page URLs, which the roadmap now uses.
+        const ids: string[] = JSON.parse(stored);
+        setVisitedNodes(new Set(ids.map((id) => LEGACY_ROADMAP_IDS[id] ?? id)));
       }
     } catch {
       // Ignore localStorage errors
@@ -1114,7 +517,7 @@ export default function SystemDesignRoadmap() {
     return nodes;
   }, []);
 
-  const allNodes = useMemo(() => flattenTree(learningTree), [flattenTree]);
+  const allNodes = useMemo(() => flattenTree(tree), [flattenTree, tree]);
 
   // Search functionality
   useEffect(() => {
@@ -1134,7 +537,7 @@ export default function SystemDesignRoadmap() {
   }, [searchQuery, allNodes]);
 
   // Find path to node (for expanding parent nodes)
-  const findPathToNode = useCallback((targetId: string, node: TreeNode = learningTree, path: string[] = []): string[] | null => {
+  const findPathToNode = useCallback((targetId: string, node: TreeNode = tree, path: string[] = []): string[] | null => {
     const currentPath = [...path, node.id];
     if (node.id === targetId) {
       return currentPath;
@@ -1146,7 +549,7 @@ export default function SystemDesignRoadmap() {
       }
     }
     return null;
-  }, []);
+  }, [tree]);
 
   // Show in roadmap (expand parents to reveal node)
   const showInRoadmap = useCallback((node: TreeNode) => {
@@ -1255,8 +658,8 @@ export default function SystemDesignRoadmap() {
       }
       return ids;
     };
-    setExpandedNodes(new Set(collectAll(learningTree)));
-  }, []);
+    setExpandedNodes(new Set(collectAll(tree)));
+  }, [tree]);
 
   const collapseAll = useCallback(() => {
     setExpandedNodes(new Set(["start"]));
@@ -1265,7 +668,7 @@ export default function SystemDesignRoadmap() {
   // Count total topics
   const countTopics = useMemo(() => {
     const count = (node: TreeNode): number => {
-      let total = node.isSection ? 0 : 1;
+      let total = node.href ? 1 : 0;
       if (node.children) {
         for (const child of node.children) {
           total += count(child);
@@ -1273,11 +676,11 @@ export default function SystemDesignRoadmap() {
       }
       return total;
     };
-    return count(learningTree);
-  }, []);
+    return count(tree);
+  }, [tree]);
 
   // Get main sections (children of root)
-  const mainSections = learningTree.children || [];
+  const mainSections = tree.children || [];
   const rootExpanded = expandedNodes.has("start");
 
   return (
@@ -1296,7 +699,7 @@ export default function SystemDesignRoadmap() {
                   stroke='currentColor'
                   strokeWidth='4'
                   fill='none'
-                  className='text-slate-300 dark:text-slate-600'
+                  className='text-fd-border'
                 />
                 <circle
                   cx='32'
@@ -1307,7 +710,7 @@ export default function SystemDesignRoadmap() {
                   fill='none'
                   strokeDasharray='88 88'
                   strokeLinecap='round'
-                  className='text-emerald-500'
+                  className='text-[var(--m-info)]'
                 />
               </svg>
               <div className='absolute inset-0 flex items-center justify-center'>
@@ -1361,18 +764,10 @@ export default function SystemDesignRoadmap() {
                 }`}
               >
                 {node.isSection ? (
-                  <span className='w-2 h-2 rounded bg-slate-400 dark:bg-slate-600' />
-                ) : node.designType === "HLD" ? (
-                  <span className='px-1 py-0.5 text-[8px] font-bold bg-emerald-500 text-white rounded'>
-                    HLD
-                  </span>
-                ) : node.designType === "LLD" ? (
-                  <span className='px-1 py-0.5 text-[8px] font-bold bg-blue-500 text-white rounded'>
-                    LLD
-                  </span>
-                ) : node.designType === "BOTH" ? (
-                  <span className='px-1 py-0.5 text-[8px] font-bold bg-violet-500 text-white rounded'>
-                    BOTH
+                  <span className='w-2 h-2 rounded bg-fd-muted-foreground' />
+                ) : node.section ? (
+                  <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-[var(--m-chip)] text-fd-muted-foreground">
+                    {getSection(node.section).short}
                   </span>
                 ) : null}
                 <span className='flex-1'>{node.label}</span>
@@ -1382,7 +777,7 @@ export default function SystemDesignRoadmap() {
                       e.stopPropagation();
                       navigateToPage(node.href!);
                     }}
-                    className='px-2 py-0.5 text-[10px] rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors'
+                    className='px-2 py-0.5 text-[10px] rounded bg-fd-primary text-fd-primary-foreground hover:opacity-90 transition-colors'
                     title='Go to page'
                   >
                     Go →
@@ -1414,7 +809,7 @@ export default function SystemDesignRoadmap() {
         {undoCountdown > 0 ? (
           <button
             onClick={undoReset}
-            className='px-3 py-1.5 text-xs font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors'
+            className='px-3 py-1.5 text-xs font-medium rounded-md bg-[var(--m-warn)] text-[#111114] hover:opacity-90 transition-colors'
           >
             Undo ({undoCountdown}s)
           </button>
@@ -1422,7 +817,7 @@ export default function SystemDesignRoadmap() {
           visitedNodes.size > 0 && (
             <button
               onClick={resetProgress}
-              className='px-3 py-1.5 text-xs font-medium rounded-md bg-fd-card border border-fd-border hover:bg-red-100 hover:border-red-300 dark:hover:bg-red-900/30 dark:hover:border-red-700 transition-colors'
+              className='px-3 py-1.5 text-xs font-medium rounded-md bg-fd-card border border-fd-border hover:border-[var(--m-fail)] hover:text-[var(--m-fail)] transition-colors'
             >
               Reset Progress
             </button>
@@ -1434,13 +829,13 @@ export default function SystemDesignRoadmap() {
         <div className='flex flex-col items-center min-w-fit'>
           {/* Root node */}
           <TopicNode
-            node={learningTree}
+            node={tree}
             onToggle={toggleNode}
             onNavigate={onNavigate}
             onUncheck={handleUncheck}
             isExpanded={rootExpanded}
             hasChildren={true}
-            isVisited={visitedNodes.has(learningTree.id)}
+            isVisited={visitedNodes.has(tree.id)}
           />
 
           {/* Main sections flow */}

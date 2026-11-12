@@ -1,0 +1,25 @@
+---
+title: "#50 · Why YouTube views got stuck at 301"
+description: Every view is an event, and bots can fake them. YouTube froze public counts at 301 while it verified views, until 2015. Eventual consistency and sharded counters.
+reel: 50
+---
+
+> **Ek line yaad rakho:** counter thoda peeche, par aakhir mein sahi.
+
+## The 301 freeze
+For years, a fast-growing video's public view count would stick at **301** while YouTube verified that the views came from real people, then jump. On 5 Aug 2015 YouTube announced it was "saying goodbye to 301+": views it is confident are real now count as they happen, and the rest keep being reviewed ([Fortune, 6 Aug 2015](https://fortune.com/2015/08/06/youtube-video-plays-301/)).
+
+## Why counting views is hard
+- Every view is an **event** in a huge stream; some are bots, refresh loops or fraud.
+- Validating takes time, so the **displayed** count can lag the **true** count.
+- A single counter row would be a write hotspot for a viral video.
+
+## The interview answer
+- **Eventual consistency:** accept that the shown count lags; it converges.
+- **Sharded counters:** split one counter into N shards, increment a random shard, sum on read (or cache the sum).
+- **Pipeline:** events → stream (Kafka) → dedup/fraud filter → windowed aggregation → counter store → cache.
+- Batch re-counts later can **correct** numbers (that's why counts sometimes drop).
+
+**Words to say:** event stream, idempotent/dedup, fraud filtering, eventual consistency, sharded counters.
+
+*Numbers after the jump and shard values in the reel are illustrations.*

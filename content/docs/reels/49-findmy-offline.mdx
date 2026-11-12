@@ -1,0 +1,23 @@
+---
+title: "#49 · How Find My Device finds an offline phone"
+description: Your offline phone whispers a Bluetooth ID; any nearby Android phone relays its own location, end-to-end encrypted. A crowdsourced network with privacy built in.
+reel: 49
+---
+
+> **Ek line yaad rakho:** lakhon phones sensor, encryption se bharosa.
+
+## How it works
+1. Your lost phone keeps broadcasting a small **Bluetooth beacon** with an identifier — no internet needed.
+2. Any nearby Android device in the network **hears it**, attaches **its own location**, and uploads the report.
+3. The report is **end-to-end encrypted**: only you (and people you share with) can read it; Google says it doesn't know whose device relayed it.
+4. The identifier **rotates**, so strangers can't track one device over time.
+
+Google rolled out this **Find My Device network** in April 2024, using **over a billion Android devices** ([Android Central, Apr 2024](https://www.androidcentral.com/apps-software/google-find-my-device-network-rolls-out)). Finding a phone that's fully **switched off** works only on some Pixel models.
+
+## The interview answer: crowdsourced network
+- **Sensors = everyone's devices**: coverage scales with users, no infrastructure to build.
+- **Privacy by design**: encrypt with the owner's public key on the relaying device; server stores ciphertext only.
+- **Rotating identifiers** to prevent tracking; rate limits and anti-stalking alerts for unknown trackers.
+- **Scale**: write-heavy ingestion of location reports, keyed by rotating ID, with TTLs.
+
+**Words to say:** crowdsourcing, end-to-end encryption, rotating identifiers, ingestion at scale, TTL.

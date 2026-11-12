@@ -14,7 +14,7 @@ export const ChatButton = memo(function ChatButton({
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-fd-primary text-fd-primary-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-fd-ring focus:ring-offset-2 sm:h-14 sm:w-14"
+      className="m-above-tabbar fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-fd-primary text-fd-primary-foreground shadow-lg transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-fd-ring focus:ring-offset-2 sm:h-14 sm:w-14"
       aria-label={isOpen ? "Close chat" : "Open chat"}
     >
       {isOpen ? (

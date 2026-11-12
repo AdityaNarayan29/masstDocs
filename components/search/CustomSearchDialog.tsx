@@ -14,6 +14,10 @@ import {
 } from 'fumadocs-ui/components/dialog/search';
 import { useDocsSearch } from 'fumadocs-core/search/client';
 import { useI18n } from 'fumadocs-ui/provider';
+import { TRACKS, sectionsInTrack } from '@/lib/tracks';
+
+// Filters are tracks; each covers its sections' search tags (app/api/search).
+const TRACK_FILTERS = TRACKS.map((t) => ({ name: t.title, value: sectionsInTrack(t.id).map((s) => s.id) }));
 
 function Spinner({ className = '' }: { className?: string }) {
   return (
@@ -37,20 +41,8 @@ function Spinner({ className = '' }: { className?: string }) {
   );
 }
 
-type TagItem = { name: string; value: string };
-
-// Section colors keyed by tag value — matches homepage palette
-const TAG_STYLES: Record<string, { bg: string; ring: string }> = {
-  sd:  { bg: 'bg-emerald-500', ring: 'ring-emerald-500/40' },
-  hld: { bg: 'bg-blue-500',    ring: 'ring-blue-500/40' },
-  lld: { bg: 'bg-violet-500',  ring: 'ring-violet-500/40' },
-  dsa: { bg: 'bg-orange-500',  ring: 'ring-orange-500/40' },
-  ai:  { bg: 'bg-pink-500',    ring: 'ring-pink-500/40' },
-};
 
 export default function CustomSearchDialog({
-  tags = [],
-  allowClear = false,
   defaultTag,
   api,
   delayMs,
@@ -58,14 +50,13 @@ export default function CustomSearchDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tags?: TagItem[];
-  allowClear?: boolean;
   defaultTag?: string;
   api?: string;
   delayMs?: number;
 }) {
   const { locale } = useI18n();
-  const [tag, setTag] = useState<string | undefined>(defaultTag);
+  const [tag, setTag] = useState<string[] | undefined>(defaultTag ? [defaultTag] : undefined);
+  const tagKey = tag?.join(',');
   const { search, setSearch, query } = useDocsSearch({
     type: 'fetch',
     api,
@@ -113,41 +104,29 @@ export default function CustomSearchDialog({
             </div>
           )}
         </div>
-        {tags.length > 0 && (
-          <SearchDialogFooter>
-            <div className="flex items-center gap-2 flex-wrap">
-              {tags.map((t) => {
-                const selected = tag === t.value;
-                const style = TAG_STYLES[t.value] ?? { bg: 'bg-gray-500', ring: 'ring-gray-500/40' };
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setTag(selected && allowClear ? undefined : t.value)}
-                    className={[
-                      'px-3 py-1 rounded-md text-xs font-bold text-white transition-all',
-                      style.bg,
-                      selected
-                        ? `opacity-100 scale-105 shadow-md ring-2 ${style.ring}`
-                        : 'opacity-60 hover:opacity-90',
-                    ].join(' ')}
-                  >
-                    {t.name}
-                  </button>
-                );
-              })}
-              {allowClear && tag && (
+        <SearchDialogFooter>
+          <div className="flex flex-wrap items-center gap-2">
+            {[{ name: 'All', value: undefined as string[] | undefined }, ...TRACK_FILTERS].map((t) => {
+              const selected = (t.value?.join(',') ?? undefined) === tagKey;
+              return (
                 <button
+                  key={t.name}
                   type="button"
-                  onClick={() => setTag(undefined)}
-                  className="px-3 py-1 rounded-md text-xs font-medium text-fd-muted-foreground hover:text-fd-foreground border border-fd-border transition-colors"
+                  aria-pressed={selected}
+                  onClick={() => setTag(t.value)}
+                  className={[
+                    'rounded-full border px-3 py-1 text-[13px] transition-colors',
+                    selected
+                      ? 'border-[var(--m-info)] bg-[var(--m-tint)] font-extrabold text-[var(--m-info)]'
+                      : 'font-bold text-[var(--m-ink-2)] hover:bg-fd-accent',
+                  ].join(' ')}
                 >
-                  Clear
+                  {t.name}
                 </button>
-              )}
-            </div>
-          </SearchDialogFooter>
-        )}
+              );
+            })}
+          </div>
+        </SearchDialogFooter>
       </SearchDialogContent>
     </SearchDialog>
   );

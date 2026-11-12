@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 // Static OG image generated at build time, served from /opengraph-image
 // (and referenced from metadata via openGraph.images by default).
-export const alt = "Masst Docs — System Design Tutorial, HLD & LLD Guide";
+export const alt = "Masst Docs — System design and AI engineering, explained in diagrams";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -53,16 +53,17 @@ export default function OGImage() {
 
         <div
           style={{
-            fontSize: "72px",
+            fontSize: "64px",
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.25,
+            paddingBottom: "8px",
             background: "linear-gradient(135deg, #f1f5f9, #94a3b8)",
             backgroundClip: "text",
             color: "transparent",
             marginBottom: "24px",
           }}
         >
-          System Design Tutorial
+          System Design &amp; AI Engineering
         </div>
 
         <div
@@ -73,8 +74,7 @@ export default function OGImage() {
             maxWidth: "900px",
           }}
         >
-          Free HLD &amp; LLD guide. Netflix, Uber, WhatsApp architecture.
-          22 design patterns. 24 machine-coding case studies.
+          Explained in diagrams. Free, with a new reel every day.
         </div>
 
         <div
@@ -84,7 +84,7 @@ export default function OGImage() {
             marginTop: "48px",
           }}
         >
-          {["HLD", "LLD", "Patterns", "Case Studies"].map((tag) => (
+          {["System Design", "HLD", "LLD", "DSA", "AI"].map((tag) => (
             <div
               key={tag}
               style={{

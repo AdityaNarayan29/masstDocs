@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
+@import "./theme.css";
 @import "fumadocs-ui/css/preset.css";
 
 /* Search dialog: shimmer bar shown under the input while a query is in flight. */
@@ -64,3 +64,133 @@
   }
 }
 
+
+/* ── Diagrams ─────────────────────────────────────────────────────────────
+ * Pre-rendered Mermaid SVGs (lib/remark-mermaid-inline.mjs). Colours are CSS
+ * variables from lib/diagram-theme.mjs (injected in app/layout.tsx), so one
+ * SVG follows light and dark mode.
+ *
+ * Sizing: a diagram is shown at its natural size (14px text) when it fits.
+ * Otherwise it shrinks to fit the column and a max height, but never below
+ * --dg-min-scale; past that it scrolls sideways. Text never grows, and never
+ * gets tiny. Click to enlarge (components/mdx/DiagramZoom.tsx).
+ */
+:root {
+  --dg-font: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  --dg-max-h: 620;
+  --dg-min-scale: 0.62;
+}
+@media (max-width: 640px) {
+  :root {
+    --dg-max-h: 520;
+    --dg-min-scale: 0.55;
+  }
+}
+
+.dg {
+  position: relative;
+  margin: 1.75rem 0;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 22px;
+  background-color: var(--dg-surface);
+  background-image: radial-gradient(circle at 1px 1px, var(--m-dots) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+.dg-frame {
+  overflow-x: auto;
+  padding: 1.5rem 1.25rem;
+  scrollbar-width: thin;
+}
+/* Overflow hint (data-overflow is set by components/mdx/DiagramZoom.tsx). */
+.dg-frame[data-overflow="start"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+}
+.dg-frame[data-overflow="middle"] {
+  mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+.dg-frame[data-overflow="end"] {
+  mask-image: linear-gradient(to right, transparent, #000 56px);
+}
+.dg:has(.dg-frame[data-overflow="start"])::after {
+  content: "Scroll →";
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-fd-border);
+  background: var(--color-fd-background);
+  color: var(--color-fd-muted-foreground);
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+.dg-canvas {
+  margin-inline: auto;
+  cursor: zoom-in;
+  width: max(
+    calc(var(--dg-w) * var(--dg-min-scale)),
+    min(100%, var(--dg-w), calc(var(--dg-w) * var(--dg-max-h) / var(--dg-h)))
+  );
+}
+.dg-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.dg-zoom {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-fd-border);
+  background: var(--m-raised);
+  color: var(--color-fd-muted-foreground);
+  opacity: 0;
+  transition: opacity 150ms, color 150ms;
+}
+.dg:hover .dg-zoom,
+.dg-zoom:focus-visible {
+  opacity: 1;
+}
+.dg-zoom:hover {
+  color: var(--color-fd-foreground);
+}
+@media (hover: none) {
+  .dg-zoom {
+    opacity: 0.9;
+  }
+}
+
+.dg-dialog {
+  width: min(96vw, 1600px);
+  max-width: none;
+  height: min(92vh, 1200px);
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 16px;
+  background: var(--dg-surface);
+  color: var(--color-fd-foreground);
+}
+.dg-dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(4px);
+}
+/* Flex + auto margins: centred when it fits, scrollable from the left edge when it doesn't. */
+.dg-dialog-body {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  padding: 3.5rem 2rem 2rem;
+}
+.dg-dialog-body .dg-canvas {
+  margin: auto;
+  flex: none;
+  cursor: default;
+}

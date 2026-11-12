@@ -1057,8 +1057,8 @@ async function main() {
     // in place and skip re-rendering.
     if (hasSvg && hasSeo && hasCloudinary) {
       try {
-        await fs.access(path.join(CACHE_DIR, `${hash}-light.svg`));
-        await fs.access(path.join(CACHE_DIR, `${hash}-dark.svg`));
+        // Page SVGs are owned by scripts/pre-render-mermaid.mjs; this script only needs its PNG.
+        await fs.access(path.join(CACHE_DIR, `${hash}-light.png`));
         seoManifest[hash] = {
           ...hasSeo,
           alt: freshAlt,
@@ -1133,9 +1133,9 @@ async function main() {
 
     if (lightResult.success && darkResult.success) {
       // Update manifest
+      // Merge: keep the theme-aware page SVG written by pre-render-mermaid.mjs.
       manifest[hash] = {
-        light: `/mermaid-cache/${hash}-light.svg`,
-        dark: `/mermaid-cache/${hash}-dark.svg`,
+        ...manifest[hash],
         lightPng: `/mermaid-cache/${hash}-light.png`,
         darkPng: `/mermaid-cache/${hash}-dark.png`,
       };

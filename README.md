@@ -1,45 +1,35 @@
 # masstDocs
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+Source for [docs.masst.dev](https://docs.masst.dev): system design and AI engineering, explained in diagrams. Free, with a new reel every day on [@masstdev](https://www.instagram.com/masstdev/).
 
-Run development server:
+Sections: System Design (`/sd`), HLD case studies (`/hld`), LLD and design patterns (`/lld`), DSA patterns (`/dsa`), AI Engineering (`/ai`) and Reel Notes (`/reels`).
+
+## Run locally
+
+Needs Node 20+ and pnpm.
 
 ```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+pnpm install
+pnpm dev:fast          # http://localhost:3000 (add -p 3005 to change the port)
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+`pnpm dev:fast` uses the diagram cache committed in `public/mermaid-cache/`. Use `pnpm dev` or `pnpm pre-render-mermaid` only when you change a diagram; those need Puppeteer's Chrome (`pnpm approve-builds` to allow its install script).
 
-## Explore
+## Environment variables
 
-In the project, you can see:
+The docs run with no `.env`. Two optional features need keys:
 
-- `lib/source.ts`: Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- `app/layout.config.tsx`: Shared options for layouts, optional but preferred to keep.
+| Feature | File | Variables |
+|---|---|---|
+| AI chat (hidden when not set) | `.env.local` | `GROQ_API_KEY`, `HUGGINGFACE_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX` |
+| Branded diagram images for SEO | `.env` | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `SITE_URL` |
 
-| Route                     | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `app/(home)`              | The route group for your landing page and other pages. |
-| `app/docs`                | The documentation layout and pages.                    |
-| `app/api/search/route.ts` | The Route Handler for search.                          |
+See `.env.local.example` and `.env.example`.
 
-### Fumadocs MDX
+## Writing content
 
-A `source.config.ts` config file has been included, you can customise different options like frontmatter schema.
+Add an `.mdx` file in the right folder under `content/docs/` and list it in that folder's `meta.json`. For a new reel, run `pnpm new-reel <number> <slug> --title "..."` instead. See [ARCHITECTURE.md](ARCHITECTURE.md) for how sections, diagrams, search and the chat work, and [PLAN.md](PLAN.md) for the current restructure plan.
 
-Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
+## Deploy
 
-## Learn More
-
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.vercel.app) - learn about Fumadocs
+Push to `main` on GitHub; Vercel deploys automatically.

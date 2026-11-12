@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
   INTERVIEW_FRAMEWORK,
-  SECTION_COLORS,
   getSection,
   getTrack,
   nextSection,
@@ -24,10 +23,10 @@ export function TrackNav({ section }: { section: SectionId }) {
   return (
     <nav
       aria-label={`${track.title} track`}
-      className="not-prose my-6 rounded-xl border border-fd-border bg-fd-card p-4 text-sm"
+      className="not-prose my-6 rounded-2xl border border-fd-border bg-fd-card p-5 text-sm"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-fd-muted-foreground">
+        <span className="m-label">
           {track.title} track
         </span>
         <span className="text-fd-muted-foreground">{track.blurb}</span>
@@ -45,11 +44,10 @@ export function TrackNav({ section }: { section: SectionId }) {
                 className={[
                   'inline-flex items-center gap-2 rounded-md border px-2.5 py-1 transition-colors',
                   active
-                    ? 'border-fd-primary/40 bg-fd-accent font-medium text-fd-foreground'
-                    : 'border-fd-border text-fd-muted-foreground hover:text-fd-foreground',
+                    ? 'border-[var(--m-info)] bg-[var(--m-tint)] font-extrabold text-[var(--m-info)]'
+                    : 'border-fd-border font-bold text-fd-muted-foreground hover:text-fd-foreground',
                 ].join(' ')}
               >
-                <span className={`size-2 rounded-full ${SECTION_COLORS[s.id].bg}`} aria-hidden />
                 {s.title}
               </Link>
             );
@@ -71,7 +69,6 @@ export function TrackNav({ section }: { section: SectionId }) {
       <div className="mt-3 border-t border-fd-border pt-3">
         <Link href={next.url} className="group inline-flex items-center gap-2 font-medium">
           <span className="text-fd-muted-foreground">{nextLabel}:</span>
-          <span className={`size-2 rounded-full ${SECTION_COLORS[next.id].bg}`} aria-hidden />
           <span className="group-hover:underline underline-offset-4">{next.title}</span>
           <span className="text-fd-muted-foreground">({getTrack(next.track).title})</span>
           <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>

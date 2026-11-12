@@ -148,7 +148,7 @@ export function PWAInstallPrompt() {
   // Offline indicator
   if (!isOnline) {
     return (
-      <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-yellow-500/90 px-4 py-2 text-sm font-medium text-yellow-950 shadow-lg backdrop-blur">
+      <div className="m-above-tabbar fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-yellow-500/90 px-4 py-2 text-sm font-medium text-yellow-950 shadow-lg backdrop-blur">
         <svg
           className="h-4 w-4"
           fill="none"
@@ -170,7 +170,7 @@ export function PWAInstallPrompt() {
   // Download progress indicator
   if (isDownloading) {
     return (
-      <div className="fixed bottom-4 left-4 z-50 w-80 rounded-lg border border-fd-border bg-fd-card p-4 shadow-lg">
+      <div className="m-above-tabbar fixed bottom-4 left-4 z-50 w-80 rounded-lg border border-fd-border bg-fd-card p-4 shadow-lg">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium">
             {downloadProgress === 100 ? "Download complete!" : "Downloading for offline..."}
@@ -199,7 +199,7 @@ export function PWAInstallPrompt() {
   // "Download for offline" banner (shows after 5 seconds)
   if (showOfflineBanner && !isOfflineReady) {
     return (
-      <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-lg border border-fd-border bg-fd-card p-4 shadow-lg sm:left-4 sm:right-auto">
+      <div className="m-above-tabbar fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-lg border border-fd-border bg-fd-card p-4 shadow-lg sm:left-4 sm:right-auto">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
             <svg

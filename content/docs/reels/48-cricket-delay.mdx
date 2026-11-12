@@ -1,0 +1,27 @@
+---
+title: "#48 · Why your neighbour's TV shouts SIX before your phone"
+description: Live streams are cut into segments; players start a few segments behind live. 6 s × 3 = 18 s of buffer alone. Latency vs buffering, and how Low-Latency HLS fixes it.
+reel: 48
+---
+
+> **Ek line yaad rakho:** kam delay chahiye toh chhote tukde, par atakne ka risk.
+
+## Where the delay comes from
+1. **Segments:** live video is cut into chunks, often ~6 seconds long. A segment can only be sent once it's fully recorded.
+2. **Encode → CDN → phone:** every hop adds time (plus playlist polling and CDN caching).
+3. **Player buffer:** HLS players start **3 segments behind live** to avoid stalls — with 6 s segments that's **18 s** just in the buffer.
+
+AWS notes OTT streams historically ran **40–60 seconds** behind live ([AWS Media blog, Low-Latency HLS explained](https://aws.amazon.com/blogs/media/alhls-apple-low-latency-http-live-streaming-explained)). TV broadcast skips most of this, so your neighbour sees the six first.
+
+## The fix: Low-Latency HLS
+LL-HLS publishes **partial segments** (~0.33 s) while the 6 s segment is still being made, and holds playlist requests open until the next part is ready, so players can sit much closer to live.
+
+## The interview answer: latency vs buffering
+- Smaller segments/parts → **lower latency**, but less buffer → **more rebuffering** on bad networks.
+- Bigger segments → smooth playback, more delay.
+- Tune per use case: sports/betting want low latency; movies want smoothness.
+- Mention: CDN edge caching, ABR (adaptive bitrate), LL-HLS / LL-DASH / WebRTC for sub-second.
+
+**Words to say:** segment duration, player buffer, latency vs rebuffering, LL-HLS partial segments, CDN.
+
+*Simplified; real pipelines vary by app and network.*

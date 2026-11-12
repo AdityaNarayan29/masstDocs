@@ -1,0 +1,26 @@
+---
+title: "#47 · Does the lift door-close button work?"
+description: Most US door-close buttons stopped working after the ADA. Pressing "3" five times is still one request. The SCAN (elevator) algorithm and the LLD "design an elevator" answer.
+reel: 47
+---
+
+> **Ek line yaad rakho:** requests ka set, ek direction poori, phir reverse.
+
+## The button
+After the Americans with Disabilities Act (1990), lift doors must stay open long enough for people using wheelchairs or crutches, so on most US elevators the door-close button does nothing for regular riders ([The New York Times, via CBS Boston, 31 Oct 2016](https://www.cbsnews.com/boston/news/door-close-elevator-button-dont-work-placebo)). Door-open still works.
+
+## Pressing 5 times
+The controller stores requests in a **set**: floor 3 is either requested or not. Duplicates are ignored — the press is **idempotent**.
+
+## Which floor first: SCAN
+The lift keeps moving in its current direction and serves every request on the way, then reverses. This is the **SCAN / elevator algorithm** (also used for disk scheduling). It travels far less than serving requests in arrival order.
+
+Example (illustration): lift at 3, requests arrive 5, 2, 4, 1, 6 → in arrival order it travels 15 floors; with SCAN (up 4, 5, 6, then down 2, 1) only 8.
+
+## The interview answer: design an elevator (LLD)
+- **States:** IDLE, MOVING_UP, MOVING_DOWN, DOORS_OPEN (+ MAINTENANCE).
+- **Requests:** hall calls (floor + direction) and car calls (floor), stored as sets per direction.
+- **Scheduler:** SCAN/LOOK per car; with many cars, a dispatcher assigns hall calls to the best car (nearest moving the right way).
+- **Edge cases:** door timer, overload, emergency, fire mode.
+
+**Words to say:** state machine, request set (idempotent), SCAN/LOOK, dispatcher.

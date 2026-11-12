@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { hldSource } from "@/lib/source";
 import { DocsRenderer } from "@/components/DocsRenderer";
+import { PracticeCase, PracticeNudge } from "@/components/practice/PracticeCase";
 import { buildPageMetadata } from "@/lib/page-metadata";
 
 export default async function Page({
@@ -9,7 +10,14 @@ export default async function Page({
   params: Promise<{ slug?: string[] }>;
 }) {
   const { slug } = await params;
-  return <DocsRenderer source={hldSource} slug={slug} />;
+  return (
+    <DocsRenderer
+      source={hldSource}
+      slug={slug}
+      header={(page) => <PracticeNudge url={page.url} />}
+      footer={(page) => <PracticeCase url={page.url} />}
+    />
+  );
 }
 
 export async function generateStaticParams() {

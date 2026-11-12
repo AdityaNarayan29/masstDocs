@@ -1,30 +1,40 @@
 import "@/app/global.css";
 import { RootProvider } from "fumadocs-ui/provider";
-import { Inter } from "next/font/google";
+import { JetBrains_Mono, Nunito } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
 import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import { ChatWidget } from "@/components/chat";
+import { DiagramZoom } from "@/components/mdx/DiagramZoom";
+import { MobileTabBar } from "@/components/layout/MobileTabBar";
+import { tokenCss } from "@/lib/diagram-theme.mjs";
 import { Analytics } from "@vercel/analytics/react";
 import CustomSearchDialog from "@/components/search/CustomSearchDialog";
 import { RouteProgress } from "@/components/ui/RouteProgress";
 
-const inter = Inter({
+// Masst Reels v2 type: one rounded family everywhere (diagrams too, via
+// --dg-font), plus a monospace face for code.
+const nunito = Nunito({
   subsets: ["latin"],
+  variable: "--font-nunito",
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
 });
 
 export const metadata = {
   title: {
-    default: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
+    default: 'Masst Docs | System Design & AI Engineering, Explained in Diagrams',
     template: '%s | Masst Docs',
   },
-  description: 'Free System Design tutorial with HLD & LLD. Learn Netflix, Uber, WhatsApp architecture for interviews.',
+  description: 'Free system design and AI engineering, explained in diagrams: HLD and LLD case studies, DSA patterns and production LLM systems. New reel every day.',
   metadataBase: new URL('https://docs.masst.dev'),
   // Note: openGraph.images and twitter.images are auto-populated from
   // app/opengraph-image.tsx (Next.js convention). See:
   // https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image
   openGraph: {
-    title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
-    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD & LLD with diagrams.',
+    title: 'Masst Docs | System Design & AI Engineering, Explained in Diagrams',
+    description: 'System design and AI engineering, explained in diagrams. Free, with a new reel every day.',
     url: 'https://docs.masst.dev/',
     siteName: 'Masst Docs',
     type: 'website',
@@ -33,15 +43,15 @@ export const metadata = {
         url: 'https://docs.masst.dev/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Masst Docs — System Design Tutorial, HLD & LLD Guide',
+        alt: 'Masst Docs — System design and AI engineering, explained in diagrams',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     site: '@masstdev',
-    title: 'Masst Docs | System Design Tutorial, HLD & LLD Guide',
-    description: 'Free System Design tutorial. Learn Netflix, Uber, WhatsApp HLD & LLD with diagrams.',
+    title: 'Masst Docs | System Design & AI Engineering, Explained in Diagrams',
+    description: 'System design and AI engineering, explained in diagrams. Free, with a new reel every day.',
     images: ['https://docs.masst.dev/opengraph-image'],
   },
   alternates: {
@@ -55,10 +65,15 @@ export const viewport = {
   themeColor: '#000000',
 };
 
+// The chat widget needs all three services; hide it rather than show a broken chat.
+const chatEnabled = Boolean(
+  process.env.GROQ_API_KEY && process.env.PINECONE_API_KEY && process.env.HUGGINGFACE_API_KEY,
+);
+
 export default function Layout({ children }: { children: ReactNode }) {
 
   return (
-    <html lang='en' className={inter.className} suppressHydrationWarning>
+    <html lang='en' className={`${nunito.className} ${nunito.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
         <meta
           name='keywords'
@@ -94,6 +109,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* TWA: Asset links for Android app verification */}
         <link rel='alternate' href='android-app://com.masst.docs/https/docs.masst.dev/' />
 
+        {/* Diagram colour tokens for light and dark mode (lib/diagram-theme.mjs) */}
+        <style dangerouslySetInnerHTML={{ __html: tokenCss() }} />
+
         {/* Structured Data JSON-LD for SEO */}
         <script
           type='application/ld+json'
@@ -105,7 +123,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               alternateName: ["Mast Docs", "MasstDocs", "Masst Documentation", "System Design Docs"],
               url: "https://docs.masst.dev/",
               description:
-                "Free System Design tutorial platform. Learn HLD, LLD, and real-world architecture of Netflix, Uber, WhatsApp, and more.",
+                "Free system design and AI engineering, explained in diagrams: HLD and LLD case studies, DSA patterns and production LLM systems. New reel every day.",
               publisher: {
                 "@type": "Organization",
                 name: "Masst",
@@ -129,8 +147,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Course",
-              name: "System Design Tutorial",
-              description: "Complete system design course covering HLD, LLD, distributed systems, and real-world case studies like Netflix, Uber, and WhatsApp.",
+              name: "System Design and AI Engineering",
+              description: "Free course covering system design (HLD and LLD), DSA interview patterns and production AI engineering, with real-world case studies like Netflix, Uber and WhatsApp.",
               provider: {
                 "@type": "Organization",
                 name: "Masst Docs",
@@ -152,6 +170,10 @@ export default function Layout({ children }: { children: ReactNode }) {
                 "Object-Oriented Programming",
                 "SOLID Principles",
                 "Concurrency",
+                "Data Structures and Algorithms",
+                "AI Engineering",
+                "Retrieval-Augmented Generation",
+                "LLM Agents",
               ],
               teaches: [
                 "Design scalable distributed systems",
@@ -161,6 +183,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 "Solve LLD machine-coding problems (parking lot, elevator, splitwise)",
                 "Understand Netflix, Uber, WhatsApp architecture",
                 "Handle concurrency with thread pools and locks",
+                "Recognise DSA interview patterns (sliding window, graphs, dynamic programming)",
+                "Build production LLM systems: retrieval, agents, evals, safety and cost",
               ],
               isAccessibleForFree: true,
             }),
@@ -203,25 +227,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         </Suspense>
         <RootProvider
           search={{
+            // Track filter chips live in the dialog itself.
             SearchDialog: CustomSearchDialog,
-            options: {
-              // Section filter chips in the search dialog. Tag values
-              // map to the `tag` field set per-page in
-              // app/api/search/route.ts (sd / hld / lld / dsa).
-              allowClear: true,
-              tags: [
-                { name: 'SD', value: 'sd' },
-                { name: 'HLD', value: 'hld' },
-                { name: 'LLD', value: 'lld' },
-                { name: 'DSA', value: 'dsa' },
-                { name: 'AI', value: 'ai' },
-              ],
-            },
           }}
         >
           {children}
           <PWAInstallPrompt />
-          <ChatWidget />
+          <DiagramZoom />
+          <MobileTabBar />
+          {chatEnabled && <ChatWidget />}
           <Analytics />
         </RootProvider>
       </body>

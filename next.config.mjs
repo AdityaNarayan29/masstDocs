@@ -159,15 +159,11 @@ const config = {
     return [
       {
         // Cache all doc pages aggressively at CDN level
-        source: '/(sd|hld)/:path*',
+        source: '/(sd|hld|lld|dsa|ai|reels)/:path*',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, s-maxage=86400, stale-while-revalidate=604800',
-          },
-          {
-            key: 'X-Robots-Tag',
-            value: 'noai, noimageai',
           },
         ],
       },

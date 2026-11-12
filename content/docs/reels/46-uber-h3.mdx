@@ -1,0 +1,33 @@
+---
+title: "#46 · How does Uber find the nearest car so fast?"
+description: Thousands of cars, and your cab in two seconds. Uber's H3 hexagon grid, k-ring search, and the geospatial index pattern behind "find nearby".
+reel: 46
+---
+
+> **Ek line yaad rakho:** location ko cell ID banao, sirf aas-paas ke cells dekho.
+
+## The naive way breaks
+Checking the distance from you to every car in a city on every request is O(n) per request — too slow and too expensive at Uber's scale.
+
+## H3: the world as hexagons
+Uber built **H3**, a hexagonal hierarchical spatial index, and open-sourced it in 2018 ([Uber Engineering, 27 Jun 2018](https://www.uber.com/blog/h3/)).
+- Every location maps to a **cell ID** at a chosen resolution (16 resolutions; each finer cell ≈ 1/7 the area).
+- A car's GPS point → its cell ID, stored in an index keyed by cell.
+- **Why hexagons:** all six neighbours are the same distance from the centre (squares have two neighbour distances), which makes "nearby" and smoothing simple.
+
+## Search with rings (k-ring)
+1. Look up cars in **your cell**.
+2. Not enough? Add the **6 neighbours** (ring 1), then ring 2…
+3. Stop as soon as you have enough candidates, then rank them by **ETA** (road distance, not straight line).
+
+Uber also measures **supply and demand per hexagon** — that's where surge pricing comes from.
+
+## The interview answer: geospatial index
+- Index by **geohash / H3 / S2 cell**, not raw lat-lng.
+- Query = cell + neighbour rings (handle cell edges!).
+- Keep the index **in memory**, sharded by region; drivers update every few seconds.
+- Rank candidates by ETA from the routing service.
+
+**Words to say:** geospatial index, geohash/H3, k-ring, sharding by region, ETA ranking.
+
+*Source: Uber Engineering blog, "H3: Uber's Hexagonal Hierarchical Spatial Index" (27 Jun 2018). Car positions, cell IDs and multipliers in the reel are illustrations.*

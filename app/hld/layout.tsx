@@ -1,16 +1,6 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import type { ReactNode } from 'react';
-import { baseOptions, sidebarTabs } from '@/app/layout.config';
-import { hldSource } from '@/lib/source';
+import type { ReactNode } from "react";
+import { SectionLayout } from "@/components/layout/SectionLayout";
 
 export default function Layout({ children }: { children: ReactNode }) {
-  return (
-    <DocsLayout
-      tree={hldSource.pageTree}
-      {...baseOptions}
-      sidebar={{ tabs: sidebarTabs }}
-    >
-      {children}
-    </DocsLayout>
-  );
+  return <SectionLayout section="hld">{children}</SectionLayout>;
 }

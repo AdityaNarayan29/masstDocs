@@ -7,6 +7,7 @@
     "pre-render-mermaid:seo": "node scripts/pre-render-mermaid-seo.mjs",
     "pre-render-mermaid:seo:skip-upload": "node scripts/pre-render-mermaid-seo.mjs --skip-upload",
     "generate-sitemap": "node scripts/pre-render-mermaid-seo.mjs --sitemap-only",
+    "new-reel": "node scripts/new-reel.mjs",
     "build": "npm run pre-render-mermaid && next build",
     "build:seo": "npm run pre-render-mermaid:seo && next build",
     "dev": "npm run pre-render-mermaid && next dev --turbo",
@@ -36,7 +37,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "zod": "4.1.5"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.2",

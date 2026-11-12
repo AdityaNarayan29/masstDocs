@@ -26,7 +26,7 @@ const LinkedInIcon = (
 
 // Icon-only link items render inline next to the theme toggle in the
 // docs sidebar footer (and as compact icons in the home navbar).
-const socialLinks: LinkItemType[] = [
+export const socialLinks: LinkItemType[] = [
   {
     type: 'icon',
     text: 'Twitter / X',
@@ -57,45 +57,10 @@ export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
       <>
-        <Image src={logo} alt="Logo" width={30} height={30} />
-        Masst Docs
+        <Image src={logo} alt="" width={30} height={30} className="rounded-full" />
+        <span className="text-[17px] font-extrabold tracking-tight">Masst Docs</span>
       </>
     ),
   },
   links: socialLinks,
 };
-
-// Sidebar tab list shared across all DocsLayout instances (sd, hld, lld, dsa, ai).
-// Keep this in sync with the five corresponding routes.
-export const sidebarTabs = [
-  {
-    title: "System Design",
-    description: "Fundamentals, components, communication",
-    url: "/sd",
-  },
-  {
-    title: "HLD Case Studies",
-    description: "Real-world high-level designs",
-    url: "/hld",
-  },
-  {
-    title: "LLD & Patterns",
-    description: "OOP, design patterns, machine coding",
-    url: "/lld",
-  },
-  {
-    title: "DSA Patterns",
-    description: "Interview patterns: sliding window, DP, graphs, ...",
-    url: "/dsa",
-  },
-  {
-    title: "AI Engineering",
-    description: "Retrieval, inference, agents, eval, safety, cost",
-    url: "/ai",
-  },
-  {
-    title: "Reel Notes",
-    description: "Notes for every @masstdev reel",
-    url: "/reels",
-  },
-];

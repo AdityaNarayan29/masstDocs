@@ -1,9 +1,10 @@
-import { source, hldSource, lldSource, dsaSource, aiSource } from '@/lib/source';
+import { source, hldSource, lldSource, dsaSource, aiSource, reelsSource } from '@/lib/source';
+import { SECTIONS, type SectionId } from '@/lib/tracks';
 import { createFromSource } from 'fumadocs-core/search/server';
 
 /**
- * Unified search across all five content surfaces. Each result is tagged
- * with the section it belongs to (sd / hld / lld / dsa / ai) so the
+ * Unified search across all six content surfaces. Each result is tagged
+ * with the section it belongs to (sd / ai / hld / lld / dsa / reels) so the
  * search UI can show a "filter by section" chip row and label each
  * result.
  *
@@ -17,13 +18,9 @@ import { createFromSource } from 'fumadocs-core/search/server';
 
 // Short human label appended to result titles so users can see at a
 // glance which section a result belongs to.
-const SECTION_LABEL: Record<'sd' | 'hld' | 'lld' | 'dsa' | 'ai', string> = {
-  sd: 'System Design',
-  hld: 'HLD',
-  lld: 'LLD',
-  dsa: 'DSA',
-  ai: 'AI',
-};
+const SECTION_LABEL = Object.fromEntries(
+  SECTIONS.map((s) => [s.id, s.id === 'sd' ? s.title : s.short]),
+) as Record<SectionId, string>;
 
 type IndexedPage = {
   url: string;
@@ -32,7 +29,7 @@ type IndexedPage = {
     description?: string;
     structuredData: unknown;
   };
-  __tag: 'sd' | 'hld' | 'lld' | 'dsa' | 'ai';
+  __tag: SectionId;
 };
 
 function getAllIndexedPages(): IndexedPage[] {
@@ -52,6 +49,9 @@ function getAllIndexedPages(): IndexedPage[] {
   }
   for (const p of aiSource.getPages()) {
     result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'ai' });
+  }
+  for (const p of reelsSource.getPages()) {
+    result.push({ url: p.url, data: p.data as IndexedPage['data'], __tag: 'reels' });
   }
   return result;
 }

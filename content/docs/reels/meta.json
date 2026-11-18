@@ -5,6 +5,9 @@
   "pages": [
     "index",
     "---Case studies---",
+    "60-gta6-launch",
+    "59-outage-week",
+    "57-apple-outage",
     "51-ms365-outage",
     "39-aws-dns-outage",
     "38-crowdstrike-outage",

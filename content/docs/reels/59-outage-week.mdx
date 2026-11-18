@@ -1,0 +1,45 @@
+---
+title: "#59 · Six days, seven outages: not hacks, changes"
+description: Microsoft, the FAA, United, Chase, Apple, Marriott and the NSA all had outages between 12 and 17 Nov 2026. Almost every stated cause was a change. Safe deployment, rollback and blast radius.
+reel: 59
+related:
+  - /reels/57-apple-outage
+  - /sd/design-patterns/bulkhead
+  - /reels/51-ms365-outage
+---
+
+> **Ek line yaad rakho:** duniya hack se kam, update se zyada girti hai.
+
+## The week (12–17 Nov 2026)
+| Date | Who | Stated cause |
+|---|---|---|
+| 12–14 Nov | Microsoft 365 | A network capacity upgrade after a recent network change |
+| 13 Nov | US FAA | Overloaded switches/routers; linked to a newly installed router |
+| 16 Nov | United Airlines | Technology outage, "no indication" of a cyber issue |
+| 16 Nov | Chase and other US banks | Chase: a software bug affecting hardware systems |
+| 17 Nov | Apple | "An internal update" |
+| 17 Nov | Marriott | Sign-in technical issue |
+| — | NSA | Internal communications degraded during scheduled maintenance |
+
+Officials say the incidents were unrelated, with no evidence of a coordinated cyberattack (compiled by The National News Desk, 17 Nov 2026).
+
+## The pattern
+Google's SRE team: "roughly 70% of outages are due to changes in a live system" ([Tenets of SRE](https://oreilly.com/ideas/tenets-of-sre)). This week fits: upgrades, a new router, an internal update, a bug, maintenance.
+
+## The interview answer: safe deployment + blast radius
+- **Small changes, staged:** canary to a few users or one region, then widen.
+- **Detect fast:** watch error rates and latency per stage; stop automatically.
+- **Roll back in one step:** every change must be reversible; feature flags help.
+- **Blast radius:** split the system into cells or compartments so one bad change only sinks one compartment.
+
+**Words to say:** change management, canary, progressive rollout, rollback, feature flags, blast radius, cell-based architecture.
+
+## Follow-up questions
+
+**If changes cause most outages, why not change less?**
+Freezing changes builds up risk: the next release is bigger and scarier. The goal is many small, safe, reversible changes.
+
+**What would you add first to a team with no safe-deployment process?**
+Automatic rollback on error-rate spikes, then staged rollouts by region, then cell isolation for the most critical service.
+
+*Causes are the companies' own statements; several root causes were still under investigation.*

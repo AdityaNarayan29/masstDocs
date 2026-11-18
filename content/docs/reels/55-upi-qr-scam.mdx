@@ -1,0 +1,58 @@
+---
+title: "#55 · What's inside a UPI QR, and the sticker scam"
+description: A UPI QR is one line of text. The app reads the UPI ID, asks the bank network whose account it is, and shows that real name before you pay. Why a pasted-over sticker works, and the "untrusted input" rule behind the fix.
+reel: 55
+related:
+  - /reels/42-upi-design
+  - /sd/security/api-security
+  - /sd/security/authentication
+---
+
+> **Ek line yaad rakho:** QR sirf pata hai, pehchaan naam se.
+
+## What's inside the QR
+Scan it and you get one line of text, for example:
+
+```text
+upi://pay?pa=sharma.store@okbank&pn=Sharma%20General%20Store&cu=INR
+```
+
+- **pa** = payee address, the UPI ID the money goes to.
+- **pn** = payee name, just text. Anyone can type anything here.
+
+## The name you should read
+Before you enter your PIN, the app asks the network whose account that UPI ID belongs to and shows the **bank-registered name**. Since 30 June 2025, UPI apps must show only the name from the bank's core banking system, not the QR name or a nickname ([Outlook Money](https://www.outlookmoney.com/banking/upi-to-display-verified-names-of-recipients-from-june-30-2025)).
+
+## The scam
+
+```mermaid
+sequenceDiagram
+    participant Y as You
+    participant Q as QR on the counter
+    participant App as UPI app
+    participant B as Bank network
+    Note over Q: Someone pasted their own QR on top
+    Y->>Q: Scan
+    Q-->>App: pa = scammer@bank, pn = "Sharma Store"
+    App->>B: Whose account is scammer@bank?
+    B-->>App: "R. Kumar"
+    App-->>Y: Pay to R. Kumar?  (read this!)
+```
+
+The sticker looks the same, but the UPI ID inside is different. The QR's own name field can say anything; the bank-verified name can't.
+
+## The interview answer: untrusted input
+- Never trust data that comes from the client side (here, the QR's **pn**). Resolve identity on the **server**, from the source of truth (the bank).
+- Show the verified result to the user **before** an irreversible action.
+
+**Words to say:** untrusted input, server-side validation, source of truth, confirmation step.
+
+## Follow-up questions
+
+**Why can't UPI just block fake QR codes?**
+A QR is plain text and the scammer's UPI ID is a real, valid account. The defences are the **verified name** before payment, the shop's sound box or confirmation, and fraud reporting on the receiving account.
+
+**Where else does this pattern show up?**
+Anywhere the client sends data you then act on: prices in a checkout request, user IDs in an API call, file names in an upload. Re-check them on the server.
+
+*The shop, UPI ID and app screen in the reel are illustrations.*

@@ -1,0 +1,30 @@
+---
+title: "#51 · Thank you Microsoft — the Microsoft 365 outage (12–13 Nov 2026)"
+description: Outlook, Teams calendars and Copilot down for 18+ hours. Servers failing health checks, traffic piling onto the rest, and the cascading failure pattern every backend interview asks about.
+reel: 51
+---
+
+> **Ek line yaad rakho:** ek server gira, uska load baaki pe, aur domino shuru.
+
+## What happened
+- **12 Nov 2026, 16:17 UTC:** Exchange Online starts failing (incident **EX1550543**, also **MO1550821**). Outlook (web, desktop, mobile), Teams calendar/scheduling, Copilot, Planner and parts of SharePoint are hit; Teams calls and chats mostly keep working.
+- **Scale:** about **130,000** Outlook reports on Downdetector at the peak (AP, via [MacRumors](https://www.macrumors.com/2026/11/13/major-microsoft-365-outage-continues/)); Japan reported impact on government IT systems.
+- **Duration:** still degraded **18+ hours** later on 13 Nov; Microsoft extended the email timeout window to **48 hours** so delayed mail isn't lost.
+- **Not a hack:** Microsoft says there is no indication of malicious or cyber activity ([Windows Latest](https://www.windowslatest.com/2026/11/13/was-the-microsoft-365-outage-a-hack-microsoft-says-no-it-was-its-own-servers-and-its-copilot-boss-regrets-it/)).
+
+## Why (Microsoft's updates so far)
+1. Servers began **failing automated health checks**; a process that sets up secure connections was overwhelmed.
+2. Failed servers were taken out → "servers being unexpectedly unavailable; **straining the remaining infrastructure**" ([Tom's Guide live updates](https://www.tomsguide.com/news/live/microsoft-outlook-down-live-updates-outage-11-12-26)).
+3. Remaining servers overloaded → more health-check failures → more servers out: a **cascading failure**.
+4. A **recent network configuration change** coincided with the start; Microsoft paused deployments, reverted it, and patched an authentication/routing component, then redistributed traffic worldwide ([Forbes](https://www.forbes.com/sites/kateoflahertyuk/2026/11/13/microsoft-outage-what-happened-and-what-to-do-next/), [CX Today](https://cxtoday.com/microsoft-outage-cut-agents-off-from-the-contact-center)).
+
+The final root cause will be in Microsoft's post-incident report.
+
+## The interview answer: cascading failure
+- **Load shedding:** when overloaded, reject extra work early (429/503) instead of falling over.
+- **Circuit breakers + retry budgets:** stop hammering sick dependencies; exponential backoff with jitter.
+- **Careful health checks:** don't eject too many servers at once (max-ejection percentage); separate liveness from readiness.
+- **Staged config rollout:** canary a config change to 1% of servers/one region; config is code.
+- **Headroom:** run with spare capacity so losing N servers doesn't overload the rest.
+
+**Words to say:** cascading failure, load shedding, circuit breaker, retry storm, max ejection, staged rollout.

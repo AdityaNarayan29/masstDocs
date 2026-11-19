@@ -29,6 +29,7 @@ export function SectionLayout({ section, children }: { section: SectionId; child
       nav={{ ...baseOptions.nav, mode: "top", children: <TrackLinks /> }}
       sidebar={{
         tabs,
+        prefetch: false,
         components: { Item: SidebarItem },
         footer: (
           <div className="flex items-center gap-1">

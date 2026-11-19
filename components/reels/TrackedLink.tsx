@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { IntentLink as Link } from "@/components/IntentLink";
 import { track } from "@vercel/analytics";
 import type { ComponentProps } from "react";
 

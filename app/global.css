@@ -145,6 +145,7 @@
 }
 .dg-caption {
   display: flex;
+  min-height: 3.1rem;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.25rem 0.6rem;
@@ -158,11 +159,55 @@
 .dg:has(.dg-caption)::after {
   display: none;
 }
-.dg:has(.dg-frame[data-overflow="start"]) .dg-caption::after {
+.dg:has(.dg-frame[data-overflow="start"]) .dg-caption:not(:has(.dg-share))::after,
+.dg:has(.dg-frame[data-overflow="start"]) .dg-share::before {
   content: "Scroll →";
-  margin-left: auto;
   font-weight: 600;
   color: var(--color-fd-muted-foreground);
+}
+.dg:has(.dg-frame[data-overflow="start"]) .dg-caption:not(:has(.dg-share))::after {
+  margin-left: auto;
+}
+.dg:has(.dg-frame[data-overflow="start"]) .dg-share::before {
+  margin-right: 0.9rem;
+}
+.dg-share {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-fd-border);
+  background: var(--color-fd-background);
+  color: var(--color-fd-foreground);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dg-share:hover {
+  border-color: var(--m-info);
+  color: var(--m-info);
+}
+/* "Link copied" toast (components/mdx/DiagramZoom.tsx). */
+.dg-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 60;
+  transform: translateX(-50%);
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--color-fd-foreground);
+  color: var(--color-fd-background);
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: var(--m-lift);
+  animation: dg-in 0.2s ease-out;
+}
+@media (max-width: 767px) {
+  .dg-toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
 .dg-caption-type {
   font-weight: 600;

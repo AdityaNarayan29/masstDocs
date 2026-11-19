@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { IntentLink as Link } from "@/components/IntentLink";
 import dynamic from "next/dynamic";
 import { useState, useRef, useEffect, useCallback } from "react";
 

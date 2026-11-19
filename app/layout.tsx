@@ -10,6 +10,7 @@ import { tokenCss } from "@/lib/diagram-theme.mjs";
 import { Analytics } from "@vercel/analytics/react";
 import CustomSearchDialog from "@/components/search/CustomSearchDialog";
 import { RouteProgress } from "@/components/ui/RouteProgress";
+import { IntentLinkProvider } from "@/components/IntentLink";
 
 // Masst Reels v2 type: one rounded family everywhere (diagrams too, via
 // --dg-font), plus a monospace face for code.
@@ -231,12 +232,14 @@ export default function Layout({ children }: { children: ReactNode }) {
             SearchDialog: CustomSearchDialog,
           }}
         >
+          <IntentLinkProvider>
           {children}
           <PWAInstallPrompt />
           <DiagramZoom />
           <MobileTabBar />
           {chatEnabled && <ChatWidget />}
           <Analytics />
+          </IntentLinkProvider>
         </RootProvider>
       </body>
     </html>

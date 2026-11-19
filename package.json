@@ -8,6 +8,7 @@
     "pre-render-mermaid:seo:skip-upload": "node scripts/pre-render-mermaid-seo.mjs --skip-upload",
     "generate-sitemap": "node scripts/pre-render-mermaid-seo.mjs --sitemap-only",
     "new-reel": "node scripts/new-reel.mjs",
+    "render-cards": "node scripts/render-diagram-cards.mjs",
     "build": "npm run pre-render-mermaid && next build",
     "build:seo": "npm run pre-render-mermaid:seo && next build",
     "dev": "npm run pre-render-mermaid && next dev --turbo",

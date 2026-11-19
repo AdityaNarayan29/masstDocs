@@ -79,6 +79,14 @@ Commands: `pnpm pre-render-mermaid` renders new or changed diagrams (about 5 sec
 
 `scripts/pre-render-mermaid-seo.mjs` separately makes branded PNGs for Google Images and Cloudinary (needs the Cloudinary variables in `.env`); it only adds PNG fields to the manifest.
 
+### Sharing diagrams
+
+Every diagram with SEO data (892) has its own page, `/d/<slug>` (`app/(home)/d/[slug]/page.tsx`; slugs from `lib/diagram-links.mjs`). Its link preview is a 1200×630 dark share card, `public/og/d/<slug>.png`, rendered by `pnpm render-cards` (Chrome, then a 256-colour PNG, about 23 KB each; `--only /hld/netflix` for one page, `--force` after a design change). Each figure's caption has a Share link to that page; `DiagramZoom.tsx` turns a click into the phone's share sheet or "copy link". Events: `diagram_share`, `diagram_download`.
+
+### Preloading
+
+Next.js normally preloads every link on screen, and each preload is a billed ISR read (18 per Netflix page view). `components/IntentLink.tsx` preloads only on hover, touch or focus; `IntentLinkProvider` in `app/layout.tsx` makes every Fumadocs link use it, and our own components import it instead of `next/link`.
+
 ## Search
 
 `app/api/search/route.ts` builds one Fumadocs search index over the `sd`, `hld`, `lld`, `dsa` and `ai` loaders. Each result is tagged with its section so the search dialog (`components/search/CustomSearchDialog.tsx`) can filter by section. Reel notes are not indexed yet.

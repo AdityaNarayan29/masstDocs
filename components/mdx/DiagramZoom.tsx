@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { track } from "@vercel/analytics";
 
 // "Actual size" in the enlarged view, as a multiple of the natural size.
 const FULL = 1.35;
@@ -37,11 +38,45 @@ async function loadDiagram(canvas: HTMLElement) {
   if (!canvas.firstElementChild) canvas.innerHTML = svg;
 }
 
+function toast(text: string) {
+  document.querySelector(".dg-toast")?.remove();
+  const el = document.createElement("div");
+  el.className = "dg-toast";
+  el.setAttribute("role", "status");
+  el.textContent = text;
+  document.body.append(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/** Share a diagram's own page: the phone's share sheet, or copy the link. */
+async function shareDiagram(link: HTMLAnchorElement) {
+  const url = new URL(link.getAttribute("href")!, location.origin).toString();
+  const title = link.dataset.title ?? document.title;
+  const page = location.pathname;
+  if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+    try {
+      await navigator.share({ title, url });
+      track("diagram_share", { page, url, via: "sheet" });
+    } catch {
+      // Closed the sheet: nothing to do.
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Link copied. Paste it anywhere to show this diagram.");
+    track("diagram_share", { page, url, via: "copy" });
+  } catch {
+    location.href = url; // No clipboard access: open the diagram's page instead.
+  }
+}
+
 /**
  * Site-wide behaviour for diagrams. Pages carry sized placeholders
  * (lib/remark-mermaid-inline.mjs); this:
  * - fetches each SVG from public/mermaid-cache/ shortly before it scrolls
  *   into view and inlines it, so the theme's CSS variables apply;
+ * - Share links copy the diagram's /d/<slug> URL (or open the share sheet);
  * - marks frames that overflow sideways, so CSS can fade the edge and show
  *   a scroll hint;
  * - one dialog that enlarges any diagram: opens fitted to the screen, click
@@ -111,6 +146,13 @@ export function DiagramZoom() {
     const onClick = async (e: MouseEvent) => {
       const target = e.target as Element | null;
       if (!target || target.closest(".dg-dialog")) return;
+      const share = target.closest<HTMLAnchorElement>("a.dg-share");
+      if (share) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // open in new tab etc.
+        e.preventDefault();
+        void shareDiagram(share);
+        return;
+      }
       const trigger = target.closest(".dg-zoom, .dg .dg-canvas");
       const figure = trigger?.closest<HTMLElement>(".dg");
       const canvas = figure?.querySelector<HTMLElement>(".dg-canvas");

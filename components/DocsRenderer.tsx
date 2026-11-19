@@ -5,7 +5,7 @@ import {
   DocsTitle,
 } from "fumadocs-ui/page";
 import { readFileSync } from "fs";
-import Link from "next/link";
+import { IntentLink as Link } from "@/components/IntentLink";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { findNeighbour } from "fumadocs-core/server";

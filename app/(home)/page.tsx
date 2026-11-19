@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentLink as Link } from "@/components/IntentLink";
 import { HeroDiagram } from "@/components/home/HeroDiagram";
 import { FeatureDiagram } from "@/components/home/FeatureDiagram";
 import { ContinueCard, SectionProgress, TodaysPractice } from "@/components/home/HomeCards";
